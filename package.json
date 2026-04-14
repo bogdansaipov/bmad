@@ -1,0 +1,14 @@
+{
+  "name": "handrix",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.30.3",
+  "scripts": {
+    "bootstrap": "./scripts/bootstrap.sh",
+    "dev": "./scripts/dev.sh",
+    "build": "pnpm -r build",
+    "lint": "pnpm --filter handrix-web lint && pnpm --filter handrix-api lint",
+    "test": "./scripts/test.sh",
+    "typecheck": "pnpm --filter @handrix/shared-contracts build && pnpm --filter handrix-web typecheck && pnpm --filter handrix-api typecheck"
+  }
+}

@@ -1,5 +1,5 @@
 # generated: 2026-04-08 15:44:19 +0500
-# last_updated: 2026-04-08 15:52:17 +0500
+# last_updated: 2026-04-14 18:16:37 +0500
 # project: demo1
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-08 15:44:19 +0500
-last_updated: 2026-04-08 15:52:17 +0500
+last_updated: 2026-04-14 18:59:00 +0500
 project: demo1
 project_key: NOKEY
 tracking_system: file-system
@@ -43,12 +43,12 @@ story_location: /home/bogdansaipov/Projects/demos/demo1/_bmad-output/implementat
 
 development_status:
   epic-1: in-progress
-  1-1-set-up-initial-project-from-starter-template: ready-for-dev
-  1-2-let-customers-identify-a-supported-plumbing-issue: backlog
-  1-3-capture-clarifying-answers-and-service-location: backlog
-  1-4-show-immediate-containment-guidance: backlog
-  1-5-review-eta-pricing-expectations-and-request-summary: backlog
-  1-6-submit-an-anonymous-service-request: backlog
+  1-1-set-up-initial-project-from-starter-template: review
+  1-2-let-customers-identify-a-supported-plumbing-issue: review
+  1-3-capture-clarifying-answers-and-service-location: review
+  1-4-show-immediate-containment-guidance: review
+  1-5-review-eta-pricing-expectations-and-request-summary: review
+  1-6-submit-an-anonymous-service-request: review
   epic-1-retrospective: optional
 
   epic-2: backlog
