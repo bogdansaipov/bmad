@@ -147,8 +147,56 @@ describe('API integration (e2e)', () => {
     });
 
     expect(response.data.publicId).toMatch(/^hrx_/);
-    expect(response.data.lifecycleState).toBe('intake_in_review');
+    expect(response.data).not.toHaveProperty('lifecycleState');
+    expect(response.data.publicStatusLabel).toBe('Request received');
     expect(response.data.trackingCredential.token).toContain('.');
+    expect(typeof response.meta?.generatedAt).toBe('string');
+  });
+
+  it('returns tracked request status through the Nest application module', async () => {
+    const createdRequest = await requestsController.createRequest({
+      issueTypeId: 'slow-drain',
+      answers: [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: 'Bathroom sink on the second floor',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'e2e-status-lookup-1',
+    });
+
+    const response = await requestsController.createRequestStatusLookup({
+      publicId: createdRequest.data.publicId,
+      trackingToken: createdRequest.data.trackingCredential.token,
+    });
+
+    expect(response.data.publicId).toBe(createdRequest.data.publicId);
+    expect(response.data.publicStatusLabel).toBe('Request received');
+    expect(response.data.nextStepDetail).toContain('reviewing your request');
+    expect(response.data.latestChangeSummary).toContain(
+      'Customer confirmed the anonymous request',
+    );
+    expect(response.data.timeline).toEqual([
+      expect.objectContaining({
+        publicStatus: 'received',
+        publicStatusLabel: 'Request received',
+        isCurrent: true,
+      }),
+    ]);
     expect(typeof response.meta?.generatedAt).toBe('string');
   });
 

@@ -7,24 +7,28 @@ import {
   type PublicRequestStatus,
   type RequestReviewRequest,
   type RequestReviewSummary,
-  type RequestTrackingCredential,
+  type RequestStatusLookupRequest,
+  type RequestStatusResponse,
   type ServiceLocation,
   supportedServiceAreaPostalCodes,
 } from '@handrix/shared-contracts';
 import { Injectable } from '@nestjs/common';
-import { createHash, createHmac, randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { ReferenceDataService } from '../reference-data/reference-data.service';
+import {
+  issueRequestTrackingCredential,
+  validateRequestTrackingCredential,
+} from './request-tracking-credential';
 import {
   RequestStoreService,
   type PersistedRequestHistoryEntry,
   type PersistedServiceRequest,
   type RequestLifecycleState,
 } from './request-store.service';
+import { resolvePublicRequestStatusPresentation } from './request-status.presenter';
+import { buildRequestStatusResponse } from './request-status-timeline.presenter';
 
 type AnswerMap = Record<string, ClarifyingAnswer['value']>;
-const TRACKING_TOKEN_SECRET =
-  process.env.HANDRIX_REQUEST_TOKEN_SECRET?.trim() ||
-  'handrix-local-tracking-secret';
 
 @Injectable()
 export class RequestsService {
@@ -246,6 +250,30 @@ export class RequestsService {
     return this.toCreateRequestResponse(result.record);
   }
 
+  async getRequestStatus(
+    request: RequestStatusLookupRequest,
+  ): Promise<RequestStatusResponse> {
+    const persistedRequest = await this.requestStoreService.getByPublicId(
+      request.publicId,
+    );
+
+    if (!persistedRequest) {
+      throw new Error('This request status is not available right now.');
+    }
+
+    try {
+      validateRequestTrackingCredential({
+        publicId: request.publicId,
+        token: request.trackingToken,
+        expectedToken: persistedRequest.trackingCredential.token,
+      });
+    } catch {
+      throw new Error('This request status is not available right now.');
+    }
+
+    return this.toRequestStatusResponse(persistedRequest);
+  }
+
   private toAnswerMap(answers: ClarifyingAnswer[]): AnswerMap {
     return answers.reduce<AnswerMap>((accumulator, answer) => {
       accumulator[answer.questionId] = answer.value;
@@ -300,40 +328,21 @@ export class RequestsService {
       .digest('hex');
   }
 
-  private createTrackingCredential(
-    publicId: string,
-    issuedAt: string,
-  ): RequestTrackingCredential {
-    const expiresAt = new Date(
-      new Date(issuedAt).getTime() + 1000 * 60 * 60 * 24 * 30,
-    ).toISOString();
-    const payloadBase64 = Buffer.from(
-      JSON.stringify({
-        publicId,
-        issuedAt,
-        expiresAt,
-        scope: 'request-status',
-      }),
-    ).toString('base64url');
-    const signature = createHmac('sha256', TRACKING_TOKEN_SECRET)
-      .update(payloadBase64)
-      .digest('base64url');
-
-    return {
-      token: `${payloadBase64}.${signature}`,
-      expiresAt,
-    };
-  }
-
   private toCreateRequestResponse(
     persistedRequest: PersistedServiceRequest,
   ): CreateRequestResponse {
+    const publicStatusPresentation = resolvePublicRequestStatusPresentation({
+      lifecycleState: persistedRequest.lifecycleState,
+      publicStatus: persistedRequest.publicStatus,
+    });
+
     return {
       publicId: persistedRequest.publicId,
       issueTypeId: persistedRequest.issueTypeId,
       issueLabel: persistedRequest.issueLabel,
-      lifecycleState: persistedRequest.lifecycleState,
       publicStatus: persistedRequest.publicStatus,
+      publicStatusLabel: publicStatusPresentation.publicStatusLabel,
+      publicStatusDetail: publicStatusPresentation.publicStatusDetail,
       createdAt: persistedRequest.createdAt,
       confirmationHeadline: 'Your request has been received.',
       confirmationDetail:
@@ -342,5 +351,58 @@ export class RequestsService {
         'You can come back to track this request later without creating an account.',
       trackingCredential: persistedRequest.trackingCredential,
     };
+  }
+
+  private createTrackingCredential(publicId: string, issuedAt: string) {
+    return issueRequestTrackingCredential(publicId, issuedAt);
+  }
+
+  private toRequestStatusResponse(
+    persistedRequest: PersistedServiceRequest,
+  ): RequestStatusResponse {
+    return buildRequestStatusResponse(
+      persistedRequest,
+      this.getTrackingStatusContent(persistedRequest.publicStatus),
+    );
+  }
+
+  private getTrackingStatusContent(publicStatus: PublicRequestStatus) {
+    switch (publicStatus) {
+      case 'received':
+      case 'inReview':
+        return {
+          nextStepDetail:
+            'Handrix is reviewing your request details and service location before the next update.',
+        };
+      case 'dispatching':
+        return {
+          nextStepDetail:
+            'Handrix is actively moving this request forward and will share the next service update as progress changes.',
+        };
+      case 'delayed':
+        return {
+          nextStepDetail:
+            'This request is still active, but the next service update may take longer than originally expected while Handrix works through the delay.',
+          fallbackGuidance:
+            'If timing changes create a new concern, use the next Handrix update to decide whether the current request should continue or shift to a safer fallback path.',
+        };
+      case 'needsClarification':
+        return {
+          nextStepDetail:
+            'This request needs one more clarification before it can continue, and the next update should explain what to do.',
+        };
+      case 'completed':
+        return {
+          nextStepDetail:
+            'This request has reached its completed state, so no additional action is needed right now.',
+        };
+      case 'unavailable':
+        return {
+          nextStepDetail:
+            'This request cannot continue through the current service path, and the next update should explain the safest fallback option.',
+          fallbackGuidance:
+            'Review the fallback path carefully before deciding whether to start a new request or seek a different support option.',
+        };
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,10 +10,9 @@ describe('RequestsService', () => {
   const testDirectory = mkdtempSync(
     join(tmpdir(), 'handrix-requests-service-'),
   );
-  const service = new RequestsService(
-    new ReferenceDataService(),
-    RequestStoreService.forFilePath(join(testDirectory, 'requests.json')),
-  );
+  const storePath = join(testDirectory, 'requests.json');
+  const requestStore = RequestStoreService.forFilePath(storePath);
+  const service = new RequestsService(new ReferenceDataService(), requestStore);
 
   it('classifies in-scope intake details as serviceable', () => {
     const result = service.evaluateIntake(
@@ -186,8 +185,11 @@ describe('RequestsService', () => {
     });
 
     expect(result.publicId).toMatch(/^hrx_/);
-    expect(result.lifecycleState).toBe('intake_in_review');
     expect(result.publicStatus).toBe('received');
+    expect(result.publicStatusLabel).toBe('Request received');
+    expect(result.publicStatusDetail).toContain(
+      'reviewing your issue details and service location',
+    );
     expect(result.trackingCredential.token).toContain('.');
   });
 
@@ -224,6 +226,450 @@ describe('RequestsService', () => {
     expect(second.trackingCredential.token).toBe(
       first.trackingCredential.token,
     );
+  });
+
+  it('derives confirmation status messaging from the persisted public status', async () => {
+    const request = {
+      issueTypeId: 'under-sink-leak' as const,
+      answers: [
+        { questionId: 'containedToSink', value: true },
+        { questionId: 'activePooling', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '42 Court Street',
+        city: 'Brooklyn',
+        postalCode: '11215',
+        unitOrAccessNote: 'Buzz 2A',
+        locationDetails: 'Water under the kitchen sink',
+      },
+      classification: {
+        issueTypeId: 'under-sink-leak' as const,
+        serviceabilityStatus: 'serviceable' as const,
+        nextStep: 'continueToContainment' as const,
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'review-submit-derived-status',
+    };
+
+    await service.createAnonymousRequest(request);
+
+    const persistedStore = JSON.parse(readFileSync(storePath, 'utf8')) as {
+      requests: Array<{
+        idempotencyKey: string;
+        lifecycleState: string;
+        publicStatus: string;
+      }>;
+    };
+
+    const persistedRequest = persistedStore.requests.find(
+      (entry) => entry.idempotencyKey === request.idempotencyKey,
+    );
+
+    expect(persistedRequest).toBeDefined();
+
+    persistedRequest!.lifecycleState = 'dispatch_in_progress';
+    persistedRequest!.publicStatus = 'dispatching';
+    writeFileSync(
+      storePath,
+      `${JSON.stringify(persistedStore, null, 2)}\n`,
+      'utf8',
+    );
+
+    const replayed = await service.createAnonymousRequest(request);
+
+    expect(replayed.publicStatus).toBe('dispatching');
+    expect(replayed.publicStatusLabel).toBe('Dispatch in progress');
+    expect(replayed.publicStatusDetail).toContain(
+      'A Handrix team member is actively moving this request forward',
+    );
+  });
+
+  it('rejects persisted requests that mix contradictory lifecycle and public status values', async () => {
+    const request = {
+      issueTypeId: 'under-sink-leak' as const,
+      answers: [
+        { questionId: 'containedToSink', value: true },
+        { questionId: 'activePooling', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '42 Court Street',
+        city: 'Brooklyn',
+        postalCode: '11215',
+        unitOrAccessNote: 'Buzz 2A',
+        locationDetails: 'Water under the kitchen sink',
+      },
+      classification: {
+        issueTypeId: 'under-sink-leak' as const,
+        serviceabilityStatus: 'serviceable' as const,
+        nextStep: 'continueToContainment' as const,
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'review-submit-invalid-status-combination',
+    };
+
+    await service.createAnonymousRequest(request);
+
+    const persistedStore = JSON.parse(readFileSync(storePath, 'utf8')) as {
+      requests: Array<{
+        idempotencyKey: string;
+        lifecycleState: string;
+        publicStatus: string;
+      }>;
+    };
+
+    const persistedRequest = persistedStore.requests.find(
+      (entry) => entry.idempotencyKey === request.idempotencyKey,
+    );
+
+    expect(persistedRequest).toBeDefined();
+
+    persistedRequest!.lifecycleState = 'dispatch_in_progress';
+    persistedRequest!.publicStatus = 'received';
+    writeFileSync(
+      storePath,
+      `${JSON.stringify(persistedStore, null, 2)}\n`,
+      'utf8',
+    );
+
+    await expect(service.createAnonymousRequest(request)).rejects.toThrow(
+      'Unsupported public status "received" for lifecycle state "dispatch_in_progress".',
+    );
+  });
+
+  it('returns the current customer-safe request status for a valid tracking credential', async () => {
+    const createdRequest = await service.createAnonymousRequest({
+      issueTypeId: 'slow-drain',
+      answers: [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: 'Bathroom sink on the second floor',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'review-status-lookup-success',
+    });
+
+    await requestStore.appendHistoryEntry({
+      publicId: createdRequest.publicId,
+      lifecycleState: 'dispatch_in_progress',
+      publicStatus: 'dispatching',
+      createdAt: '2026-04-20T08:15:00.000Z',
+      note: 'A Handrix team member is now coordinating the dispatch step.',
+    });
+
+    const requestStatus = await service.getRequestStatus({
+      publicId: createdRequest.publicId,
+      trackingToken: createdRequest.trackingCredential.token,
+    });
+
+    expect(requestStatus).toMatchObject({
+      publicId: createdRequest.publicId,
+      issueLabel: 'Slow drain',
+      publicStatus: 'dispatching',
+      publicStatusLabel: 'Dispatch in progress',
+      latestChangeSummary:
+        'A Handrix team member is now coordinating the dispatch step.',
+    });
+    expect(requestStatus.nextStepDetail).toContain(
+      'actively moving this request forward',
+    );
+    expect(requestStatus.updatedAt).toBe('2026-04-20T08:15:00.000Z');
+    expect(requestStatus.timeline).toEqual([
+      expect.objectContaining({
+        publicStatus: 'received',
+        publicStatusLabel: 'Request received',
+        isCurrent: false,
+      }),
+      expect.objectContaining({
+        publicStatus: 'dispatching',
+        publicStatusLabel: 'Dispatch in progress',
+        changeSummary:
+          'A Handrix team member is now coordinating the dispatch step.',
+        isCurrent: true,
+      }),
+    ]);
+    expect(requestStatus.recoveryState).toBeNull();
+  });
+
+  it('returns a dedicated clarification recovery state for tracked requests that need more detail', async () => {
+    const createdRequest = await service.createAnonymousRequest({
+      issueTypeId: 'slow-drain',
+      answers: [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: 'Bathroom sink on the second floor',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'review-status-lookup-clarification',
+    });
+
+    await requestStore.appendHistoryEntry({
+      publicId: createdRequest.publicId,
+      lifecycleState: 'clarification_needed',
+      publicStatus: 'needsClarification',
+      createdAt: '2026-04-20T09:10:00.000Z',
+      note: 'We need one more confirmation about fixture access before dispatch can continue.',
+    });
+
+    const requestStatus = await service.getRequestStatus({
+      publicId: createdRequest.publicId,
+      trackingToken: createdRequest.trackingCredential.token,
+    });
+
+    expect(requestStatus.publicStatus).toBe('needsClarification');
+    expect(requestStatus.recoveryState).toEqual(
+      expect.objectContaining({
+        kind: 'clarification',
+        nextActionLabel: 'Confirm the missing detail',
+      }),
+    );
+    expect(requestStatus.nextStepDetail).toContain(
+      'needs one more clarification',
+    );
+  });
+
+  it('returns a dedicated delayed recovery state instead of overloading dispatching', async () => {
+    const createdRequest = await service.createAnonymousRequest({
+      issueTypeId: 'slow-drain',
+      answers: [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: 'Bathroom sink on the second floor',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'review-status-lookup-delayed',
+    });
+
+    await requestStore.appendHistoryEntry({
+      publicId: createdRequest.publicId,
+      lifecycleState: 'dispatch_in_progress',
+      publicStatus: 'dispatching',
+      createdAt: '2026-04-20T09:00:00.000Z',
+      note: 'Dispatch coordination has started for this request.',
+    });
+
+    await requestStore.appendHistoryEntry({
+      publicId: createdRequest.publicId,
+      lifecycleState: 'dispatch_delayed',
+      publicStatus: 'delayed',
+      createdAt: '2026-04-20T09:25:00.000Z',
+      note: 'Arrival timing is taking longer than first expected while the route is rechecked.',
+    });
+
+    const requestStatus = await service.getRequestStatus({
+      publicId: createdRequest.publicId,
+      trackingToken: createdRequest.trackingCredential.token,
+    });
+
+    expect(requestStatus.publicStatus).toBe('delayed');
+    expect(requestStatus.publicStatusLabel).toBe('Dispatch delayed');
+    expect(requestStatus.recoveryState).toEqual(
+      expect.objectContaining({
+        kind: 'delay',
+        title: 'This request is still moving, but the timing has changed.',
+      }),
+    );
+    expect(requestStatus.timeline).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          publicStatus: 'dispatching',
+          isCurrent: false,
+        }),
+        expect.objectContaining({
+          publicStatus: 'delayed',
+          isCurrent: true,
+        }),
+      ]),
+    );
+  });
+
+  it('returns fallback guidance for unavailable tracked requests', async () => {
+    const createdRequest = await service.createAnonymousRequest({
+      issueTypeId: 'slow-drain',
+      answers: [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: 'Bathroom sink on the second floor',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'review-status-lookup-unavailable',
+    });
+
+    await requestStore.appendHistoryEntry({
+      publicId: createdRequest.publicId,
+      lifecycleState: 'unfulfilled',
+      publicStatus: 'unavailable',
+      createdAt: '2026-04-20T10:05:00.000Z',
+      note: 'This service path is no longer available for the current request details.',
+    });
+
+    const requestStatus = await service.getRequestStatus({
+      publicId: createdRequest.publicId,
+      trackingToken: createdRequest.trackingCredential.token,
+    });
+
+    expect(requestStatus.publicStatus).toBe('unavailable');
+    expect(requestStatus.recoveryState).toEqual(
+      expect.objectContaining({
+        kind: 'unavailable',
+      }),
+    );
+    expect(requestStatus.recoveryState?.fallbackGuidance).toContain(
+      'Review the fallback path carefully',
+    );
+  });
+
+  it('rejects request-status lookup when the tracking token targets a different request', async () => {
+    const first = await service.createAnonymousRequest({
+      issueTypeId: 'slow-drain',
+      answers: [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: 'Bathroom sink on the second floor',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'review-status-lookup-first',
+    });
+    const second = await service.createAnonymousRequest({
+      issueTypeId: 'under-sink-leak',
+      answers: [
+        { questionId: 'containedToSink', value: true },
+        { questionId: 'activePooling', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '42 Court Street',
+        city: 'Brooklyn',
+        postalCode: '11215',
+        unitOrAccessNote: 'Buzz 2A',
+        locationDetails: 'Water under the kitchen sink',
+      },
+      classification: {
+        issueTypeId: 'under-sink-leak',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'review-status-lookup-second',
+    });
+
+    await expect(
+      service.getRequestStatus({
+        publicId: first.publicId,
+        trackingToken: second.trackingCredential.token,
+      }),
+    ).rejects.toThrow('This request status is not available right now.');
+  });
+
+  it('rejects request-status lookup when the tracking token is tampered with', async () => {
+    const createdRequest = await service.createAnonymousRequest({
+      issueTypeId: 'slow-drain',
+      answers: [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: 'Bathroom sink on the second floor',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'review-status-lookup-tampered',
+    });
+
+    await expect(
+      service.getRequestStatus({
+        publicId: createdRequest.publicId,
+        trackingToken: `${createdRequest.trackingCredential.token}tampered`,
+      }),
+    ).rejects.toThrow('This request status is not available right now.');
   });
 
   afterAll(async () => {

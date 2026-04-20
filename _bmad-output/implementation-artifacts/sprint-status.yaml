@@ -35,28 +35,28 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-08 15:44:19 +0500
-last_updated: 2026-04-14 18:59:00 +0500
+last_updated: 2026-04-20 13:30:00 +0500
 project: demo1
 project_key: NOKEY
 tracking_system: file-system
 story_location: /home/bogdansaipov/Projects/demos/demo1/_bmad-output/implementation-artifacts
 
 development_status:
-  epic-1: in-progress
-  1-1-set-up-initial-project-from-starter-template: review
-  1-2-let-customers-identify-a-supported-plumbing-issue: review
-  1-3-capture-clarifying-answers-and-service-location: review
-  1-4-show-immediate-containment-guidance: review
-  1-5-review-eta-pricing-expectations-and-request-summary: review
-  1-6-submit-an-anonymous-service-request: review
-  epic-1-retrospective: optional
+  epic-1: done
+  1-1-set-up-initial-project-from-starter-template: done
+  1-2-let-customers-identify-a-supported-plumbing-issue: done
+  1-3-capture-clarifying-answers-and-service-location: done
+  1-4-show-immediate-containment-guidance: done
+  1-5-review-eta-pricing-expectations-and-request-summary: done
+  1-6-submit-an-anonymous-service-request: done
+  epic-1-retrospective: done
 
-  epic-2: backlog
-  2-1-show-a-clear-request-confirmation-state: backlog
-  2-2-define-and-expose-customer-safe-request-statuses: backlog
-  2-3-let-customers-revisit-and-track-their-request: backlog
-  2-4-present-a-live-request-status-timeline: backlog
-  2-5-handle-clarification-delay-and-unavailable-recovery-states: backlog
+  epic-2: in-progress
+  2-1-show-a-clear-request-confirmation-state: review
+  2-2-define-and-expose-customer-safe-request-statuses: review
+  2-3-let-customers-revisit-and-track-their-request: review
+  2-4-present-a-live-request-status-timeline: review
+  2-5-handle-clarification-delay-and-unavailable-recovery-states: review
   2-6-preserve-customer-visible-request-history: backlog
   epic-2-retrospective: optional
 

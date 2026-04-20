@@ -16,6 +16,7 @@ export type RequestLifecycleState =
   | 'awaiting_confirmation'
   | 'intake_in_review'
   | 'dispatch_in_progress'
+  | 'dispatch_delayed'
   | 'clarification_needed'
   | 'completed'
   | 'unfulfilled';
@@ -51,6 +52,14 @@ type RequestStoreData = {
 type RequestStoreCreateResult =
   | { kind: 'created'; record: PersistedServiceRequest }
   | { kind: 'existing'; record: PersistedServiceRequest };
+
+type RequestHistoryAppendInput = {
+  publicId: string;
+  lifecycleState: RequestLifecycleState;
+  publicStatus: PublicRequestStatus;
+  createdAt: string;
+  note: string;
+};
 
 function getDefaultStorePath() {
   if (process.env.HANDRIX_REQUEST_STORE_PATH?.trim()) {
@@ -117,6 +126,46 @@ export class RequestStoreService {
   async listRequests() {
     const store = await this.readStore();
     return store.requests;
+  }
+
+  async getByPublicId(publicId: string) {
+    const store = await this.readStore();
+    return (
+      store.requests.find((request) => request.publicId === publicId) ?? null
+    );
+  }
+
+  async appendHistoryEntry(input: RequestHistoryAppendInput) {
+    return this.withLock(async () => {
+      const store = await this.readStore();
+      const requestIndex = store.requests.findIndex(
+        (request) => request.publicId === input.publicId,
+      );
+
+      if (requestIndex === -1) {
+        return null;
+      }
+
+      const request = store.requests[requestIndex];
+      const nextHistoryEntry: PersistedRequestHistoryEntry = {
+        lifecycleState: input.lifecycleState,
+        publicStatus: input.publicStatus,
+        createdAt: input.createdAt,
+        note: input.note,
+      };
+
+      const updatedRequest: PersistedServiceRequest = {
+        ...request,
+        lifecycleState: input.lifecycleState,
+        publicStatus: input.publicStatus,
+        history: [...request.history, nextHistoryEntry],
+      };
+
+      store.requests[requestIndex] = updatedRequest;
+      await this.writeStore(store);
+
+      return updatedRequest;
+    });
   }
 
   private async withLock<T>(operation: () => Promise<T>) {

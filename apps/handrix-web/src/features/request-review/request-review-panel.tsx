@@ -1,3 +1,4 @@
+import type { SavedTrackedRequest } from '../request-tracking/request-tracking-storage'
 import type {
   CreateRequestResponse,
   RequestReviewEditTarget,
@@ -9,10 +10,13 @@ type RequestReviewPanelProps = {
   onEdit: (target: RequestReviewEditTarget) => void
   onBack: () => void
   onConfirm: () => void
+  onDone: () => void
+  onTrackRequest: () => void
   confirmationState: 'idle' | 'submitting' | 'error'
   confirmationError?: string
   confirmationRecoveryHint?: string
   confirmedRequest: CreateRequestResponse | null
+  savedTrackedRequest: SavedTrackedRequest | null
 }
 
 export function RequestReviewPanel({
@@ -20,21 +24,37 @@ export function RequestReviewPanel({
   onEdit,
   onBack,
   onConfirm,
+  onDone,
+  onTrackRequest,
   confirmationState,
   confirmationError,
   confirmationRecoveryHint,
   confirmedRequest,
+  savedTrackedRequest,
 }: RequestReviewPanelProps) {
   if (confirmedRequest) {
     return (
-      <section className="panel review-panel" aria-live="polite">
-        <p className="next-step-kicker">Request confirmed</p>
+      <section className="panel review-panel confirmation-panel" aria-live="polite">
+        <p className="next-step-kicker">Request received</p>
         <h2>{confirmedRequest.confirmationHeadline}</h2>
         <p className="guided-copy">{confirmedRequest.confirmationDetail}</p>
 
-        <div className="review-sections" aria-label="Confirmed request details">
+        <div className="review-sections confirmation-panel__sections">
+          <article className="review-section-card confirmation-status-card">
+            <p className="next-step-kicker">Current status</p>
+            <h3>{confirmedRequest.publicStatusLabel}</h3>
+            <p>{confirmedRequest.publicStatusDetail}</p>
+          </article>
+
           <article className="review-section-card">
-            <div className="response-summary">
+            <div className="review-section-card__header">
+              <div>
+                <p className="next-step-kicker">Request summary</p>
+                <h3>We have the details we need to keep this moving.</h3>
+              </div>
+            </div>
+
+            <div className="response-summary" aria-label="Confirmed request details">
               <div className="response-summary__item">
                 <span className="response-summary__question">Request ID</span>
                 <span className="response-summary__answer">{confirmedRequest.publicId}</span>
@@ -45,9 +65,22 @@ export function RequestReviewPanel({
               </div>
               <div className="response-summary__item">
                 <span className="response-summary__question">Current status</span>
-                <span className="response-summary__answer">{confirmedRequest.publicStatus}</span>
+                <span className="response-summary__answer">
+                  {confirmedRequest.publicStatusLabel}
+                </span>
               </div>
             </div>
+
+            <p className="helper-copy">
+              Keep this request ID handy in case you want to check progress later without
+              creating an account.
+            </p>
+            {savedTrackedRequest ? (
+              <p className="helper-copy">
+                This device can reopen the latest saved request status without asking you to
+                re-enter the confirmation details.
+              </p>
+            ) : null}
           </article>
         </div>
 
@@ -56,10 +89,19 @@ export function RequestReviewPanel({
           <p className="guided-copy">{confirmedRequest.nextStepDetail}</p>
           <ul className="review-bullets">
             <li>Handrix saved this request without asking you to create an account.</li>
-            <li>Keep this request ID handy for the next tracking step.</li>
-            <li>Your signed tracking credential is now stored for the app handoff.</li>
+            <li>Our team reviews the request details and service location before the next update.</li>
+            <li>You can return later with this request ID to check progress.</li>
           </ul>
         </article>
+
+        <div className="action-row">
+          <button type="button" className="secondary-action" onClick={onDone}>
+            Back to issue list
+          </button>
+          <button type="button" className="primary-action" onClick={onTrackRequest}>
+            Open request status
+          </button>
+        </div>
       </section>
     )
   }

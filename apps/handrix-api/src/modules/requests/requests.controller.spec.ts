@@ -109,7 +109,154 @@ describe('RequestsController', () => {
 
     expect(response.data.publicId).toMatch(/^hrx_/);
     expect(response.data.publicStatus).toBe('received');
+    expect(response.data.publicStatusLabel).toBe('Request received');
+    expect(response.data).not.toHaveProperty('lifecycleState');
     expect(response.data.trackingCredential.token).toContain('.');
+  });
+
+  it('returns a customer-safe tracked request status for a valid tracking identity', async () => {
+    const controller = buildController();
+    const createdRequest = await controller.createRequest({
+      issueTypeId: 'slow-drain',
+      answers: [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: 'Bathroom sink on the second floor',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'controller-status-lookup-1',
+    });
+
+    const response = await controller.createRequestStatusLookup({
+      publicId: createdRequest.data.publicId,
+      trackingToken: createdRequest.data.trackingCredential.token,
+    });
+
+    expect(response.data.publicId).toBe(createdRequest.data.publicId);
+    expect(response.data.issueLabel).toBe('Slow drain');
+    expect(response.data.publicStatusLabel).toBe('Request received');
+    expect(response.data.latestChangeSummary).toContain(
+      'Customer confirmed the anonymous request',
+    );
+    expect(response.data.timeline).toEqual([
+      expect.objectContaining({
+        publicStatus: 'received',
+        publicStatusLabel: 'Request received',
+        isCurrent: true,
+      }),
+    ]);
+    expect(response.data.recoveryState).toBeNull();
+    expect(response.data).not.toHaveProperty('lifecycleState');
+  });
+
+  it('returns recovery-state details for delayed tracked requests without leaking lifecycle internals', async () => {
+    const store = RequestStoreService.forFilePath(
+      join(testDirectory, 'controller-recovery.json'),
+    );
+    const controller = new RequestsController(
+      new RequestsService(new ReferenceDataService(), store),
+    );
+    const createdRequest = await controller.createRequest({
+      issueTypeId: 'slow-drain',
+      answers: [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: 'Bathroom sink on the second floor',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'controller-status-lookup-delayed',
+    });
+
+    await store.appendHistoryEntry({
+      publicId: createdRequest.data.publicId,
+      lifecycleState: 'dispatch_delayed',
+      publicStatus: 'delayed',
+      createdAt: '2026-04-20T11:10:00.000Z',
+      note: 'Arrival timing is taking longer than first expected while the route is rechecked.',
+    });
+
+    const response = await controller.createRequestStatusLookup({
+      publicId: createdRequest.data.publicId,
+      trackingToken: createdRequest.data.trackingCredential.token,
+    });
+
+    expect(response.data.publicStatus).toBe('delayed');
+    expect(response.data.recoveryState).toEqual(
+      expect.objectContaining({
+        kind: 'delay',
+      }),
+    );
+    expect(response.data).not.toHaveProperty('lifecycleState');
+  });
+
+  it('rejects invalid tracking identities without leaking request details', async () => {
+    const controller = buildController();
+    const createdRequest = await controller.createRequest({
+      issueTypeId: 'slow-drain',
+      answers: [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: 'Bathroom sink on the second floor',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'controller-status-lookup-2',
+    });
+
+    await expect(
+      controller.createRequestStatusLookup({
+        publicId: createdRequest.data.publicId,
+        trackingToken: 'not-a-valid-token',
+      }),
+    ).rejects.toMatchObject({
+      response: {
+        error: {
+          code: 'REQUEST_STATUS_LOOKUP_REJECTED',
+          message: 'We could not open that request status right now.',
+        },
+      },
+    });
   });
 
   afterAll(async () => {

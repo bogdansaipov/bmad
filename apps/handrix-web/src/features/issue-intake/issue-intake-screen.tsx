@@ -25,6 +25,13 @@ import {
   loadIssueTypes,
 } from './issue-types-api'
 import { IssueSelectionCard } from './issue-selection-card'
+import type { SavedTrackedRequest } from '../request-tracking/request-tracking-storage'
+
+type IssueIntakeScreenProps = {
+  savedTrackedRequest: SavedTrackedRequest | null
+  onRememberTrackedRequest: (request: CreateRequestResponse) => void
+  onOpenTracking: (request: CreateRequestResponse | SavedTrackedRequest) => void
+}
 
 type FlowStep = 'select' | 'questions' | 'location' | 'guidance' | 'review'
 type LoadStatus = 'loading' | 'ready' | 'error'
@@ -50,7 +57,11 @@ function createIdempotencyKey() {
   return `request-${Date.now()}-${Math.round(Math.random() * 1_000_000)}`
 }
 
-export function IssueIntakeScreen() {
+export function IssueIntakeScreen({
+  savedTrackedRequest,
+  onRememberTrackedRequest,
+  onOpenTracking,
+}: IssueIntakeScreenProps) {
   const [issueTypes, setIssueTypes] = useState<IssueType[]>([])
   const [selectedIssueId, setSelectedIssueId] = useState<IssueTypeId | null>(null)
   const [status, setStatus] = useState<LoadStatus>('loading')
@@ -76,6 +87,8 @@ export function IssueIntakeScreen() {
   const [requestIdempotencyKey, setRequestIdempotencyKey] = useState('')
   const [confirmedRequest, setConfirmedRequest] = useState<CreateRequestResponse | null>(null)
   const [step, setStep] = useState<FlowStep>('select')
+
+  const isConfirmationVisible = step === 'review' && confirmedRequest !== null
 
   useEffect(() => {
     const controller = new AbortController()
@@ -354,6 +367,7 @@ export function IssueIntakeScreen() {
       })
 
       setConfirmedRequest(response)
+      onRememberTrackedRequest(response)
       setRequestSubmissionStatus('idle')
     } catch (error) {
       setRequestSubmissionStatus('error')
@@ -374,7 +388,9 @@ export function IssueIntakeScreen() {
   }
 
   const progressLabel =
-    step === 'select'
+    isConfirmationVisible
+      ? 'Request received'
+      : step === 'select'
       ? 'Step 1 of 3'
       : step === 'questions'
         ? 'Step 2 of 3'
@@ -384,22 +400,28 @@ export function IssueIntakeScreen() {
             ? 'Containment guidance'
             : 'Review and confirm'
 
+  const heroTitle = isConfirmationVisible
+    ? 'Your plumbing request is now moving forward.'
+    : 'What plumbing issue do you need help with?'
+  const heroLede = isConfirmationVisible
+    ? 'Handrix has your request details and service location. You can pause here knowing the next step is already in motion.'
+    : "Choose the option that feels closest to what is happening. We'll guide you through the next step without asking for plumbing jargon."
+  const heroSupportCopy = isConfirmationVisible
+    ? 'Keep the request ID below handy if you want to revisit status later without creating an account.'
+    : 'We currently support a focused set of small plumbing problems so we can move quickly and keep the process clear.'
+
   return (
     <main className="app-shell issue-intake-page">
-      <section className="intake-hero">
+      <section className={`intake-hero${isConfirmationVisible ? ' intake-hero--confirmation' : ''}`}>
         <p className="eyebrow">Handrix urgent plumbing help</p>
         <div className="hero-heading-row">
           <span className="progress-pill">{progressLabel}</span>
         </div>
-        <h1>What plumbing issue do you need help with?</h1>
-        <p className="lede">
-          Choose the option that feels closest to what is happening. We&apos;ll guide
-          you through the next step without asking for plumbing jargon.
-        </p>
-        <p className="support-copy">
-          We currently support a focused set of small plumbing problems so we can move
-          quickly and keep the process clear.
-        </p>
+        <h1 className={isConfirmationVisible ? 'hero-title hero-title--wide' : 'hero-title'}>
+          {heroTitle}
+        </h1>
+        <p className="lede">{heroLede}</p>
+        <p className="support-copy">{heroSupportCopy}</p>
       </section>
 
       <section className="issue-grid-section" aria-label="Supported issue selection">
@@ -418,16 +440,18 @@ export function IssueIntakeScreen() {
 
         {status === 'ready' ? (
           <>
-            <div className="issue-grid">
-              {issueTypes.map((issueType) => (
-                <IssueSelectionCard
-                  key={issueType.id}
-                  issueType={issueType}
-                  isSelected={selectedIssueId === issueType.id}
-                  onSelect={handleIssueSelect}
-                />
-              ))}
-            </div>
+            {!isConfirmationVisible ? (
+              <div className="issue-grid">
+                {issueTypes.map((issueType) => (
+                  <IssueSelectionCard
+                    key={issueType.id}
+                    issueType={issueType}
+                    isSelected={selectedIssueId === issueType.id}
+                    onSelect={handleIssueSelect}
+                  />
+                ))}
+              </div>
+            ) : null}
 
             {step === 'select' ? (
               <aside className="panel next-step-panel" aria-live="polite">
@@ -448,6 +472,23 @@ export function IssueIntakeScreen() {
                       After you pick an issue, Handrix will show only the follow-up that
                       matters for that situation.
                     </p>
+                    {savedTrackedRequest ? (
+                      <div className="tracking-resume-panel">
+                        <p className="next-step-kicker">Saved request status</p>
+                        <h3>Reopen your latest tracked request.</h3>
+                        <p className="helper-copy">
+                          This device still has the last saved tracking identity for{' '}
+                          {savedTrackedRequest.issueLabel.toLowerCase()}.
+                        </p>
+                        <button
+                          type="button"
+                          className="secondary-action"
+                          onClick={() => onOpenTracking(savedTrackedRequest)}
+                        >
+                          Open saved request status
+                        </button>
+                      </div>
+                    ) : null}
                   </>
                 )}
               </aside>
@@ -724,10 +765,20 @@ export function IssueIntakeScreen() {
                     onEdit={handleEditTarget}
                     onBack={() => setStep('guidance')}
                     onConfirm={() => void handleConfirmRequest()}
+                    onDone={() => {
+                      resetFlowState()
+                      setSelectedIssueId(null)
+                    }}
+                    onTrackRequest={() => {
+                      if (confirmedRequest) {
+                        onOpenTracking(confirmedRequest)
+                      }
+                    }}
                     confirmationState={requestSubmissionStatus}
                     confirmationError={requestSubmissionError}
                     confirmationRecoveryHint={requestSubmissionRecoveryHint}
                     confirmedRequest={confirmedRequest}
+                    savedTrackedRequest={savedTrackedRequest}
                   />
                 ) : null}
               </>

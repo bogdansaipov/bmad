@@ -53,10 +53,15 @@ p {
   margin: 0;
 }
 
+.hero-title,
 h1 {
   font-size: clamp(2rem, 4vw, 3.4rem);
   line-height: 1.1;
   max-width: 12ch;
+}
+
+.hero-title--wide {
+  max-width: 16ch;
 }
 
 .lede {
@@ -78,6 +83,12 @@ h1 {
     radial-gradient(circle at top right, rgba(232, 167, 112, 0.24), transparent 36%);
   border: 1px solid rgba(130, 92, 56, 0.12);
   box-shadow: 0 24px 60px rgba(96, 68, 38, 0.08);
+}
+
+.intake-hero--confirmation {
+  background:
+    linear-gradient(135deg, rgba(236, 247, 244, 0.98), rgba(255, 255, 255, 0.94)),
+    radial-gradient(circle at top right, rgba(47, 140, 118, 0.2), transparent 38%);
 }
 
 .hero-heading-row {
@@ -452,6 +463,168 @@ h1 {
   background: rgba(255, 255, 255, 0.92);
 }
 
+.confirmation-panel {
+  gap: 18px;
+}
+
+.confirmation-panel__sections {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tracking-panel {
+  gap: 18px;
+}
+
+.tracking-panel__sections {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tracking-refresh-card,
+.tracking-timeline-card {
+  border-radius: 20px;
+  padding: 18px;
+  border: 1px solid rgba(47, 140, 118, 0.16);
+  background: rgba(245, 252, 249, 0.94);
+}
+
+.tracking-refresh-card {
+  display: grid;
+  gap: 8px;
+}
+
+.confirmation-status-card {
+  background:
+    linear-gradient(180deg, rgba(240, 251, 247, 0.98), rgba(255, 255, 255, 0.94));
+  border-color: rgba(47, 140, 118, 0.18);
+}
+
+.confirmation-status-card p {
+  color: #486069;
+}
+
+.tracking-resume-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(47, 140, 118, 0.16);
+  background: rgba(247, 252, 249, 0.96);
+}
+
+.tracking-resume-panel h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.tracking-panel__meta {
+  display: grid;
+  gap: 12px;
+}
+
+.tracking-timeline-card {
+  display: grid;
+  gap: 14px;
+}
+
+.tracking-recovery-card {
+  display: grid;
+  gap: 14px;
+  border-color: rgba(186, 104, 61, 0.2);
+  background:
+    linear-gradient(180deg, rgba(255, 247, 241, 0.98), rgba(255, 255, 255, 0.96));
+}
+
+.tracking-recovery-card--clarification {
+  border-color: rgba(191, 129, 52, 0.22);
+  background:
+    linear-gradient(180deg, rgba(255, 249, 239, 0.98), rgba(255, 255, 255, 0.96));
+}
+
+.tracking-recovery-card--delay {
+  border-color: rgba(186, 104, 61, 0.2);
+}
+
+.tracking-recovery-card--unavailable {
+  border-color: rgba(157, 86, 63, 0.24);
+  background:
+    linear-gradient(180deg, rgba(255, 243, 239, 0.98), rgba(255, 255, 255, 0.96));
+}
+
+.tracking-recovery-card__grid {
+  display: grid;
+  gap: 14px;
+}
+
+.tracking-recovery-card__label {
+  margin: 0 0 6px;
+  color: #6d5b4c;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.tracking-timeline {
+  display: grid;
+  gap: 14px;
+}
+
+.tracking-timeline__item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.tracking-timeline__item--current .tracking-timeline__content {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(47, 140, 118, 0.26);
+}
+
+.tracking-timeline__marker {
+  width: 14px;
+  min-height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(47, 140, 118, 0.95), rgba(119, 136, 132, 0.18));
+}
+
+.tracking-timeline__content {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(119, 136, 132, 0.16);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.tracking-timeline__content h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.tracking-timeline__eyebrow,
+.tracking-timeline__timestamp {
+  margin: 0;
+  color: #627977;
+}
+
+.tracking-timeline__eyebrow {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.tracking-timeline__timestamp {
+  font-size: 0.92rem;
+}
+
+.tracking-panel--recovery {
+  background:
+    linear-gradient(180deg, rgba(255, 243, 239, 0.98), rgba(255, 255, 255, 0.96));
+}
+
 .review-section-card {
   display: grid;
   gap: 14px;
@@ -535,7 +708,9 @@ h1 {
   .issue-grid,
   .choice-grid,
   .field-grid,
-  .review-expectations {
+  .review-expectations,
+  .confirmation-panel__sections,
+  .tracking-panel__sections {
     grid-template-columns: 1fr;
   }
 

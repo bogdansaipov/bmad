@@ -3,6 +3,7 @@ import {
   createRequestRequestSchema,
   createSuccessResponse,
   evaluateIntakeRequestSchema,
+  requestStatusLookupRequestSchema,
   requestReviewRequestSchema,
 } from '@handrix/shared-contracts';
 import {
@@ -139,6 +140,67 @@ export class RequestsController {
           message: 'We could not confirm the request right now.',
           recoveryHint:
             'Please try again in a moment using the same reviewed details.',
+        }),
+      );
+    }
+  }
+
+  @Post('status-lookups')
+  @ApiOperation({
+    summary:
+      'Resolve the current customer-safe request status for an anonymous tracking identity.',
+  })
+  @ApiCreatedResponse({
+    description:
+      'The current request status payload, wrapped in the shared success envelope.',
+  })
+  async createRequestStatusLookup(@Body() body: unknown) {
+    const parsedBody = requestStatusLookupRequestSchema.safeParse(body);
+
+    if (!parsedBody.success) {
+      throw new BadRequestException(
+        createErrorResponse({
+          code: 'REQUEST_STATUS_LOOKUP_VALIDATION_FAILED',
+          message: 'We could not open that request status yet.',
+          recoveryHint:
+            'Please return using the latest request confirmation details and try again.',
+        }),
+      );
+    }
+
+    try {
+      const requestStatus = await this.requestsService.getRequestStatus(
+        parsedBody.data,
+      );
+
+      return createSuccessResponse(requestStatus, {
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'We could not open that request status right now.';
+      const isRecoverableLookupProblem =
+        message === 'This request status is not available right now.';
+
+      if (isRecoverableLookupProblem) {
+        throw new BadRequestException(
+          createErrorResponse({
+            code: 'REQUEST_STATUS_LOOKUP_REJECTED',
+            message: 'We could not open that request status right now.',
+            recoveryHint:
+              'Please return using the latest request confirmation details or start a new request if needed.',
+          }),
+        );
+      }
+
+      throw new InternalServerErrorException(
+        createErrorResponse({
+          code: 'REQUEST_STATUS_LOOKUP_UNAVAILABLE',
+          message: 'We could not open that request status right now.',
+          recoveryHint:
+            'Please try again in a moment using the same confirmation details.',
         }),
       );
     }

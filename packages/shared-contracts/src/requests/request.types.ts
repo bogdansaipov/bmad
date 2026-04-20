@@ -37,17 +37,39 @@ import type {
   issueTypeSchema,
 } from './issue-types.schemas';
 import type {
-  publicRequestStatusSchema,
   createRequestRequestSchema,
   createRequestResponseSchema,
   requestApiErrorResponseSchema,
   requestApiErrorSchema,
-  requestStatusSchema,
-  requestTrackingCredentialSchema,
 } from './request.schemas';
+import type {
+  publicRequestStatusPresentationSchema,
+  requestRecoveryStateKindSchema,
+  requestRecoveryStateSchema,
+  publicRequestStatusSchema,
+  requestStatusLookupRequestSchema,
+  requestStatusResponseSchema,
+  requestStatusSchema,
+  requestStatusTimelineEntrySchema,
+  requestTrackingCredentialSchema,
+} from './request-status.schemas';
 
 export type RequestStatus = z.infer<typeof requestStatusSchema>;
+export type RequestStatusLookupRequest = z.infer<
+  typeof requestStatusLookupRequestSchema
+>;
+export type RequestStatusResponse = z.infer<typeof requestStatusResponseSchema>;
+export type RequestStatusTimelineEntry = z.infer<
+  typeof requestStatusTimelineEntrySchema
+>;
 export type PublicRequestStatus = z.infer<typeof publicRequestStatusSchema>;
+export type PublicRequestStatusPresentation = z.infer<
+  typeof publicRequestStatusPresentationSchema
+>;
+export type RequestRecoveryState = z.infer<typeof requestRecoveryStateSchema>;
+export type RequestRecoveryStateKind = z.infer<
+  typeof requestRecoveryStateKindSchema
+>;
 export type RequestTrackingCredential = z.infer<
   typeof requestTrackingCredentialSchema
 >;
