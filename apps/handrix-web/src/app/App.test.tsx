@@ -4,6 +4,9 @@ import * as issueTypesApi from '../features/issue-intake/issue-types-api'
 import * as opsAuthApi from '../features/ops-queue/ops-auth-api'
 import * as opsRequestDetailApi from '../features/ops-queue/ops-request-detail-api'
 import * as opsQueueApi from '../features/ops-queue/ops-queue-api'
+import * as supportAuthApi from '../features/support-request-view/support-auth-api'
+import * as supportRequestDetailApi from '../features/support-request-view/support-request-detail-api'
+import * as supportSearchApi from '../features/support-request-view/support-search-api'
 import * as requestTrackingApi from '../features/request-tracking/request-tracking-api'
 import * as requestConfirmationApi from '../features/request-review/request-confirmation-api'
 import * as requestReviewApi from '../features/request-review/request-review-api'
@@ -544,6 +547,287 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { name: /operations access/i })).toBeInTheDocument()
     expect(screen.queryByText(/operations access granted/i)).not.toBeInTheDocument()
+  })
+
+  it('signs a support user into the protected support workspace', async () => {
+    vi.spyOn(supportAuthApi, 'createInternalSession').mockResolvedValue({
+      accessToken: 'signed.support.token',
+      tokenType: 'Bearer',
+      issuedAt: '2026-04-21T10:00:00.000Z',
+      expiresAt: '2026-04-21T18:00:00.000Z',
+      user: {
+        id: 'support-default-user',
+        email: 'support@handrix.local',
+        displayName: 'Support Coordinator',
+        role: 'support',
+      },
+    })
+    vi.spyOn(supportAuthApi, 'loadSupportProtectedSession').mockResolvedValue({
+      scope: 'support',
+      message: 'Support access granted.',
+      user: {
+        id: 'support-default-user',
+        email: 'support@handrix.local',
+        displayName: 'Support Coordinator',
+        role: 'support',
+      },
+    })
+
+    window.history.replaceState(null, '', '/support/login')
+
+    render(<App />)
+
+    expect(screen.getByRole('heading', { name: /support access/i })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /enter support workspace/i }))
+
+    await screen.findByRole('heading', { name: /support workspace/i })
+    expect(await screen.findByText(/support access granted/i)).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/support/workspace')
+  })
+
+  it('redirects unauthenticated support workspace access back to the login screen', async () => {
+    window.history.replaceState(null, '', '/support/workspace')
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/support/login')
+    })
+
+    expect(screen.getByRole('heading', { name: /support access/i })).toBeInTheDocument()
+    expect(screen.queryByText(/support access granted/i)).not.toBeInTheDocument()
+  })
+
+  it('redirects to the support login with a calm error when an ops token is rejected by /support/session', async () => {
+    window.localStorage.setItem(
+      'handrix.support.session',
+      JSON.stringify({
+        accessToken: 'signed.ops.token.in.support.slot',
+        tokenType: 'Bearer',
+        issuedAt: '2026-04-21T10:00:00.000Z',
+        expiresAt: '2026-04-21T18:00:00.000Z',
+        user: {
+          id: 'ops-default-user',
+          email: 'ops@handrix.local',
+          displayName: 'Operations Coordinator',
+          role: 'ops',
+        },
+      }),
+    )
+    vi.spyOn(supportAuthApi, 'loadSupportProtectedSession').mockRejectedValue(
+      new supportAuthApi.SupportAuthError(
+        'This account does not have support access.',
+        'Use an authorized staff account for this protected route.',
+        'INTERNAL_AUTH_FORBIDDEN',
+      ),
+    )
+
+    window.history.replaceState(null, '', '/support/workspace')
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/support/login')
+    })
+
+    expect(
+      await screen.findByText(/this account does not have support access/i),
+    ).toBeInTheDocument()
+    expect(window.localStorage.getItem('handrix.support.session')).toBeNull()
+  })
+
+  it('renders the support request detail route when a support session is active', async () => {
+    window.localStorage.setItem(
+      'handrix.support.session',
+      JSON.stringify({
+        accessToken: 'signed.support.token',
+        tokenType: 'Bearer',
+        issuedAt: '2026-04-21T10:00:00.000Z',
+        expiresAt: '2026-04-21T18:00:00.000Z',
+        user: {
+          id: 'support-default-user',
+          email: 'support@handrix.local',
+          displayName: 'Support Coordinator',
+          role: 'support',
+        },
+      }),
+    )
+    vi.spyOn(supportAuthApi, 'loadSupportProtectedSession').mockResolvedValue({
+      scope: 'support',
+      message: 'Support access granted.',
+      user: {
+        id: 'support-default-user',
+        email: 'support@handrix.local',
+        displayName: 'Support Coordinator',
+        role: 'support',
+      },
+    })
+    vi.spyOn(
+      supportRequestDetailApi,
+      'loadSupportRequestDetail',
+    ).mockResolvedValue({
+      publicId: 'hrx_test',
+      issueTypeId: 'slow-drain',
+      issueLabel: 'Slow drain',
+      createdAt: '2026-04-20T13:00:00.000Z',
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: '',
+      },
+      currentState: {
+        lifecycleState: 'intake_in_review',
+        lifecycleStateLabel: 'Intake in review',
+        lifecycleStateDetail:
+          'Operations is still reviewing the intake details before assignment.',
+        publicStatus: 'received',
+        publicStatusLabel: 'Request received',
+        publicStatusDetail:
+          'Our team is reviewing your issue details and service location so we can confirm the best next step.',
+      },
+      latestChangeSummary:
+        'Customer confirmed the anonymous request through the guided review flow.',
+      currentAssignmentOwnerLabel: null,
+      interventionLabel: null,
+      lastUpdatedAt: '2026-04-20T13:05:00.000Z',
+    })
+
+    window.history.replaceState(null, '', '/support/requests/hrx_test')
+
+    render(<App />)
+
+    expect(
+      await screen.findByRole('heading', { name: /slow drain/i }),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/intake in review/i)).toBeInTheDocument()
+    expect(
+      supportRequestDetailApi.loadSupportRequestDetail,
+    ).toHaveBeenCalledWith(
+      'signed.support.token',
+      'hrx_test',
+      expect.anything(),
+    )
+  })
+
+  it('redirects unauthenticated support request detail access back to the login screen', async () => {
+    window.history.replaceState(null, '', '/support/requests/hrx_test')
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/support/login')
+    })
+
+    expect(
+      screen.getByRole('heading', { name: /support access/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('navigates to the encoded support request detail path when Open request is clicked', async () => {
+    window.localStorage.setItem(
+      'handrix.support.session',
+      JSON.stringify({
+        accessToken: 'signed.support.token',
+        tokenType: 'Bearer',
+        issuedAt: '2026-04-21T10:00:00.000Z',
+        expiresAt: '2026-04-21T18:00:00.000Z',
+        user: {
+          id: 'support-default-user',
+          email: 'support@handrix.local',
+          displayName: 'Support Coordinator',
+          role: 'support',
+        },
+      }),
+    )
+    vi.spyOn(supportAuthApi, 'loadSupportProtectedSession').mockResolvedValue({
+      scope: 'support',
+      message: 'Support access granted.',
+      user: {
+        id: 'support-default-user',
+        email: 'support@handrix.local',
+        displayName: 'Support Coordinator',
+        role: 'support',
+      },
+    })
+    vi.spyOn(supportSearchApi, 'searchSupportRequests').mockResolvedValue({
+      items: [
+        {
+          publicId: 'hrx test id',
+          issueLabel: 'Slow drain',
+          addressSummary: '15 Spring Street, New York',
+          currentPublicStatusLabel: 'Request received',
+          currentPublicStatusDetail:
+            'Our team is reviewing your issue details and service location so we can confirm the best next step.',
+          currentInternalLifecycleLabel: 'Intake in review',
+          currentInternalLifecycleDetail:
+            'Operations is still reviewing the intake details before assignment.',
+          receivedAt: '2026-04-20T13:00:00.000Z',
+          lastUpdatedAt: '2026-04-20T13:05:00.000Z',
+          latestChangeSummary:
+            'Customer confirmed the anonymous request through the guided review flow.',
+          currentAssignmentOwnerLabel: null,
+          interventionLabel: null,
+        },
+      ],
+      summary: { totalMatched: 1, limitReached: false },
+      refreshedAt: '2026-04-21T12:00:00.000Z',
+      query: { q: 'spring', normalizedQ: 'spring', limit: 25 },
+    })
+    vi.spyOn(
+      supportRequestDetailApi,
+      'loadSupportRequestDetail',
+    ).mockResolvedValue({
+      publicId: 'hrx test id',
+      issueTypeId: 'slow-drain',
+      issueLabel: 'Slow drain',
+      createdAt: '2026-04-20T13:00:00.000Z',
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: '',
+      },
+      currentState: {
+        lifecycleState: 'intake_in_review',
+        lifecycleStateLabel: 'Intake in review',
+        lifecycleStateDetail:
+          'Operations is still reviewing the intake details before assignment.',
+        publicStatus: 'received',
+        publicStatusLabel: 'Request received',
+        publicStatusDetail:
+          'Our team is reviewing your issue details and service location so we can confirm the best next step.',
+      },
+      latestChangeSummary:
+        'Customer confirmed the anonymous request through the guided review flow.',
+      currentAssignmentOwnerLabel: null,
+      interventionLabel: null,
+      lastUpdatedAt: '2026-04-20T13:05:00.000Z',
+    })
+
+    window.history.replaceState(null, '', '/support/workspace')
+
+    render(<App />)
+
+    const searchInput = await screen.findByRole('searchbox', {
+      name: /search support requests/i,
+    })
+    fireEvent.change(searchInput, { target: { value: 'spring' } })
+    fireEvent.click(screen.getByRole('button', { name: /search requests/i }))
+
+    const openButton = await screen.findByRole('button', {
+      name: /open request/i,
+    })
+    fireEvent.click(openButton)
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe(
+        `/support/requests/${encodeURIComponent('hrx test id')}`,
+      )
+    })
   })
 
   it('validates service-location fields with clear feedback', async () => {

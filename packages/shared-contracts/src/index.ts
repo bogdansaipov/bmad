@@ -13,3 +13,5 @@ export * from './requests/request-review.schemas';
 export * from './requests/request.schemas';
 export * from './requests/request.types';
 export * from './requests/request-status.schemas';
+export * from './support/support-request-detail.schemas';
+export * from './support/support-search.schemas';

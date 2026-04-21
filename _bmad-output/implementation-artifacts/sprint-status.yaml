@@ -1,5 +1,5 @@
 # generated: 2026-04-08 15:44:19 +0500
-# last_updated: 2026-04-20 13:30:00 +0500
+# last_updated: 2026-04-21 18:00:00 +0500
 # project: demo1
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-08 15:44:19 +0500
-last_updated: 2026-04-21 12:00:11 +0500
+last_updated: 2026-04-21 18:00:00 +0500
 project: demo1
 project_key: NOKEY
 tracking_system: file-system
@@ -70,9 +70,9 @@ development_status:
   3-7-maintain-scope-rules-and-supported-service-configuration: review
   epic-3-retrospective: optional
 
-  epic-4: backlog
-  4-1-enable-support-staff-authentication-and-access: backlog
-  4-2-let-support-search-and-open-individual-requests: backlog
+  epic-4: in-progress
+  4-1-enable-support-staff-authentication-and-access: done
+  4-2-let-support-search-and-open-individual-requests: review
   4-3-show-support-the-full-request-context: backlog
   4-4-explain-delays-blocks-and-unavailable-outcomes-clearly: backlog
   4-5-support-manual-intervention-and-follow-up: backlog

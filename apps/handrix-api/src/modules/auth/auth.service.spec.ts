@@ -46,6 +46,31 @@ describe('AuthService', () => {
     });
   });
 
+  it('issues a signed internal session for a valid support user', () => {
+    const service = new AuthService();
+    const session = service.createInternalSession({
+      email: 'support@handrix.local',
+      password: 'support-demo-pass',
+    });
+
+    expect(session).not.toBeNull();
+    expect(session?.tokenType).toBe('Bearer');
+    expect(session?.user.role).toBe('support');
+
+    const validatedUser = validateInternalAccessToken({
+      token: session!.accessToken,
+      secret: 'test-internal-auth-secret',
+      issuer: 'handrix-test-suite',
+    });
+
+    expect(validatedUser).toEqual({
+      id: 'support-default-user',
+      email: 'support@handrix.local',
+      displayName: 'Support Coordinator',
+      role: 'support',
+    });
+  });
+
   it('rejects invalid credentials', () => {
     const service = new AuthService();
 
@@ -55,5 +80,27 @@ describe('AuthService', () => {
         password: 'wrong-password',
       }),
     ).toBeNull();
+  });
+
+  it('rejects a support login with a wrong password and leaks no user data', () => {
+    const service = new AuthService();
+
+    const result = service.createInternalSession({
+      email: 'support@handrix.local',
+      password: 'definitely-not-the-support-password',
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it('rejects a support login with an unknown email and leaks no user data', () => {
+    const service = new AuthService();
+
+    const result = service.createInternalSession({
+      email: 'ghost@handrix.local',
+      password: 'support-demo-pass',
+    });
+
+    expect(result).toBeNull();
   });
 });

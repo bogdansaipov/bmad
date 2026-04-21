@@ -1,10 +1,35 @@
+import type {
+  InternalSession,
+  InternalSupportSession,
+  SupportRequestSearchResponse,
+} from '@handrix/shared-contracts';
 import { requestLifecycleStates } from '@handrix/shared-contracts';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import request, { type Response as SupertestResponse } from 'supertest';
 import { AppModule } from './../src/app.module';
 import { HealthController } from './../src/modules/health/health.controller';
 import { ReferenceDataController } from './../src/modules/reference-data/reference-data.controller';
 import { RequestsController } from './../src/modules/requests/requests.controller';
+
+type SessionEnvelope = {
+  data: InternalSession;
+  meta?: { generatedAt: string };
+};
+
+type SupportSessionEnvelope = {
+  data: InternalSupportSession;
+  meta?: { generatedAt: string };
+};
+
+type SupportSearchEnvelope = {
+  data: SupportRequestSearchResponse;
+  meta?: { generatedAt: string };
+};
+
+function asEnvelope<T>(response: SupertestResponse): T {
+  return response.body as T;
+}
 
 describe('API integration (e2e)', () => {
   let app: INestApplication;
@@ -215,6 +240,227 @@ describe('API integration (e2e)', () => {
       }),
     ]);
     expect(typeof response.meta?.generatedAt).toBe('string');
+  });
+
+  it('signs in a support user and returns the protected support session over HTTP', async () => {
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/internal-sessions')
+      .send({
+        email: 'support@handrix.local',
+        password: 'support-demo-pass',
+      })
+      .expect(201);
+
+    const login = asEnvelope<SessionEnvelope>(loginResponse);
+    expect(login.data.user.role).toBe('support');
+    expect(login.data.tokenType).toBe('Bearer');
+
+    const sessionResponse = await request(app.getHttpServer())
+      .get('/support/session')
+      .set('Authorization', `Bearer ${login.data.accessToken}`)
+      .expect(200);
+
+    const session = asEnvelope<SupportSessionEnvelope>(sessionResponse);
+    expect(session.data).toEqual({
+      scope: 'support',
+      message: 'Support access granted.',
+      user: {
+        id: 'support-default-user',
+        email: 'support@handrix.local',
+        displayName: 'Support Coordinator',
+        role: 'support',
+      },
+    });
+    expect(typeof session.meta?.generatedAt).toBe('string');
+    expect(session.data).not.toHaveProperty('publicId');
+  });
+
+  it('rejects an unauthenticated GET /support/session with a 401 error envelope and no request data', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/support/session')
+      .expect(401);
+
+    expect(response.body).toMatchObject({
+      error: { code: 'INTERNAL_AUTH_REQUIRED' },
+    });
+    expect(response.body).not.toHaveProperty('data');
+    expect(response.body).not.toHaveProperty('publicId');
+    expect(response.body).not.toHaveProperty('request');
+    expect(JSON.stringify(response.body)).not.toContain('hrx_');
+  });
+
+  it('rejects a malformed bearer token on /support/session with a 401 error envelope', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/support/session')
+      .set('Authorization', 'Bearer not.a.real.jwt.token')
+      .expect(401);
+
+    expect(response.body).toMatchObject({
+      error: { code: 'INTERNAL_AUTH_INVALID' },
+    });
+  });
+
+  it('rejects a support token on /ops/session with a 403 forbidden envelope (role isolation)', async () => {
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/internal-sessions')
+      .send({
+        email: 'support@handrix.local',
+        password: 'support-demo-pass',
+      })
+      .expect(201);
+
+    const login = asEnvelope<SessionEnvelope>(loginResponse);
+    const response = await request(app.getHttpServer())
+      .get('/ops/session')
+      .set('Authorization', `Bearer ${login.data.accessToken}`)
+      .expect(403);
+
+    expect(response.body).toMatchObject({
+      error: { code: 'INTERNAL_AUTH_FORBIDDEN' },
+    });
+    expect(response.body).not.toHaveProperty('data');
+  });
+
+  it('rejects an ops token on /support/session with a 403 forbidden envelope (role isolation)', async () => {
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/internal-sessions')
+      .send({
+        email: 'ops@handrix.local',
+        password: 'ops-demo-pass',
+      })
+      .expect(201);
+
+    const login = asEnvelope<SessionEnvelope>(loginResponse);
+    const response = await request(app.getHttpServer())
+      .get('/support/session')
+      .set('Authorization', `Bearer ${login.data.accessToken}`)
+      .expect(403);
+
+    expect(response.body).toMatchObject({
+      error: { code: 'INTERNAL_AUTH_FORBIDDEN' },
+    });
+    expect(response.body).not.toHaveProperty('data');
+    expect(response.body).not.toHaveProperty('publicId');
+    expect(JSON.stringify(response.body)).not.toContain('hrx_');
+  });
+
+  it('returns 200 + envelope for GET /support/requests with a valid support token', async () => {
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/internal-sessions')
+      .send({
+        email: 'support@handrix.local',
+        password: 'support-demo-pass',
+      })
+      .expect(201);
+    const login = asEnvelope<SessionEnvelope>(loginResponse);
+
+    const searchResponse = await request(app.getHttpServer())
+      .get('/support/requests?q=hrx_')
+      .set('Authorization', `Bearer ${login.data.accessToken}`)
+      .expect(200);
+    const searchEnvelope = asEnvelope<SupportSearchEnvelope>(searchResponse);
+
+    expect(Array.isArray(searchEnvelope.data.items)).toBe(true);
+    expect(typeof searchEnvelope.data.summary.totalMatched).toBe('number');
+    expect(typeof searchEnvelope.data.summary.limitReached).toBe('boolean');
+    expect(searchEnvelope.data.query).toMatchObject({
+      q: 'hrx_',
+      normalizedQ: 'hrx_',
+    });
+    expect(typeof searchEnvelope.meta?.generatedAt).toBe('string');
+  });
+
+  it('rejects GET /support/requests with an invalid limit using SUPPORT_SEARCH_QUERY_INVALID', async () => {
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/internal-sessions')
+      .send({
+        email: 'support@handrix.local',
+        password: 'support-demo-pass',
+      })
+      .expect(201);
+    const login = asEnvelope<SessionEnvelope>(loginResponse);
+
+    const response = await request(app.getHttpServer())
+      .get('/support/requests?limit=not-a-number')
+      .set('Authorization', `Bearer ${login.data.accessToken}`)
+      .expect(400);
+
+    expect(response.body).toMatchObject({
+      error: { code: 'SUPPORT_SEARCH_QUERY_INVALID' },
+    });
+  });
+
+  it('returns 404 SUPPORT_REQUEST_NOT_FOUND for an unknown support request detail id', async () => {
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/internal-sessions')
+      .send({
+        email: 'support@handrix.local',
+        password: 'support-demo-pass',
+      })
+      .expect(201);
+    const login = asEnvelope<SessionEnvelope>(loginResponse);
+
+    const response = await request(app.getHttpServer())
+      .get('/support/requests/hrx_does_not_exist')
+      .set('Authorization', `Bearer ${login.data.accessToken}`)
+      .expect(404);
+
+    expect(response.body).toMatchObject({
+      error: { code: 'SUPPORT_REQUEST_NOT_FOUND' },
+    });
+  });
+
+  it('rejects an ops token on /support/requests with a 403 forbidden envelope', async () => {
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/internal-sessions')
+      .send({
+        email: 'ops@handrix.local',
+        password: 'ops-demo-pass',
+      })
+      .expect(201);
+    const login = asEnvelope<SessionEnvelope>(loginResponse);
+
+    const response = await request(app.getHttpServer())
+      .get('/support/requests?q=hrx')
+      .set('Authorization', `Bearer ${login.data.accessToken}`)
+      .expect(403);
+
+    expect(response.body).toMatchObject({
+      error: { code: 'INTERNAL_AUTH_FORBIDDEN' },
+    });
+    expect(response.body).not.toHaveProperty('data');
+  });
+
+  it('rejects an ops token on /support/requests/:publicId with a 403 forbidden envelope', async () => {
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/internal-sessions')
+      .send({
+        email: 'ops@handrix.local',
+        password: 'ops-demo-pass',
+      })
+      .expect(201);
+    const login = asEnvelope<SessionEnvelope>(loginResponse);
+
+    const response = await request(app.getHttpServer())
+      .get('/support/requests/hrx_any_id')
+      .set('Authorization', `Bearer ${login.data.accessToken}`)
+      .expect(403);
+
+    expect(response.body).toMatchObject({
+      error: { code: 'INTERNAL_AUTH_FORBIDDEN' },
+    });
+    expect(response.body).not.toHaveProperty('data');
+  });
+
+  it('rejects an unauthenticated GET /support/requests with a 401 INTERNAL_AUTH_REQUIRED envelope', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/support/requests?q=hrx')
+      .expect(401);
+
+    expect(response.body).toMatchObject({
+      error: { code: 'INTERNAL_AUTH_REQUIRED' },
+    });
+    expect(response.body).not.toHaveProperty('data');
   });
 
   afterEach(async () => {

@@ -1,0 +1,152 @@
+{
+  "requests": [
+    {
+      "internalId": "96f809dc-7505-419f-81de-66a6d794087d",
+      "publicId": "hrx_6cb5047fece0485b8a48",
+      "idempotencyKey": "638bb67a-634f-48a2-820d-abbbd882be77",
+      "requestFingerprint": "58ed66b284df58088b3750fd0820de08b097396801efc3b4b463758e10ab68fd",
+      "issueTypeId": "dripping-faucet",
+      "issueLabel": "Dripping faucet",
+      "answers": [
+        {
+          "questionId": "singleFixture",
+          "value": true
+        },
+        {
+          "questionId": "shutoffAccessible",
+          "value": true
+        }
+      ],
+      "serviceLocation": {
+        "addressLine1": "Mirobod, Mirobod 1st drive, 5/2",
+        "unitOrAccessNote": "",
+        "city": "Tashkent",
+        "postalCode": "10001",
+        "locationDetails": ""
+      },
+      "classification": {
+        "issueTypeId": "dripping-faucet",
+        "serviceabilityStatus": "serviceable",
+        "nextStep": "continueToContainment",
+        "summaryHeadline": "This request can keep moving through the guided flow.",
+        "summaryDetail": "You are still within the supported plumbing scope and service area for the next Handrix step."
+      },
+      "lifecycleState": "intake_in_review",
+      "publicStatus": "received",
+      "createdAt": "2026-04-21T11:16:43.935Z",
+      "trackingCredential": {
+        "token": "eyJwdWJsaWNJZCI6ImhyeF82Y2I1MDQ3ZmVjZTA0ODViOGE0OCIsImlzc3VlZEF0IjoiMjAyNi0wNC0yMVQxMToxNjo0My45MzVaIiwiZXhwaXJlc0F0IjoiMjAyNi0wNS0yMVQxMToxNjo0My45MzVaIiwic2NvcGUiOiJyZXF1ZXN0LXN0YXR1cyJ9.lkUIBMpiS4OA_3UuZqFMDdO2mllbDlfflDjyvRB4I8o",
+        "expiresAt": "2026-05-21T11:16:43.935Z"
+      },
+      "customerContext": {
+        "shownContainmentGuidance": {
+          "issueTypeId": "dripping-faucet",
+          "serviceabilityStatus": "serviceable",
+          "nextStep": "continueToContainment",
+          "variant": "informational",
+          "headline": "Keep the fixture contained while we prepare the next step.",
+          "intro": "A small faucet drip is usually manageable for the moment when you keep water use limited and the area dry.",
+          "steps": [
+            {
+              "title": "Use the fixture as little as possible",
+              "detail": "Reducing water use lowers the chance that the drip worsens while you move through the request."
+            },
+            {
+              "title": "Place a towel or bowl under the drip",
+              "detail": "This helps protect the counter or cabinet area from steady moisture."
+            }
+          ],
+          "warnings": [],
+          "reassurance": "You are taking the right first step. We will keep the next screen short and practical.",
+          "nextActionLabel": "Continue to request review",
+          "nextActionHint": "Next, we will summarize timing, pricing expectations, and your request details."
+        },
+        "shownRequestReviewSummary": {
+          "issueTypeId": "dripping-faucet",
+          "issueLabel": "Dripping faucet",
+          "headline": "Review the request details before you confirm.",
+          "intro": "This is a quick final check of what we will submit, what timing usually looks like, and how pricing is handled before any additional work is approved.",
+          "sections": [
+            {
+              "title": "Issue details",
+              "editTarget": "issueDetails",
+              "editLabel": "Edit issue details",
+              "items": [
+                {
+                  "label": "Selected issue",
+                  "value": "Dripping faucet"
+                },
+                {
+                  "label": "Is the dripping coming from one faucet only?",
+                  "value": "Yes"
+                },
+                {
+                  "label": "Can you still reach the local shutoff valve for that fixture?",
+                  "value": "Yes"
+                }
+              ]
+            },
+            {
+              "title": "Service location",
+              "editTarget": "serviceLocation",
+              "editLabel": "Edit service location",
+              "items": [
+                {
+                  "label": "Street address",
+                  "value": "Mirobod, Mirobod 1st drive, 5/2"
+                },
+                {
+                  "label": "City",
+                  "value": "Tashkent"
+                },
+                {
+                  "label": "ZIP code",
+                  "value": "10001"
+                }
+              ]
+            }
+          ],
+          "eta": {
+            "label": "Estimated response window",
+            "value": "Usually within 2 to 4 hours",
+            "detail": "Contained single-fixture faucet issues can usually stay in the standard Handrix response flow."
+          },
+          "pricing": {
+            "label": "Pricing expectation",
+            "value": "Most visits start with an $89 to $129 assessment",
+            "detail": "If repair work is needed beyond the initial assessment, the scope and added cost are confirmed before you approve anything else."
+          },
+          "nextSteps": {
+            "title": "What happens next",
+            "detail": "After you confirm, Handrix will create the request and move it into the operations review queue.",
+            "bullets": [
+              "We package your issue details, address, and containment context into the request.",
+              "Operations reviews the request and starts matching the best next fulfillment step.",
+              "If expectations change, we will explain that clearly instead of leaving you guessing."
+            ]
+          },
+          "confirmationLabel": "Confirm request",
+          "confirmationHint": "You can still go back to edit the details above before you confirm."
+        }
+      },
+      "history": [
+        {
+          "previousLifecycleState": null,
+          "nextLifecycleState": "intake_in_review",
+          "previousPublicStatus": null,
+          "nextPublicStatus": "received",
+          "occurredAt": "2026-04-21T11:16:43.935Z",
+          "actorType": "system",
+          "changeSummary": "Customer confirmed the anonymous request through the guided review flow.",
+          "intervention": null,
+          "customerSnapshot": {
+            "publicStatusLabel": "Request received",
+            "publicStatusDetail": "Our team is reviewing your issue details and service location so we can confirm the best next step.",
+            "nextStepDetail": "Handrix is reviewing your request details and service location before the next update.",
+            "recoveryState": null
+          }
+        }
+      ]
+    }
+  ]
+}

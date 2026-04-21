@@ -28,8 +28,15 @@ export const internalOpsSessionSchema = z.object({
   user: internalAuthUserSchema,
 })
 
+export const internalSupportSessionSchema = z.object({
+  scope: z.literal('support'),
+  message: z.string().min(1),
+  user: internalAuthUserSchema,
+})
+
 export type InternalUserRole = z.infer<typeof internalUserRoleSchema>
 export type InternalAuthRequest = z.infer<typeof internalAuthRequestSchema>
 export type InternalAuthUser = z.infer<typeof internalAuthUserSchema>
 export type InternalSession = z.infer<typeof internalSessionSchema>
 export type InternalOpsSession = z.infer<typeof internalOpsSessionSchema>
+export type InternalSupportSession = z.infer<typeof internalSupportSessionSchema>
