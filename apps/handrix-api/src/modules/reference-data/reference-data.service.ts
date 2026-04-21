@@ -1,13 +1,21 @@
 import {
+  type ClarifyingAnswer,
   type ContainmentGuidance,
   type ContainmentGuidanceRequest,
+  type IntakeClassification,
   type IntakeQuestionSet,
   type IssueTypeId,
   type RequestReviewExpectation,
   type RequestReviewNextStep,
-  supportedIssueTypes,
+  type ServiceLocation,
 } from '@handrix/shared-contracts';
 import { Injectable } from '@nestjs/common';
+import {
+  getCoverageDecision,
+  getScopeDecision,
+  referenceIssueTypes,
+} from './reference-data.config';
+import type { ReferenceDataIntakeDecision } from './reference-data.types';
 
 const intakeQuestionSets: IntakeQuestionSet[] = [
   {
@@ -620,7 +628,7 @@ const requestReviewTemplates: RequestReviewTemplate[] = [
 @Injectable()
 export class ReferenceDataService {
   getIssueTypes() {
-    return supportedIssueTypes;
+    return referenceIssueTypes;
   }
 
   getIntakeQuestionSet(issueTypeId: IntakeQuestionSet['issueTypeId']) {
@@ -633,9 +641,100 @@ export class ReferenceDataService {
 
   getIssueType(issueTypeId: IssueTypeId) {
     return (
-      supportedIssueTypes.find((issueType) => issueType.id === issueTypeId) ??
+      referenceIssueTypes.find((issueType) => issueType.id === issueTypeId) ??
       null
     );
+  }
+
+  evaluateIntakeDecision(
+    issueTypeId: IssueTypeId,
+    answers: ClarifyingAnswer[],
+    serviceLocation: ServiceLocation,
+  ): ReferenceDataIntakeDecision {
+    const questionSet = this.getIntakeQuestionSet(issueTypeId);
+    const scopeDecision = getScopeDecision(issueTypeId, answers);
+    const coverageDecision = getCoverageDecision(serviceLocation.postalCode);
+
+    if (questionSet === null) {
+      return {
+        classification: this.buildClassification({
+          issueTypeId,
+          serviceabilityStatus: 'needsRecovery',
+          nextStep: 'showRecoveryPath',
+          summaryHeadline: 'We need a different support path for this request.',
+          summaryDetail:
+            'This issue type is not available through the current intake flow right now.',
+          recoveryCode: 'UNSUPPORTED_REQUEST_DETAILS',
+        }),
+        scopeDecision: {
+          scopeDecisionLabel: 'Outside supported plumbing scope',
+          scopeDecisionDetail:
+            'This issue type is not configured for the MVP intake flow right now.',
+          coverageDecisionLabel: coverageDecision.coverageDecisionLabel,
+          coverageDecisionDetail: coverageDecision.coverageDecisionDetail,
+        },
+      };
+    }
+
+    if (!scopeDecision.isInScope) {
+      return {
+        classification: this.buildClassification({
+          issueTypeId,
+          serviceabilityStatus: 'needsRecovery',
+          nextStep: 'showRecoveryPath',
+          summaryHeadline:
+            'This request needs a recovery path instead of the standard flow.',
+          summaryDetail:
+            'Based on the details you shared, this looks broader than the small-plumbing cases Handrix handles in the MVP.',
+          recoveryCode: 'UNSUPPORTED_REQUEST_DETAILS',
+        }),
+        scopeDecision: {
+          scopeDecisionLabel: scopeDecision.scopeDecisionLabel,
+          scopeDecisionDetail: scopeDecision.scopeDecisionDetail,
+          coverageDecisionLabel: coverageDecision.coverageDecisionLabel,
+          coverageDecisionDetail: coverageDecision.coverageDecisionDetail,
+        },
+      };
+    }
+
+    if (!coverageDecision.isInServiceArea) {
+      return {
+        classification: this.buildClassification({
+          issueTypeId,
+          serviceabilityStatus: 'outOfArea',
+          nextStep: 'showRecoveryPath',
+          summaryHeadline:
+            'This address is outside the current Handrix service area.',
+          summaryDetail:
+            'We can still guide you toward the recovery path, but we should not continue through the normal booking flow.',
+          recoveryCode: 'OUT_OF_SERVICE_AREA',
+        }),
+        scopeDecision: {
+          scopeDecisionLabel: scopeDecision.scopeDecisionLabel,
+          scopeDecisionDetail: scopeDecision.scopeDecisionDetail,
+          coverageDecisionLabel: coverageDecision.coverageDecisionLabel,
+          coverageDecisionDetail: coverageDecision.coverageDecisionDetail,
+        },
+      };
+    }
+
+    return {
+      classification: this.buildClassification({
+        issueTypeId,
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      }),
+      scopeDecision: {
+        scopeDecisionLabel: scopeDecision.scopeDecisionLabel,
+        scopeDecisionDetail: scopeDecision.scopeDecisionDetail,
+        coverageDecisionLabel: coverageDecision.coverageDecisionLabel,
+        coverageDecisionDetail: coverageDecision.coverageDecisionDetail,
+      },
+    };
   }
 
   getContainmentGuidance(
@@ -695,5 +794,11 @@ export class ReferenceDataService {
         (entry) => entry.issueTypeId === issueTypeId,
       ) ?? null
     );
+  }
+
+  private buildClassification(
+    classification: IntakeClassification,
+  ): IntakeClassification {
+    return classification;
   }
 }

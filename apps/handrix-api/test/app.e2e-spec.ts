@@ -1,7 +1,4 @@
-import {
-  requestLifecycleStates,
-  supportedIssueTypes,
-} from '@handrix/shared-contracts';
+import { requestLifecycleStates } from '@handrix/shared-contracts';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from './../src/app.module';
@@ -14,8 +11,20 @@ describe('API integration (e2e)', () => {
   let healthController: HealthController;
   let referenceDataController: ReferenceDataController;
   let requestsController: RequestsController;
+  const originalEnv = process.env;
 
   beforeEach(async () => {
+    process.env = {
+      ...originalEnv,
+      HANDRIX_ENV: 'test',
+      HANDRIX_INTERNAL_AUTH_SECRET: 'test-internal-auth-secret',
+      HANDRIX_INTERNAL_AUTH_ISSUER: 'handrix-test-suite',
+      HANDRIX_OPS_EMAIL: 'ops@handrix.local',
+      HANDRIX_OPS_PASSWORD: 'ops-demo-pass',
+      HANDRIX_SUPPORT_EMAIL: 'support@handrix.local',
+      HANDRIX_SUPPORT_PASSWORD: 'support-demo-pass',
+    };
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -41,7 +50,9 @@ describe('API integration (e2e)', () => {
   it('returns the supported issue types through the Nest application module', () => {
     const response = referenceDataController.getIssueTypes();
 
-    expect(response.data).toEqual(supportedIssueTypes);
+    expect(response.data).toEqual(
+      referenceDataController['referenceDataService'].getIssueTypes(),
+    );
     expect(typeof response.meta?.generatedAt).toBe('string');
   });
 
@@ -197,6 +208,12 @@ describe('API integration (e2e)', () => {
         isCurrent: true,
       }),
     ]);
+    expect(response.data.history).toEqual([
+      expect.objectContaining({
+        previousPublicStatus: null,
+        publicStatus: 'received',
+      }),
+    ]);
     expect(typeof response.meta?.generatedAt).toBe('string');
   });
 
@@ -204,5 +221,7 @@ describe('API integration (e2e)', () => {
     if (app) {
       await app.close();
     }
+
+    process.env = originalEnv;
   });
 });

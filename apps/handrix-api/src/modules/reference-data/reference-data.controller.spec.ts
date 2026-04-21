@@ -1,21 +1,20 @@
-import {
-  supportedIssueTypes,
-  type ContainmentGuidanceRequest,
-} from '@handrix/shared-contracts';
+import { type ContainmentGuidanceRequest } from '@handrix/shared-contracts';
 import { ReferenceDataController } from './reference-data.controller';
 import { ReferenceDataService } from './reference-data.service';
 
 describe('ReferenceDataController', () => {
-  it('returns the shared success response envelope with supported issue types', () => {
-    const controller = new ReferenceDataController(new ReferenceDataService());
+  const referenceDataService = new ReferenceDataService();
+
+  it('returns the shared success response envelope with backend-owned issue types', () => {
+    const controller = new ReferenceDataController(referenceDataService);
     const response = controller.getIssueTypes();
 
-    expect(response.data).toEqual(supportedIssueTypes);
+    expect(response.data).toEqual(referenceDataService.getIssueTypes());
     expect(typeof response.meta?.generatedAt).toBe('string');
   });
 
   it('returns the intake question set for a supported issue type', () => {
-    const controller = new ReferenceDataController(new ReferenceDataService());
+    const controller = new ReferenceDataController(referenceDataService);
     const response = controller.getIntakeQuestionSet('slow-drain');
 
     expect(response.data.issueTypeId).toBe('slow-drain');
@@ -25,7 +24,7 @@ describe('ReferenceDataController', () => {
   });
 
   it('returns informational containment guidance for a serviceable issue', () => {
-    const controller = new ReferenceDataController(new ReferenceDataService());
+    const controller = new ReferenceDataController(referenceDataService);
     const response = controller.getContainmentGuidance('slow-drain', {
       serviceabilityStatus: 'serviceable',
       nextStep: 'continueToContainment',
@@ -36,5 +35,29 @@ describe('ReferenceDataController', () => {
     expect(response.data.steps.length).toBeGreaterThan(0);
     expect(response.data.nextActionLabel).toMatch(/review/i);
     expect(typeof response.meta?.generatedAt).toBe('string');
+  });
+
+  it('returns backend-owned scope and coverage context through the reference-data service seam', () => {
+    const decision = referenceDataService.evaluateIntakeDecision(
+      'slow-drain',
+      [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: '',
+      },
+    );
+
+    expect(decision.scopeDecision.coverageDecisionLabel).toBe(
+      'Inside active service area',
+    );
+    expect(decision.scopeDecision.scopeDecisionLabel).toBe(
+      'Within supported plumbing scope',
+    );
   });
 });

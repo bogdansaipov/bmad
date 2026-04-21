@@ -8,5 +8,6 @@ import { RequestsService } from './requests.service';
   imports: [ReferenceDataModule],
   controllers: [RequestsController],
   providers: [RequestsService, RequestStoreService],
+  exports: [RequestStoreService],
 })
 export class RequestsModule {}

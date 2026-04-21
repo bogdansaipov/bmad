@@ -1,5 +1,5 @@
 # generated: 2026-04-08 15:44:19 +0500
-# last_updated: 2026-04-14 18:16:37 +0500
+# last_updated: 2026-04-20 13:30:00 +0500
 # project: demo1
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-08 15:44:19 +0500
-last_updated: 2026-04-20 13:30:00 +0500
+last_updated: 2026-04-21 12:00:11 +0500
 project: demo1
 project_key: NOKEY
 tracking_system: file-system
@@ -51,23 +51,23 @@ development_status:
   1-6-submit-an-anonymous-service-request: done
   epic-1-retrospective: done
 
-  epic-2: in-progress
-  2-1-show-a-clear-request-confirmation-state: review
-  2-2-define-and-expose-customer-safe-request-statuses: review
-  2-3-let-customers-revisit-and-track-their-request: review
-  2-4-present-a-live-request-status-timeline: review
-  2-5-handle-clarification-delay-and-unavailable-recovery-states: review
-  2-6-preserve-customer-visible-request-history: backlog
-  epic-2-retrospective: optional
+  epic-2: done
+  2-1-show-a-clear-request-confirmation-state: done
+  2-2-define-and-expose-customer-safe-request-statuses: done
+  2-3-let-customers-revisit-and-track-their-request: done
+  2-4-present-a-live-request-status-timeline: done
+  2-5-handle-clarification-delay-and-unavailable-recovery-states: done
+  2-6-preserve-customer-visible-request-history: done
+  epic-2-retrospective: done
 
-  epic-3: backlog
-  3-1-enable-operations-staff-authentication-and-access: backlog
-  3-2-show-an-operations-request-queue: backlog
-  3-3-let-operations-review-full-request-details: backlog
-  3-4-assign-requests-to-a-provider-or-internal-fulfillment-owner: backlog
-  3-5-manage-lifecycle-status-updates-with-guardrails: backlog
-  3-6-flag-requests-that-need-intervention-or-clarification: backlog
-  3-7-maintain-scope-rules-and-supported-service-configuration: backlog
+  epic-3: in-progress
+  3-1-enable-operations-staff-authentication-and-access: review
+  3-2-show-an-operations-request-queue: review
+  3-3-let-operations-review-full-request-details: review
+  3-4-assign-requests-to-a-provider-or-internal-fulfillment-owner: review
+  3-5-manage-lifecycle-status-updates-with-guardrails: review
+  3-6-flag-requests-that-need-intervention-or-clarification: review
+  3-7-maintain-scope-rules-and-supported-service-configuration: review
   epic-3-retrospective: optional
 
   epic-4: backlog

@@ -11,6 +11,7 @@ export const requestLifecycleStates = [
 ] as const;
 
 export const requestLifecycleStateSchema = z.enum(requestLifecycleStates);
+export type RequestLifecycleState = z.infer<typeof requestLifecycleStateSchema>;
 
 export const healthPayloadSchema = z.object({
   service: z.literal('handrix-api'),

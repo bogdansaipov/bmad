@@ -1,6 +1,9 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import * as containmentGuidanceApi from '../features/containment-guidance/containment-guidance-api'
 import * as issueTypesApi from '../features/issue-intake/issue-types-api'
+import * as opsAuthApi from '../features/ops-queue/ops-auth-api'
+import * as opsRequestDetailApi from '../features/ops-queue/ops-request-detail-api'
+import * as opsQueueApi from '../features/ops-queue/ops-queue-api'
 import * as requestTrackingApi from '../features/request-tracking/request-tracking-api'
 import * as requestConfirmationApi from '../features/request-review/request-confirmation-api'
 import * as requestReviewApi from '../features/request-review/request-review-api'
@@ -11,6 +14,7 @@ describe('App', () => {
     vi.restoreAllMocks()
     vi.useRealTimers()
     window.localStorage.clear()
+    window.history.replaceState(null, '', '/')
   })
 
   function mockContainmentGuidance({
@@ -158,6 +162,21 @@ describe('App', () => {
         'Handrix is reviewing your request details and service location before the next update.',
       latestChangeSummary:
         'Customer confirmed the anonymous request through the guided review flow.',
+      history: [
+        {
+          previousPublicStatus: null,
+          publicStatus: 'received',
+          publicStatusLabel: 'Request received',
+          publicStatusDetail:
+            'Our team is reviewing your issue details and service location so we can confirm the best next step.',
+          happenedAt: '2026-04-14T13:00:00.000Z',
+          changeSummary:
+            'Customer confirmed the anonymous request through the guided review flow.',
+          nextStepDetail:
+            'Handrix is reviewing your request details and service location before the next update.',
+          recoveryState: null,
+        },
+      ],
       timeline: [
         {
           publicStatus: 'received',
@@ -170,6 +189,47 @@ describe('App', () => {
             'Customer confirmed the anonymous request through the guided review flow.',
         },
       ],
+    })
+  }
+
+  function mockOpsSessionAndQueue() {
+    vi.spyOn(opsAuthApi, 'loadOpsProtectedSession').mockResolvedValue({
+      scope: 'ops',
+      message: 'Operations access granted.',
+      user: {
+        id: 'ops-default-user',
+        email: 'ops@handrix.local',
+        displayName: 'Operations Coordinator',
+        role: 'ops',
+      },
+    })
+    vi.spyOn(opsQueueApi, 'loadOpsQueue').mockResolvedValue({
+      items: [
+        {
+          publicId: 'hrx_ops_1',
+          issueLabel: 'Slow drain',
+          addressSummary: '15 Spring Street, New York',
+          queueState: 'new',
+          queueStateLabel: 'New request',
+          queueStateDetail: 'Needs first-pass operations review.',
+          urgencyCue: 'New intake',
+          assignmentStatus: 'unassigned',
+          assignmentStatusLabel: 'Unassigned',
+          intervention: null,
+          receivedAt: '2026-04-20T13:00:00.000Z',
+          updatedAt: '2026-04-20T13:05:00.000Z',
+          latestChangeSummary:
+            'Customer confirmed the anonymous request through the guided review flow.',
+        },
+      ],
+      summary: {
+        totalActive: 1,
+        needsAttentionCount: 1,
+        assignedCount: 0,
+        blockedCount: 0,
+        unavailableCount: 0,
+      },
+      refreshedAt: '2026-04-20T13:05:00.000Z',
     })
   }
 
@@ -218,6 +278,138 @@ describe('App', () => {
       screen.getByText('Water will not fully shut off at a sink or fixture.'),
     ).toBeInTheDocument()
     expect(screen.queryByText(/water heater replacement/i)).not.toBeInTheDocument()
+  })
+
+  it('opens the protected ops request detail from the queue route', async () => {
+    window.localStorage.setItem(
+      'handrix.ops.session',
+      JSON.stringify({
+        accessToken: 'signed.internal.token',
+        tokenType: 'Bearer',
+        issuedAt: '2026-04-20T12:00:00.000Z',
+        expiresAt: '2026-04-20T18:00:00.000Z',
+        user: {
+          id: 'ops-default-user',
+          email: 'ops@handrix.local',
+          displayName: 'Operations Coordinator',
+          role: 'ops',
+        },
+      }),
+    )
+    window.history.replaceState(null, '', '/ops/queue')
+    mockOpsSessionAndQueue()
+    vi.spyOn(opsRequestDetailApi, 'loadOpsRequestDetail').mockResolvedValue({
+      publicId: 'hrx_ops_1',
+      issueTypeId: 'slow-drain',
+      issueLabel: 'Slow drain',
+      createdAt: '2026-04-20T13:00:00.000Z',
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: 'Bathroom sink on the second floor',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline: 'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      currentState: {
+        lifecycleState: 'intake_in_review',
+        lifecycleStateLabel: 'Intake in review',
+        lifecycleStateDetail:
+          'Operations is still reviewing the intake details before assignment.',
+        publicStatus: 'received',
+        publicStatusLabel: 'Request received',
+        publicStatusDetail:
+          'Our team is reviewing your issue details and service location so we can confirm the best next step.',
+      },
+      serviceability: {
+        serviceabilityStatus: 'serviceable',
+        serviceabilityLabel: 'Serviceable',
+        classificationHeadline: 'This request can keep moving through the guided flow.',
+        classificationDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+        scopeDecisionLabel: 'Within supported plumbing scope',
+        scopeDecisionDetail:
+          'The intake answers still match the supported single-drain slowdown path for the MVP.',
+        coverageDecisionLabel: 'Inside active service area',
+        coverageDecisionDetail:
+          'ZIP code 10011 is inside the current Handrix service area.',
+        dispatchReadiness: 'readyForAssignment',
+        dispatchReadinessLabel: 'Reviewing for assignment',
+        dispatchReadinessDetail:
+          'The request is active and being reviewed for the next dispatch decision.',
+      },
+      intakeAnswers: [],
+      customerContext: {
+        containmentGuidance: null,
+        requestReviewSummary: null,
+      },
+      assignment: {
+        currentAssignment: null,
+        availableOwners: [
+          {
+            ownerType: 'provider',
+            ownerTypeLabel: 'Provider',
+            ownerId: 'provider_northstar',
+            ownerLabel: 'Northstar Plumbing Co.',
+            description: 'Primary plumbing partner for central neighborhoods.',
+          },
+        ],
+        canAssign: true,
+        assignmentBlockedReason: null,
+      },
+      intervention: null,
+      availableTransitions: [
+        {
+          nextLifecycleState: 'clarification_needed',
+          actionLabel: 'Request clarification',
+          actionDetail:
+            'Pause normal fulfillment progress until the missing operational detail is confirmed.',
+          nextLifecycleStateLabel: 'Clarification needed',
+          nextLifecycleStateDetail:
+            'The request needs additional detail before fulfillment can continue.',
+          publicStatus: 'needsClarification',
+          publicStatusLabel: 'More details needed',
+          publicStatusDetail:
+            'We need one more clarification before this request can keep moving, and we will guide you through the next step clearly.',
+        },
+      ],
+      history: [
+        {
+          previousLifecycleState: null,
+          nextLifecycleState: 'intake_in_review',
+          previousPublicStatus: null,
+          nextPublicStatus: 'received',
+          occurredAt: '2026-04-20T13:00:00.000Z',
+          actorType: 'customer',
+          changeSummary:
+            'Customer confirmed the anonymous request through the guided review flow.',
+          intervention: null,
+          customerSnapshot: {
+            publicStatus: 'received',
+            publicStatusLabel: 'Request received',
+            publicStatusDetail:
+              'Our team is reviewing your issue details and service location so we can confirm the best next step.',
+            nextStepDetail:
+              'Handrix is reviewing your request details and service location before the next update.',
+            recoveryState: null,
+          },
+        },
+      ],
+    })
+
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /open request detail/i }))
+
+    expect(await screen.findByText(/operations request detail/i)).toBeInTheDocument()
+    expect(screen.getByText(/reviewing for assignment/i)).toBeInTheDocument()
   })
 
   it('shows only the issue-relevant follow-up questions after selection', async () => {
@@ -273,6 +465,85 @@ describe('App', () => {
     ).toBeInTheDocument()
     expect(screen.queryByText(/is only one drain running slowly/i)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /yes/i })).toBeInTheDocument()
+  })
+
+  it('signs an ops user into the protected operations area', async () => {
+    vi.spyOn(opsAuthApi, 'createInternalSession').mockResolvedValue({
+      accessToken: 'signed.ops.token',
+      tokenType: 'Bearer',
+      issuedAt: '2026-04-20T10:00:00.000Z',
+      expiresAt: '2026-04-20T18:00:00.000Z',
+      user: {
+        id: 'ops-default-user',
+        email: 'ops@handrix.local',
+        displayName: 'Operations Coordinator',
+        role: 'ops',
+      },
+    })
+    vi.spyOn(opsAuthApi, 'loadOpsProtectedSession').mockResolvedValue({
+      scope: 'ops',
+      message: 'Operations access granted.',
+      user: {
+        id: 'ops-default-user',
+        email: 'ops@handrix.local',
+        displayName: 'Operations Coordinator',
+        role: 'ops',
+      },
+    })
+    vi.spyOn(opsQueueApi, 'loadOpsQueue').mockResolvedValue({
+      items: [
+        {
+          publicId: 'hrx_ops_1',
+          issueLabel: 'Slow drain',
+          addressSummary: '15 Spring Street, New York',
+          queueState: 'new',
+          queueStateLabel: 'New request',
+          queueStateDetail: 'Needs first-pass operations review.',
+          urgencyCue: 'New intake',
+          assignmentStatus: 'unassigned',
+          assignmentStatusLabel: 'Unassigned',
+          intervention: null,
+          receivedAt: '2026-04-20T13:00:00.000Z',
+          updatedAt: '2026-04-20T13:00:00.000Z',
+          latestChangeSummary:
+            'Customer confirmed the anonymous request through the guided review flow.',
+        },
+      ],
+      summary: {
+        totalActive: 1,
+        needsAttentionCount: 1,
+        assignedCount: 0,
+        blockedCount: 0,
+        unavailableCount: 0,
+      },
+      refreshedAt: '2026-04-20T13:00:00.000Z',
+    })
+
+    window.history.replaceState(null, '', '/ops/login')
+
+    render(<App />)
+
+    expect(screen.getByRole('heading', { name: /operations access/i })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /enter operations area/i }))
+
+    await screen.findByRole('heading', { name: /operations request queue/i })
+    expect(await screen.findByText(/slow drain/i)).toBeInTheDocument()
+    expect(await screen.findByText(/unassigned/i)).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/ops/queue')
+  })
+
+  it('redirects unauthenticated ops queue access back to the login screen', async () => {
+    window.history.replaceState(null, '', '/ops/queue')
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/ops/login')
+    })
+
+    expect(screen.getByRole('heading', { name: /operations access/i })).toBeInTheDocument()
+    expect(screen.queryByText(/operations access granted/i)).not.toBeInTheDocument()
   })
 
   it('validates service-location fields with clear feedback', async () => {
@@ -687,6 +958,21 @@ describe('App', () => {
         latestChangeSummary:
           'Customer confirmed the anonymous request through the guided review flow.',
         recoveryState: null,
+        history: [
+          {
+            previousPublicStatus: null,
+            publicStatus: 'received',
+            publicStatusLabel: 'Request received',
+            publicStatusDetail:
+              'Our team is reviewing your issue details and service location so we can confirm the best next step.',
+            happenedAt: '2026-04-14T13:00:00.000Z',
+            changeSummary:
+              'Customer confirmed the anonymous request through the guided review flow.',
+            nextStepDetail:
+              'Handrix is reviewing your request details and service location before the next update.',
+            recoveryState: null,
+          },
+        ],
         timeline: [
           {
             publicStatus: 'received',
@@ -726,6 +1012,46 @@ describe('App', () => {
           fallbackGuidance:
             'If timing changes create a new concern, use the next Handrix update to decide whether the current request should continue or shift to a safer fallback path.',
         },
+        history: [
+          {
+            previousPublicStatus: null,
+            publicStatus: 'received',
+            publicStatusLabel: 'Request received',
+            publicStatusDetail:
+              'Our team is reviewing your issue details and service location so we can confirm the best next step.',
+            happenedAt: '2026-04-14T13:00:00.000Z',
+            changeSummary:
+              'Customer confirmed the anonymous request through the guided review flow.',
+            nextStepDetail:
+              'Handrix is reviewing your request details and service location before the next update.',
+            recoveryState: null,
+          },
+          {
+            previousPublicStatus: 'received',
+            publicStatus: 'delayed',
+            publicStatusLabel: 'Dispatch delayed',
+            publicStatusDetail:
+              'This request is still active, but the expected progress timing has changed and the next update should explain the revised expectation clearly.',
+            happenedAt: '2026-04-14T13:30:00.000Z',
+            changeSummary:
+              'Arrival timing is taking longer than first expected while the route is rechecked.',
+            nextStepDetail:
+              'This request is still active, but the next service update may take longer than originally expected while Handrix works through the delay.',
+            recoveryState: {
+              kind: 'delay',
+              title: 'This request is still moving, but the timing has changed.',
+              detail:
+                'The service path is still active, but a delay now affects when the next milestone can happen.',
+              expectationUpdate:
+                'Expect a slower next update than originally expected while Handrix works through the delay.',
+              nextActionLabel: 'Watch for the revised update',
+              nextActionDetail:
+                'Handrix will share the next timing update as soon as the revised fulfillment path is confirmed.',
+              fallbackGuidance:
+                'If timing changes create a new concern, use the next Handrix update to decide whether the current request should continue or shift to a safer fallback path.',
+            },
+          },
+        ],
         timeline: [
           {
             publicStatus: 'received',
@@ -826,6 +1152,46 @@ describe('App', () => {
         fallbackGuidance:
           'Review the fallback path carefully before deciding whether to start a new request or seek a different support option.',
       },
+      history: [
+        {
+          previousPublicStatus: null,
+          publicStatus: 'received',
+          publicStatusLabel: 'Request received',
+          publicStatusDetail:
+            'Our team is reviewing your issue details and service location so we can confirm the best next step.',
+          happenedAt: '2026-04-14T13:00:00.000Z',
+          changeSummary:
+            'Customer confirmed the anonymous request through the guided review flow.',
+          nextStepDetail:
+            'Handrix is reviewing your request details and service location before the next update.',
+          recoveryState: null,
+        },
+        {
+          previousPublicStatus: 'received',
+          publicStatus: 'unavailable',
+          publicStatusLabel: 'Service unavailable',
+          publicStatusDetail:
+            'This request cannot move forward through the current service path, and the next update should explain the best fallback option.',
+          happenedAt: '2026-04-14T14:00:00.000Z',
+          changeSummary:
+            'This service path is no longer available for the current request details.',
+          nextStepDetail:
+            'This request cannot continue through the current service path, and the next update should explain the safest fallback option.',
+          recoveryState: {
+            kind: 'unavailable',
+            title: 'This request cannot continue through the current service path.',
+            detail:
+              'The current fulfillment route is no longer available, so this request needs a different next step instead of normal dispatch progress.',
+            expectationUpdate:
+              'Do not expect standard dispatch updates while Handrix points you toward the safest fallback option.',
+            nextActionLabel: 'Review the fallback path',
+            nextActionDetail:
+              'Use the fallback guidance below to decide the best next move for this request.',
+            fallbackGuidance:
+              'Review the fallback path carefully before deciding whether to start a new request or seek a different support option.',
+          },
+        },
+      ],
       timeline: [
         {
           publicStatus: 'received',

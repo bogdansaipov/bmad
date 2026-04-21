@@ -364,6 +364,8 @@ export function IssueIntakeScreen({
         serviceLocation,
         classification,
         idempotencyKey,
+        shownContainmentGuidance: guidance ?? undefined,
+        shownRequestReviewSummary: reviewSummary ?? undefined,
       })
 
       setConfirmedRequest(response)

@@ -1,8 +1,9 @@
 import type {
   PublicRequestStatus,
   PublicRequestStatusPresentation,
+  RequestLifecycleState,
 } from '@handrix/shared-contracts';
-import type { RequestLifecycleState } from './request-store.service';
+import { resolvePublicStatusForLifecycleTransition } from './domain/public-status-mapper';
 
 const publicStatusPresentationByStatus: Record<
   PublicRequestStatus,
@@ -84,4 +85,17 @@ export function resolvePublicRequestStatusPresentation(input: {
   }
 
   return getPublicRequestStatusPresentation(input.publicStatus);
+}
+
+export function resolveTransitionPublicRequestStatusPresentation(input: {
+  currentLifecycleState: RequestLifecycleState;
+  currentPublicStatus: PublicRequestStatus;
+  nextLifecycleState: RequestLifecycleState;
+}): PublicRequestStatusPresentation {
+  const publicStatus = resolvePublicStatusForLifecycleTransition(input);
+
+  return resolvePublicRequestStatusPresentation({
+    lifecycleState: input.nextLifecycleState,
+    publicStatus,
+  });
 }

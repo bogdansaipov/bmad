@@ -45,6 +45,16 @@ export const requestStatusTimelineEntrySchema = z
   })
   .extend(publicRequestStatusPresentationSchema.shape);
 
+export const requestStatusHistoryEntrySchema = z
+  .object({
+    previousPublicStatus: publicRequestStatusSchema.nullable(),
+    happenedAt: z.iso.datetime(),
+    changeSummary: z.string().min(1),
+    nextStepDetail: z.string().min(1),
+    recoveryState: requestRecoveryStateSchema.nullable(),
+  })
+  .extend(publicRequestStatusPresentationSchema.shape);
+
 export const requestStatusLookupRequestSchema = z.object({
   publicId: z.string().trim().min(1),
   trackingToken: z.string().trim().min(1),
@@ -59,6 +69,7 @@ export const requestStatusResponseSchema = z
     nextStepDetail: z.string().min(1),
     latestChangeSummary: z.string().min(1),
     recoveryState: requestRecoveryStateSchema.nullable().optional(),
+    history: z.array(requestStatusHistoryEntrySchema).min(1),
     timeline: z.array(requestStatusTimelineEntrySchema).min(1),
   })
   .extend(publicRequestStatusPresentationSchema.shape);

@@ -1,18 +1,32 @@
 import type {
+  RequestStatusHistoryEntry,
   RequestStatusTimelineEntry,
   RequestStatusResponse,
 } from '@handrix/shared-contracts';
-import { getRequestRecoveryState } from './request-status-recovery.presenter';
-import { getPublicRequestStatusPresentation } from './request-status.presenter';
 import type {
   PersistedRequestHistoryEntry,
   PersistedServiceRequest,
 } from './request-store.service';
 
+function toHistoryEntry(
+  entry: PersistedRequestHistoryEntry,
+): RequestStatusHistoryEntry {
+  return {
+    previousPublicStatus: entry.previousPublicStatus,
+    publicStatus: entry.nextPublicStatus,
+    publicStatusLabel: entry.customerSnapshot.publicStatusLabel,
+    publicStatusDetail: entry.customerSnapshot.publicStatusDetail,
+    happenedAt: entry.occurredAt,
+    changeSummary: entry.changeSummary,
+    nextStepDetail: entry.customerSnapshot.nextStepDetail,
+    recoveryState: entry.customerSnapshot.recoveryState,
+  };
+}
+
 function collapseMeaningfulHistoryEntries(
-  history: PersistedRequestHistoryEntry[],
+  history: RequestStatusHistoryEntry[],
 ) {
-  const meaningfulEntries: PersistedRequestHistoryEntry[] = [];
+  const meaningfulEntries: RequestStatusHistoryEntry[] = [];
 
   for (const entry of history) {
     const previousEntry = meaningfulEntries[meaningfulEntries.length - 1];
@@ -29,25 +43,30 @@ function collapseMeaningfulHistoryEntries(
 }
 
 function toTimelineEntry(
-  entry: PersistedRequestHistoryEntry,
+  entry: RequestStatusHistoryEntry,
   isCurrent: boolean,
 ): RequestStatusTimelineEntry {
-  const presentation = getPublicRequestStatusPresentation(entry.publicStatus);
-
   return {
-    ...presentation,
-    happenedAt: entry.createdAt,
+    publicStatus: entry.publicStatus,
+    publicStatusLabel: entry.publicStatusLabel,
+    publicStatusDetail: entry.publicStatusDetail,
+    happenedAt: entry.happenedAt,
     isCurrent,
-    changeSummary: entry.note,
+    changeSummary: entry.changeSummary,
   };
+}
+
+export function buildRequestStatusHistory(
+  persistedRequest: PersistedServiceRequest,
+) {
+  return persistedRequest.history.map(toHistoryEntry);
 }
 
 export function buildRequestStatusTimeline(
   persistedRequest: PersistedServiceRequest,
 ) {
-  const meaningfulEntries = collapseMeaningfulHistoryEntries(
-    persistedRequest.history,
-  );
+  const history = buildRequestStatusHistory(persistedRequest);
+  const meaningfulEntries = collapseMeaningfulHistoryEntries(history);
 
   return meaningfulEntries.map((entry, index) =>
     toTimelineEntry(entry, index === meaningfulEntries.length - 1),
@@ -56,17 +75,11 @@ export function buildRequestStatusTimeline(
 
 export function buildRequestStatusResponse(
   persistedRequest: PersistedServiceRequest,
-  trackingContent: {
-    nextStepDetail: string;
-    latestChangeSummary?: string;
-    fallbackGuidance?: string;
-  },
 ): RequestStatusResponse {
+  const history = buildRequestStatusHistory(persistedRequest);
   const timeline = buildRequestStatusTimeline(persistedRequest);
+  const currentHistoryEntry = history[history.length - 1];
   const currentTimelineEntry = timeline[timeline.length - 1];
-  const recoveryState = getRequestRecoveryState(
-    currentTimelineEntry.publicStatus,
-  );
 
   return {
     publicId: persistedRequest.publicId,
@@ -76,18 +89,10 @@ export function buildRequestStatusResponse(
     publicStatusDetail: currentTimelineEntry.publicStatusDetail,
     createdAt: persistedRequest.createdAt,
     updatedAt: currentTimelineEntry.happenedAt,
-    nextStepDetail: trackingContent.nextStepDetail,
-    latestChangeSummary:
-      trackingContent.latestChangeSummary ?? currentTimelineEntry.changeSummary,
-    recoveryState:
-      recoveryState === null
-        ? null
-        : {
-            ...recoveryState,
-            fallbackGuidance:
-              trackingContent.fallbackGuidance ??
-              recoveryState.fallbackGuidance,
-          },
+    nextStepDetail: currentHistoryEntry.nextStepDetail,
+    latestChangeSummary: currentTimelineEntry.changeSummary,
+    recoveryState: currentHistoryEntry.recoveryState,
+    history,
     timeline,
   };
 }

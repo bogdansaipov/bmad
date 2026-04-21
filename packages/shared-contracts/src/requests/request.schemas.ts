@@ -1,5 +1,7 @@
 import { z } from 'zod';
+import { containmentGuidanceSchema } from './containment-guidance.schemas';
 import { requestReviewRequestSchema } from './request-review.schemas';
+import { requestReviewSummarySchema } from './request-review.schemas';
 import {
   publicRequestStatusPresentationSchema,
   requestTrackingCredentialSchema,
@@ -7,6 +9,8 @@ import {
 
 export const createRequestRequestSchema = requestReviewRequestSchema.extend({
   idempotencyKey: z.string().trim().min(8).max(120),
+  shownContainmentGuidance: containmentGuidanceSchema.optional(),
+  shownRequestReviewSummary: requestReviewSummarySchema.optional(),
 });
 
 export const createRequestResponseSchema = z

@@ -159,8 +159,17 @@ describe('RequestsController', () => {
         isCurrent: true,
       }),
     ]);
+    expect(response.data.history).toEqual([
+      expect.objectContaining({
+        previousPublicStatus: null,
+        publicStatus: 'received',
+        nextStepDetail:
+          'Handrix is reviewing your request details and service location before the next update.',
+      }),
+    ]);
     expect(response.data.recoveryState).toBeNull();
     expect(response.data).not.toHaveProperty('lifecycleState');
+    expect(response.data.history[0]).not.toHaveProperty('actorType');
   });
 
   it('returns recovery-state details for delayed tracked requests without leaking lifecycle internals', async () => {

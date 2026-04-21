@@ -12,7 +12,8 @@ describe('RequestsService', () => {
   );
   const storePath = join(testDirectory, 'requests.json');
   const requestStore = RequestStoreService.forFilePath(storePath);
-  const service = new RequestsService(new ReferenceDataService(), requestStore);
+  const referenceDataService = new ReferenceDataService();
+  const service = new RequestsService(referenceDataService, requestStore);
 
   it('classifies in-scope intake details as serviceable', () => {
     const result = service.evaluateIntake(
@@ -77,6 +78,39 @@ describe('RequestsService', () => {
     expect(result.serviceabilityStatus).toBe('outOfArea');
     expect(result.recoveryCode).toBe('OUT_OF_SERVICE_AREA');
     expect(result.nextStep).toBe('showRecoveryPath');
+  });
+
+  it('delegates intake scope and coverage evaluation to the reference-data service', () => {
+    const evaluateIntakeDecisionSpy = jest.spyOn(
+      referenceDataService,
+      'evaluateIntakeDecision',
+    );
+
+    service.evaluateIntake(
+      'slow-drain',
+      [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: 'Bathroom sink on the second floor',
+      },
+    );
+
+    expect(evaluateIntakeDecisionSpy).toHaveBeenCalledWith(
+      'slow-drain',
+      [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      expect.objectContaining({
+        postalCode: '10011',
+      }),
+    );
   });
 
   it('builds a pre-confirmation request review summary from intake details', () => {
@@ -191,6 +225,45 @@ describe('RequestsService', () => {
       'reviewing your issue details and service location',
     );
     expect(result.trackingCredential.token).toContain('.');
+
+    const persistedStore = JSON.parse(readFileSync(storePath, 'utf8')) as {
+      requests: Array<{
+        idempotencyKey: string;
+        history: Array<{
+          previousLifecycleState: string | null;
+          nextLifecycleState: string;
+          previousPublicStatus: string | null;
+          nextPublicStatus: string;
+          occurredAt: string;
+          actorType: string;
+          changeSummary: string;
+          customerSnapshot: {
+            publicStatusLabel: string;
+            nextStepDetail: string;
+          };
+        }>;
+      }>;
+    };
+    const persistedRequest = persistedStore.requests.find(
+      (entry) => entry.idempotencyKey === 'review-submit-1',
+    );
+
+    expect(persistedRequest?.history).toHaveLength(1);
+    expect(persistedRequest?.history[0]).toMatchObject({
+      previousLifecycleState: null,
+      nextLifecycleState: 'intake_in_review',
+      previousPublicStatus: null,
+      nextPublicStatus: 'received',
+      actorType: 'system',
+      changeSummary:
+        'Customer confirmed the anonymous request through the guided review flow.',
+    });
+    expect(
+      persistedRequest?.history[0]?.customerSnapshot.publicStatusLabel,
+    ).toBe('Request received');
+    expect(persistedRequest?.history[0]?.customerSnapshot.nextStepDetail).toBe(
+      'Handrix is reviewing your request details and service location before the next update.',
+    );
   });
 
   it('returns the same request for repeated submissions with the same idempotency key', async () => {
@@ -407,6 +480,23 @@ describe('RequestsService', () => {
         isCurrent: true,
       }),
     ]);
+    expect(requestStatus.history).toEqual([
+      expect.objectContaining({
+        previousPublicStatus: null,
+        publicStatus: 'received',
+        nextStepDetail:
+          'Handrix is reviewing your request details and service location before the next update.',
+        recoveryState: null,
+      }),
+      expect.objectContaining({
+        previousPublicStatus: 'received',
+        publicStatus: 'dispatching',
+        changeSummary:
+          'A Handrix team member is now coordinating the dispatch step.',
+        nextStepDetail:
+          'Handrix is actively moving this request forward and will share the next service update as progress changes.',
+      }),
+    ]);
     expect(requestStatus.recoveryState).toBeNull();
   });
 
@@ -527,6 +617,93 @@ describe('RequestsService', () => {
           isCurrent: true,
         }),
       ]),
+    );
+    expect(requestStatus.history.at(-1)?.previousPublicStatus).toBe(
+      'dispatching',
+    );
+    expect(requestStatus.history.at(-1)?.publicStatus).toBe('delayed');
+    expect(requestStatus.history.at(-1)?.recoveryState?.kind).toBe('delay');
+  });
+
+  it('normalizes older history entries into ordered customer-safe history without breaking tracking', async () => {
+    const createdRequest = await service.createAnonymousRequest({
+      issueTypeId: 'slow-drain',
+      answers: [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: 'Bathroom sink on the second floor',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'review-status-lookup-legacy-history',
+    });
+
+    const persistedStore = JSON.parse(readFileSync(storePath, 'utf8')) as {
+      requests: Array<{
+        publicId: string;
+        history: Array<Record<string, unknown>>;
+      }>;
+    };
+    const persistedRequest = persistedStore.requests.find(
+      (entry) => entry.publicId === createdRequest.publicId,
+    );
+
+    expect(persistedRequest).toBeDefined();
+
+    persistedRequest!.history = [
+      {
+        lifecycleState: 'intake_in_review',
+        publicStatus: 'received',
+        createdAt: '2026-04-20T08:00:00.000Z',
+        note: 'Customer confirmed the anonymous request through the guided review flow.',
+      },
+      {
+        lifecycleState: 'dispatch_delayed',
+        publicStatus: 'delayed',
+        createdAt: '2026-04-20T09:25:00.000Z',
+        note: 'Arrival timing is taking longer than first expected while the route is rechecked.',
+      },
+    ];
+
+    writeFileSync(
+      storePath,
+      `${JSON.stringify(persistedStore, null, 2)}\n`,
+      'utf8',
+    );
+
+    const requestStatus = await service.getRequestStatus({
+      publicId: createdRequest.publicId,
+      trackingToken: createdRequest.trackingCredential.token,
+    });
+
+    expect(requestStatus.history).toHaveLength(2);
+    expect(requestStatus.history[0]).toMatchObject({
+      previousPublicStatus: null,
+      publicStatus: 'received',
+    });
+    expect(requestStatus.history[1]).toMatchObject({
+      previousPublicStatus: 'received',
+      publicStatus: 'delayed',
+    });
+    expect(requestStatus.history[1]?.recoveryState?.kind).toBe('delay');
+    expect(requestStatus.timeline.at(-1)).toEqual(
+      expect.objectContaining({
+        publicStatus: 'delayed',
+        isCurrent: true,
+      }),
     );
   });
 

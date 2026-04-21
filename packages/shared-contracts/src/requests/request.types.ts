@@ -46,6 +46,7 @@ import type {
   publicRequestStatusPresentationSchema,
   requestRecoveryStateKindSchema,
   requestRecoveryStateSchema,
+  requestStatusHistoryEntrySchema,
   publicRequestStatusSchema,
   requestStatusLookupRequestSchema,
   requestStatusResponseSchema,
@@ -59,6 +60,9 @@ export type RequestStatusLookupRequest = z.infer<
   typeof requestStatusLookupRequestSchema
 >;
 export type RequestStatusResponse = z.infer<typeof requestStatusResponseSchema>;
+export type RequestStatusHistoryEntry = z.infer<
+  typeof requestStatusHistoryEntrySchema
+>;
 export type RequestStatusTimelineEntry = z.infer<
   typeof requestStatusTimelineEntrySchema
 >;

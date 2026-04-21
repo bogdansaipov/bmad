@@ -2,7 +2,6 @@ import {
   containmentGuidanceRequestSchema,
   createSuccessResponse,
   issueTypeIdSchema,
-  supportedIssueTypes,
 } from '@handrix/shared-contracts';
 import {
   BadRequestException,
@@ -34,7 +33,15 @@ export class ReferenceDataController {
       'The supported issue types for the MVP intake flow, wrapped in the shared success envelope.',
     schema: {
       example: {
-        data: supportedIssueTypes,
+        data: [
+          {
+            id: 'dripping-faucet',
+            label: 'Dripping faucet',
+            shortDescription:
+              'Water keeps dripping from a sink or fixture that should be off.',
+            urgencyCue: 'Usually manageable',
+          },
+        ],
         meta: {
           generatedAt: '2026-04-14T12:00:00.000Z',
         },
