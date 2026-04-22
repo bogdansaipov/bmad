@@ -5,11 +5,13 @@ import * as opsAuthApi from '../features/ops-queue/ops-auth-api'
 import * as opsRequestDetailApi from '../features/ops-queue/ops-request-detail-api'
 import * as opsQueueApi from '../features/ops-queue/ops-queue-api'
 import * as supportAuthApi from '../features/support-request-view/support-auth-api'
+import * as supportInterventionApi from '../features/support-request-view/support-intervention-api'
 import * as supportRequestDetailApi from '../features/support-request-view/support-request-detail-api'
 import * as supportSearchApi from '../features/support-request-view/support-search-api'
 import * as requestTrackingApi from '../features/request-tracking/request-tracking-api'
 import * as requestConfirmationApi from '../features/request-review/request-confirmation-api'
 import * as requestReviewApi from '../features/request-review/request-review-api'
+import type { SupportRequestDetailResponse } from '@handrix/shared-contracts'
 import { App } from './App'
 
 describe('App', () => {
@@ -193,6 +195,87 @@ describe('App', () => {
         },
       ],
     })
+  }
+
+  function buildSupportDetailResponse(
+    publicId: string,
+  ): SupportRequestDetailResponse {
+    return {
+      publicId,
+      issueTypeId: 'slow-drain',
+      issueLabel: 'Slow drain',
+      createdAt: '2026-04-20T13:00:00.000Z',
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: '',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline: 'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      currentState: {
+        lifecycleState: 'intake_in_review',
+        lifecycleStateLabel: 'Intake in review',
+        lifecycleStateDetail:
+          'Operations is still reviewing the intake details before assignment.',
+        publicStatus: 'received',
+        publicStatusLabel: 'Request received',
+        publicStatusDetail:
+          'Our team is reviewing your issue details and service location so we can confirm the best next step.',
+      },
+      intakeAnswers: [
+        {
+          questionLabel: 'Is only one drain running slowly?',
+          answerLabel: 'Yes',
+        },
+      ],
+      customerContext: {
+        containmentGuidance: null,
+        requestReviewSummary: null,
+      },
+      assignment: null,
+      intervention: null,
+      explanation: null,
+      latestSupportFollowUp: null,
+      history: [
+        {
+          previousLifecycleState: null,
+          nextLifecycleState: 'intake_in_review',
+          previousLifecycleStateLabel: null,
+          nextLifecycleStateLabel: 'Intake in review',
+          previousPublicStatus: null,
+          nextPublicStatus: 'received',
+          previousPublicStatusLabel: null,
+          nextPublicStatusLabel: 'Request received',
+          occurredAt: '2026-04-20T13:05:00.000Z',
+          actorType: 'customer',
+          changeSummary:
+            'Customer confirmed the anonymous request through the guided review flow.',
+          visibility: 'customer',
+          visibilityLabel: 'Customer visible',
+          intervention: null,
+          customerSnapshot: {
+            publicStatus: 'received',
+            publicStatusLabel: 'Request received',
+            publicStatusDetail:
+              'Our team is reviewing your issue details and service location so we can confirm the best next step.',
+            nextStepDetail:
+              'Handrix is reviewing your request details and service location before the next update.',
+            recoveryState: null,
+          },
+        },
+      ],
+      latestChangeSummary:
+        'Customer confirmed the anonymous request through the guided review flow.',
+      lastUpdatedAt: '2026-04-20T13:05:00.000Z',
+    }
   }
 
   function mockOpsSessionAndQueue() {
@@ -413,6 +496,73 @@ describe('App', () => {
 
     expect(await screen.findByText(/operations request detail/i)).toBeInTheDocument()
     expect(screen.getByText(/reviewing for assignment/i)).toBeInTheDocument()
+  })
+
+  it('keeps the support request route active after recording a follow-up', async () => {
+    window.localStorage.setItem(
+      'handrix.support.session',
+      JSON.stringify({
+        accessToken: 'signed.support.token',
+        tokenType: 'Bearer',
+        issuedAt: '2026-04-20T12:00:00.000Z',
+        expiresAt: '2026-04-20T18:00:00.000Z',
+        user: {
+          id: 'support-default-user',
+          email: 'support@handrix.local',
+          displayName: 'Support Coordinator',
+          role: 'support',
+        },
+      }),
+    )
+    window.history.replaceState(null, '', '/support/requests/hrx_test')
+    vi.spyOn(supportAuthApi, 'loadSupportProtectedSession').mockResolvedValue({
+      scope: 'support',
+      message: 'Support access granted.',
+      user: {
+        id: 'support-default-user',
+        email: 'support@handrix.local',
+        displayName: 'Support Coordinator',
+        role: 'support',
+      },
+    })
+    vi.spyOn(
+      supportRequestDetailApi,
+      'loadSupportRequestDetail',
+    ).mockResolvedValue(buildSupportDetailResponse('hrx_test'))
+    vi.spyOn(
+      supportInterventionApi,
+      'recordSupportIntervention',
+    ).mockResolvedValue({
+      ...buildSupportDetailResponse('hrx_test'),
+      latestSupportFollowUp: {
+        kind: 'clarification',
+        label: 'Clarification needed',
+        detail: 'Support confirmed that evening building access is required.',
+        recordedAt: '2026-04-21T10:30:00.000Z',
+        actorType: 'support',
+        visibility: 'internal',
+        visibilityLabel: 'Internal only',
+        affectsLifecycle: false,
+      },
+      latestChangeSummary:
+        'Support confirmed that evening building access is required.',
+      lastUpdatedAt: '2026-04-21T10:30:00.000Z',
+    })
+
+    render(<App />)
+
+    await screen.findByRole('heading', { name: /slow drain/i })
+    fireEvent.change(screen.getByLabelText(/internal follow-up note/i), {
+      target: {
+        value: 'Support confirmed that evening building access is required.',
+      },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /save follow-up/i }))
+
+    expect(
+      await screen.findByText(/support follow-up recorded/i),
+    ).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/support/requests/hrx_test')
   })
 
   it('shows only the issue-relevant follow-up questions after selection', async () => {
@@ -666,34 +816,7 @@ describe('App', () => {
     vi.spyOn(
       supportRequestDetailApi,
       'loadSupportRequestDetail',
-    ).mockResolvedValue({
-      publicId: 'hrx_test',
-      issueTypeId: 'slow-drain',
-      issueLabel: 'Slow drain',
-      createdAt: '2026-04-20T13:00:00.000Z',
-      serviceLocation: {
-        addressLine1: '15 Spring Street',
-        city: 'New York',
-        postalCode: '10011',
-        unitOrAccessNote: '',
-        locationDetails: '',
-      },
-      currentState: {
-        lifecycleState: 'intake_in_review',
-        lifecycleStateLabel: 'Intake in review',
-        lifecycleStateDetail:
-          'Operations is still reviewing the intake details before assignment.',
-        publicStatus: 'received',
-        publicStatusLabel: 'Request received',
-        publicStatusDetail:
-          'Our team is reviewing your issue details and service location so we can confirm the best next step.',
-      },
-      latestChangeSummary:
-        'Customer confirmed the anonymous request through the guided review flow.',
-      currentAssignmentOwnerLabel: null,
-      interventionLabel: null,
-      lastUpdatedAt: '2026-04-20T13:05:00.000Z',
-    })
+    ).mockResolvedValue(buildSupportDetailResponse('hrx_test'))
 
     window.history.replaceState(null, '', '/support/requests/hrx_test')
 
@@ -702,7 +825,9 @@ describe('App', () => {
     expect(
       await screen.findByRole('heading', { name: /slow drain/i }),
     ).toBeInTheDocument()
-    expect(screen.getByText(/intake in review/i)).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: /^intake in review$/i }),
+    ).toBeInTheDocument()
     expect(
       supportRequestDetailApi.loadSupportRequestDetail,
     ).toHaveBeenCalledWith(
@@ -779,34 +904,7 @@ describe('App', () => {
     vi.spyOn(
       supportRequestDetailApi,
       'loadSupportRequestDetail',
-    ).mockResolvedValue({
-      publicId: 'hrx test id',
-      issueTypeId: 'slow-drain',
-      issueLabel: 'Slow drain',
-      createdAt: '2026-04-20T13:00:00.000Z',
-      serviceLocation: {
-        addressLine1: '15 Spring Street',
-        city: 'New York',
-        postalCode: '10011',
-        unitOrAccessNote: '',
-        locationDetails: '',
-      },
-      currentState: {
-        lifecycleState: 'intake_in_review',
-        lifecycleStateLabel: 'Intake in review',
-        lifecycleStateDetail:
-          'Operations is still reviewing the intake details before assignment.',
-        publicStatus: 'received',
-        publicStatusLabel: 'Request received',
-        publicStatusDetail:
-          'Our team is reviewing your issue details and service location so we can confirm the best next step.',
-      },
-      latestChangeSummary:
-        'Customer confirmed the anonymous request through the guided review flow.',
-      currentAssignmentOwnerLabel: null,
-      interventionLabel: null,
-      lastUpdatedAt: '2026-04-20T13:05:00.000Z',
-    })
+    ).mockResolvedValue(buildSupportDetailResponse('hrx test id'))
 
     window.history.replaceState(null, '', '/support/workspace')
 

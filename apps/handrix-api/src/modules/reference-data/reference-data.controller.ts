@@ -1,5 +1,6 @@
 import {
   containmentGuidanceRequestSchema,
+  createErrorResponse,
   createSuccessResponse,
   issueTypeIdSchema,
 } from '@handrix/shared-contracts';
@@ -11,11 +12,14 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import { referenceDataOpenApiExamples } from '../../common/swagger/shared-contract-openapi';
 import { ReferenceDataService } from './reference-data.service';
 
 @ApiTags('reference-data')
@@ -32,20 +36,7 @@ export class ReferenceDataController {
     description:
       'The supported issue types for the MVP intake flow, wrapped in the shared success envelope.',
     schema: {
-      example: {
-        data: [
-          {
-            id: 'dripping-faucet',
-            label: 'Dripping faucet',
-            shortDescription:
-              'Water keeps dripping from a sink or fixture that should be off.',
-            urgencyCue: 'Usually manageable',
-          },
-        ],
-        meta: {
-          generatedAt: '2026-04-14T12:00:00.000Z',
-        },
-      },
+      example: referenceDataOpenApiExamples.issueTypesResponse,
     },
   })
   getIssueTypes() {
@@ -59,15 +50,37 @@ export class ReferenceDataController {
     summary:
       'Return the clarifying-question definition for the selected supported issue type.',
   })
+  @ApiParam({
+    name: 'issueTypeId',
+    type: String,
+    example: 'slow-drain',
+  })
   @ApiOkResponse({
     description:
       'The question set for a supported issue type, wrapped in the shared success envelope.',
+    schema: {
+      example: referenceDataOpenApiExamples.intakeQuestionSetResponse,
+    },
+  })
+  @ApiBadRequestResponse({
+    description:
+      'The issue type was unsupported or the request could not be resolved through the shared contract.',
+    schema: {
+      example: referenceDataOpenApiExamples.issueTypeError,
+    },
   })
   getIntakeQuestionSet(@Param('issueTypeId') issueTypeIdParam: string) {
     const parsedIssueType = issueTypeIdSchema.safeParse(issueTypeIdParam);
 
     if (!parsedIssueType.success) {
-      throw new BadRequestException('Unsupported issue type identifier.');
+      throw new BadRequestException(
+        createErrorResponse({
+          code: 'REFERENCE_DATA_ISSUE_TYPE_INVALID',
+          message: 'That issue type is not supported right now.',
+          recoveryHint:
+            'Choose one of the supported plumbing issues and try again.',
+        }),
+      );
     }
 
     const questionSet = this.referenceDataService.getIntakeQuestionSet(
@@ -76,7 +89,12 @@ export class ReferenceDataController {
 
     if (questionSet === null) {
       throw new BadRequestException(
-        'Unable to resolve intake questions for this issue type.',
+        createErrorResponse({
+          code: 'REFERENCE_DATA_REQUEST_INVALID',
+          message: 'We could not resolve that reference-data request.',
+          recoveryHint:
+            'Check the request details and retry with a supported issue type or classification.',
+        }),
       );
     }
 
@@ -93,18 +111,33 @@ export class ReferenceDataController {
   @ApiQuery({
     name: 'serviceabilityStatus',
     required: true,
+    example:
+      referenceDataOpenApiExamples.containmentGuidanceQuery
+        .serviceabilityStatus,
   })
   @ApiQuery({
     name: 'nextStep',
     required: true,
+    example: referenceDataOpenApiExamples.containmentGuidanceQuery.nextStep,
   })
   @ApiQuery({
     name: 'recoveryCode',
     required: false,
+    example: 'OUT_OF_SERVICE_AREA',
   })
   @ApiOkResponse({
     description:
       'The containment guidance for the selected issue and classification context, wrapped in the shared success envelope.',
+    schema: {
+      example: referenceDataOpenApiExamples.containmentGuidanceResponse,
+    },
+  })
+  @ApiBadRequestResponse({
+    description:
+      'The issue type or classification query did not match the shared reference-data contracts.',
+    schema: {
+      example: referenceDataOpenApiExamples.requestError,
+    },
   })
   getContainmentGuidance(
     @Param('issueTypeId') issueTypeIdParam: string,
@@ -113,14 +146,26 @@ export class ReferenceDataController {
     const parsedIssueType = issueTypeIdSchema.safeParse(issueTypeIdParam);
 
     if (!parsedIssueType.success) {
-      throw new BadRequestException('Unsupported issue type identifier.');
+      throw new BadRequestException(
+        createErrorResponse({
+          code: 'REFERENCE_DATA_ISSUE_TYPE_INVALID',
+          message: 'That issue type is not supported right now.',
+          recoveryHint:
+            'Choose one of the supported plumbing issues and try again.',
+        }),
+      );
     }
 
     const parsedRequest = containmentGuidanceRequestSchema.safeParse(query);
 
     if (!parsedRequest.success) {
       throw new BadRequestException(
-        'Unable to resolve containment guidance for this request.',
+        createErrorResponse({
+          code: 'REFERENCE_DATA_REQUEST_INVALID',
+          message: 'We could not resolve that reference-data request.',
+          recoveryHint:
+            'Check the request details and retry with a supported issue type or classification.',
+        }),
       );
     }
 
@@ -131,7 +176,12 @@ export class ReferenceDataController {
 
     if (guidance === null) {
       throw new BadRequestException(
-        'Unable to resolve containment guidance for this issue type.',
+        createErrorResponse({
+          code: 'REFERENCE_DATA_REQUEST_INVALID',
+          message: 'We could not resolve that reference-data request.',
+          recoveryHint:
+            'Check the request details and retry with a supported issue type or classification.',
+        }),
       );
     }
 

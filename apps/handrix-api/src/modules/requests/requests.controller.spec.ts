@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { mkdtempSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -6,6 +7,12 @@ import { RequestsController } from './requests.controller';
 import { RequestStoreService } from './request-store.service';
 import { RequestsService } from './requests.service';
 import { ReferenceDataService } from '../reference-data/reference-data.service';
+
+function minutesAfter(isoTimestamp: string, minutes: number) {
+  return new Date(
+    new Date(isoTimestamp).getTime() + minutes * 60 * 1000,
+  ).toISOString();
+}
 
 describe('RequestsController', () => {
   const testDirectory = mkdtempSync(
@@ -208,7 +215,7 @@ describe('RequestsController', () => {
       publicId: createdRequest.data.publicId,
       lifecycleState: 'dispatch_delayed',
       publicStatus: 'delayed',
-      createdAt: '2026-04-20T11:10:00.000Z',
+      createdAt: minutesAfter(createdRequest.data.createdAt, 10),
       note: 'Arrival timing is taking longer than first expected while the route is rechecked.',
     });
 
@@ -266,6 +273,54 @@ describe('RequestsController', () => {
         },
       },
     });
+  });
+
+  it('returns the shared error envelope when intake evaluation input is invalid', () => {
+    const controller = buildController();
+
+    expect(() =>
+      controller.createIntakeEvaluation({
+        issueTypeId: '',
+        answers: [],
+        serviceLocation: {},
+      }),
+    ).toThrow(BadRequestException);
+
+    try {
+      controller.createIntakeEvaluation({
+        issueTypeId: '',
+        answers: [],
+        serviceLocation: {},
+      });
+    } catch (error) {
+      expect((error as BadRequestException).getResponse()).toMatchObject({
+        error: {
+          code: 'REQUEST_INTAKE_EVALUATION_VALIDATION_FAILED',
+        },
+      });
+    }
+  });
+
+  it('returns the shared error envelope when request review input is invalid', () => {
+    const controller = buildController();
+
+    expect(() =>
+      controller.createRequestReviewSummary({
+        issueTypeId: '',
+      }),
+    ).toThrow(BadRequestException);
+
+    try {
+      controller.createRequestReviewSummary({
+        issueTypeId: '',
+      });
+    } catch (error) {
+      expect((error as BadRequestException).getResponse()).toMatchObject({
+        error: {
+          code: 'REQUEST_REVIEW_SUMMARY_VALIDATION_FAILED',
+        },
+      });
+    }
   });
 
   afterAll(async () => {

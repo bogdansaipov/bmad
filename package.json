@@ -5,10 +5,14 @@
   "packageManager": "pnpm@10.30.3",
   "scripts": {
     "bootstrap": "./scripts/bootstrap.sh",
+    "ci:backend": "pnpm --filter handrix-api prisma:generate && pnpm --filter handrix-api prisma:validate && pnpm --filter handrix-api prisma:migrate:deploy && pnpm --filter handrix-api typecheck && pnpm --filter handrix-api lint && pnpm --filter handrix-api test:ci && pnpm --filter handrix-api test:e2e:ci && pnpm --filter handrix-api build",
+    "ci:contracts": "pnpm --filter @handrix/shared-contracts build",
+    "ci:frontend": "pnpm ci:contracts && pnpm --filter handrix-web typecheck && pnpm --filter handrix-web lint && pnpm --filter handrix-web test && pnpm --filter handrix-web build",
     "dev": "./scripts/dev.sh",
     "build": "pnpm -r build",
     "lint": "pnpm --filter handrix-web lint && pnpm --filter handrix-api lint",
     "test": "./scripts/test.sh",
-    "typecheck": "pnpm --filter @handrix/shared-contracts build && pnpm --filter handrix-web typecheck && pnpm --filter handrix-api typecheck"
+    "typecheck": "pnpm --filter @handrix/shared-contracts build && pnpm --filter handrix-web typecheck && pnpm --filter handrix-api typecheck",
+    "verify:ci": "pnpm ci:contracts && pnpm ci:frontend && pnpm ci:backend"
   }
 }

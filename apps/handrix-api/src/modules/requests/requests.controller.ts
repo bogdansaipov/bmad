@@ -13,7 +13,19 @@ import {
   InternalServerErrorException,
   Post,
 } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiBody,
+  ApiCreatedResponse,
+  ApiInternalServerErrorResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import {
+  PublicPollThrottle,
+  PublicWriteThrottle,
+} from '../../common/security/throttle-policies';
+import { requestsOpenApiExamples } from '../../common/swagger/shared-contract-openapi';
 import { RequestsService } from './requests.service';
 
 @ApiTags('requests')
@@ -26,15 +38,38 @@ export class RequestsController {
     summary:
       'Evaluate the selected issue details and service location for scope and serviceability.',
   })
+  @ApiBody({
+    schema: {
+      example: requestsOpenApiExamples.intakeEvaluation.requestBody,
+    },
+  })
   @ApiCreatedResponse({
     description:
       'The intake evaluation result, wrapped in the shared success envelope.',
+    schema: {
+      example: requestsOpenApiExamples.intakeEvaluation.successResponse,
+    },
   })
+  @ApiBadRequestResponse({
+    description:
+      'The intake evaluation request body did not match the shared contract.',
+    schema: {
+      example: requestsOpenApiExamples.intakeEvaluation.validationError,
+    },
+  })
+  @PublicWriteThrottle()
   createIntakeEvaluation(@Body() body: unknown) {
     const parsedBody = evaluateIntakeRequestSchema.safeParse(body);
 
     if (!parsedBody.success) {
-      throw new BadRequestException('Unable to evaluate intake details.');
+      throw new BadRequestException(
+        createErrorResponse({
+          code: 'REQUEST_INTAKE_EVALUATION_VALIDATION_FAILED',
+          message: 'Unable to evaluate intake details.',
+          recoveryHint:
+            'Review the issue answers and address details, then try again.',
+        }),
+      );
     }
 
     const evaluation = this.requestsService.evaluateIntake(
@@ -53,16 +88,36 @@ export class RequestsController {
     summary:
       'Assemble a pre-confirmation review summary with request details, ETA guidance, pricing expectations, and next-step messaging.',
   })
+  @ApiBody({
+    schema: {
+      example: requestsOpenApiExamples.reviewSummary.requestBody,
+    },
+  })
   @ApiCreatedResponse({
     description:
       'The request review summary, wrapped in the shared success envelope.',
+    schema: {
+      example: requestsOpenApiExamples.reviewSummary.successResponse,
+    },
   })
+  @ApiBadRequestResponse({
+    description:
+      'The review-summary request could not be parsed or did not represent a confirmable request.',
+    schema: {
+      example: requestsOpenApiExamples.reviewSummary.validationError,
+    },
+  })
+  @PublicWriteThrottle()
   createRequestReviewSummary(@Body() body: unknown) {
     const parsedBody = requestReviewRequestSchema.safeParse(body);
 
     if (!parsedBody.success) {
       throw new BadRequestException(
-        'Unable to create the request review summary.',
+        createErrorResponse({
+          code: 'REQUEST_REVIEW_SUMMARY_VALIDATION_FAILED',
+          message: 'Unable to create the request review summary.',
+          recoveryHint: 'Review the request details and try again.',
+        }),
       );
     }
 
@@ -72,7 +127,13 @@ export class RequestsController {
 
     if (summary === null) {
       throw new BadRequestException(
-        'Unable to create the request review summary for this request.',
+        createErrorResponse({
+          code: 'REQUEST_REVIEW_SUMMARY_REJECTED',
+          message:
+            'Unable to create the request review summary for this request.',
+          recoveryHint:
+            'Return to the intake flow and refresh the request details.',
+        }),
       );
     }
 
@@ -86,10 +147,32 @@ export class RequestsController {
     summary:
       'Create an anonymous customer request from reviewed intake details and return a customer-safe tracking identity.',
   })
+  @ApiBody({
+    schema: {
+      example: requestsOpenApiExamples.createRequest.requestBody,
+    },
+  })
   @ApiCreatedResponse({
     description:
       'The confirmed request payload, wrapped in the shared success envelope.',
+    schema: {
+      example: requestsOpenApiExamples.createRequest.successResponse,
+    },
   })
+  @ApiBadRequestResponse({
+    description:
+      'The confirmation request was invalid or could not be accepted from the current request state.',
+    schema: {
+      example: requestsOpenApiExamples.createRequest.validationError,
+    },
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'The request could not be confirmed right now.',
+    schema: {
+      example: requestsOpenApiExamples.createRequest.unavailableError,
+    },
+  })
+  @PublicWriteThrottle()
   async createRequest(@Body() body: unknown) {
     const parsedBody = createRequestRequestSchema.safeParse(body);
 
@@ -150,10 +233,32 @@ export class RequestsController {
     summary:
       'Resolve the current customer-safe request status for an anonymous tracking identity.',
   })
+  @ApiBody({
+    schema: {
+      example: requestsOpenApiExamples.requestStatusLookup.requestBody,
+    },
+  })
   @ApiCreatedResponse({
     description:
       'The current request status payload, wrapped in the shared success envelope.',
+    schema: {
+      example: requestsOpenApiExamples.requestStatusLookup.successResponse,
+    },
   })
+  @ApiBadRequestResponse({
+    description:
+      'The status-lookup request was invalid or could not be resolved for the supplied tracking identity.',
+    schema: {
+      example: requestsOpenApiExamples.requestStatusLookup.validationError,
+    },
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'The request status could not be opened right now.',
+    schema: {
+      example: requestsOpenApiExamples.requestStatusLookup.unavailableError,
+    },
+  })
+  @PublicPollThrottle()
   async createRequestStatusLookup(@Body() body: unknown) {
     const parsedBody = requestStatusLookupRequestSchema.safeParse(body);
 

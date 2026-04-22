@@ -19,6 +19,7 @@ import type {
   OpsUpdateRequestStatus,
 } from '@handrix/shared-contracts';
 import { Injectable } from '@nestjs/common';
+import { ObservabilityService } from '../../common/observability/observability.service';
 import { ReferenceDataService } from '../reference-data/reference-data.service';
 import type {
   PersistedRequestAssignment,
@@ -32,6 +33,10 @@ import {
   getAllowedOpsStatusTransitions,
   validateLifecycleTransition,
 } from '../requests/domain/request-state-machine';
+import {
+  getRequestInterventionKindForLifecycle,
+  getRequestLifecyclePresentation,
+} from '../requests/domain/request-lifecycle-metadata';
 import { resolveTransitionPublicRequestStatusPresentation } from '../requests/request-status.presenter';
 
 type QueuePresentation = {
@@ -135,48 +140,12 @@ function getLifecycleStatePresentation(
   OpsRequestDetailCurrentState,
   'lifecycleStateLabel' | 'lifecycleStateDetail'
 > {
-  switch (lifecycleState) {
-    case 'awaiting_confirmation':
-      return {
-        lifecycleStateLabel: 'Awaiting confirmation',
-        lifecycleStateDetail: 'The request has not been confirmed yet.',
-      };
-    case 'intake_in_review':
-      return {
-        lifecycleStateLabel: 'Intake in review',
-        lifecycleStateDetail:
-          'Operations is still reviewing the intake details before assignment.',
-      };
-    case 'dispatch_in_progress':
-      return {
-        lifecycleStateLabel: 'Dispatch in progress',
-        lifecycleStateDetail:
-          'The request is moving through dispatch after review.',
-      };
-    case 'dispatch_delayed':
-      return {
-        lifecycleStateLabel: 'Dispatch delayed',
-        lifecycleStateDetail:
-          'A blocker is slowing fulfillment and may require intervention.',
-      };
-    case 'clarification_needed':
-      return {
-        lifecycleStateLabel: 'Clarification needed',
-        lifecycleStateDetail:
-          'The request needs additional detail before fulfillment can continue.',
-      };
-    case 'completed':
-      return {
-        lifecycleStateLabel: 'Completed',
-        lifecycleStateDetail: 'The request lifecycle is complete.',
-      };
-    case 'unfulfilled':
-      return {
-        lifecycleStateLabel: 'Unavailable',
-        lifecycleStateDetail:
-          'The request cannot currently move forward to fulfillment.',
-      };
-  }
+  const presentation = getRequestLifecyclePresentation(lifecycleState);
+
+  return {
+    lifecycleStateLabel: presentation.label,
+    lifecycleStateDetail: presentation.detail,
+  };
 }
 
 function formatAddressSummary(request: PersistedServiceRequest) {
@@ -198,19 +167,7 @@ function formatAddressSummary(request: PersistedServiceRequest) {
 function getCurrentInterventionKind(
   lifecycleState: RequestLifecycleState,
 ): PersistedRequestInterventionKind | null {
-  switch (lifecycleState) {
-    case 'clarification_needed':
-      return 'clarification';
-    case 'dispatch_delayed':
-      return 'blocker';
-    case 'unfulfilled':
-      return 'unavailable';
-    case 'awaiting_confirmation':
-    case 'intake_in_review':
-    case 'dispatch_in_progress':
-    case 'completed':
-      return null;
-  }
+  return getRequestInterventionKindForLifecycle(lifecycleState);
 }
 
 function getInterventionPresentation(
@@ -728,6 +685,7 @@ export class OpsService {
   constructor(
     private readonly requestStoreService: RequestStoreService,
     private readonly referenceDataService: ReferenceDataService,
+    private readonly observabilityService: ObservabilityService = new ObservabilityService(),
   ) {}
 
   async getQueue(): Promise<OpsQueueResponse> {
@@ -744,11 +702,23 @@ export class OpsService {
       .sort(sortQueue)
       .map(removePriority);
 
-    return {
+    const response: OpsQueueResponse = {
       items,
       summary: buildQueueSummary(items),
       refreshedAt: new Date().toISOString(),
     };
+
+    await this.observabilityService.recordEvent({
+      eventName: 'ops.queue.viewed',
+      routeScope: 'ops',
+      actorType: 'ops',
+      outcome: 'success',
+      metadata: {
+        itemCount: items.length,
+      },
+    });
+
+    return response;
   }
 
   async getRequestDetail(
@@ -759,6 +729,23 @@ export class OpsService {
     if (request === null) {
       return null;
     }
+
+    this.observabilityService.annotateRequest({
+      actorType: 'ops',
+      publicId: request.publicId,
+    });
+    await this.observabilityService.recordEvent({
+      eventName: 'ops.request.opened',
+      routeScope: 'ops',
+      actorType: 'ops',
+      publicId: request.publicId,
+      lifecycleState: request.lifecycleState,
+      publicStatus: request.publicStatus,
+      outcome: 'success',
+      metadata: {
+        issueTypeId: request.issueTypeId,
+      },
+    });
 
     return this.toRequestDetail(request);
   }
@@ -832,6 +819,26 @@ export class OpsService {
       );
     }
 
+    this.observabilityService.annotateRequest({
+      actorId: input.actorId,
+      actorType: 'ops',
+      publicId: updatedRequest.publicId,
+    });
+    await this.observabilityService.recordEvent({
+      eventName: 'ops.request.assigned',
+      routeScope: 'ops',
+      actorType: 'ops',
+      actorId: input.actorId,
+      publicId: updatedRequest.publicId,
+      lifecycleState: updatedRequest.lifecycleState,
+      publicStatus: updatedRequest.publicStatus,
+      outcome: 'success',
+      metadata: {
+        ownerId: updatedRequest.assignment?.ownerId,
+        ownerType: updatedRequest.assignment?.ownerType,
+      },
+    });
+
     return this.toRequestDetail(updatedRequest);
   }
 
@@ -897,6 +904,25 @@ export class OpsService {
         'notFound',
       );
     }
+
+    this.observabilityService.annotateRequest({
+      actorId: input.actorId,
+      actorType: 'ops',
+      publicId: updatedRequest.publicId,
+    });
+    await this.observabilityService.recordEvent({
+      eventName: 'ops.request.status_updated',
+      routeScope: 'ops',
+      actorType: 'ops',
+      actorId: input.actorId,
+      publicId: updatedRequest.publicId,
+      lifecycleState: updatedRequest.lifecycleState,
+      publicStatus: updatedRequest.publicStatus,
+      outcome: 'success',
+      metadata: {
+        nextLifecycleState: input.nextLifecycleState,
+      },
+    });
 
     return this.toRequestDetail(updatedRequest);
   }

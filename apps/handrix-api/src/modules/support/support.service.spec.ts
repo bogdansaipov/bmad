@@ -8,7 +8,10 @@ import {
   type PersistedServiceRequest,
   type RequestLifecycleState,
 } from '../requests/request-store.service';
+import { ReferenceDataService } from '../reference-data/reference-data.service';
 import { SupportService } from './support.service';
+
+jest.setTimeout(20000);
 
 function buildPersistedRequest(input: {
   publicId: string;
@@ -31,6 +34,8 @@ function buildPersistedRequest(input: {
   postalCode?: string;
   unitOrAccessNote?: string;
   assignment?: PersistedServiceRequest['assignment'];
+  customerContext?: PersistedServiceRequest['customerContext'];
+  history?: PersistedServiceRequest['history'];
 }): PersistedServiceRequest {
   return {
     internalId: `internal-${input.publicId}`,
@@ -66,7 +71,8 @@ function buildPersistedRequest(input: {
       expiresAt: '2026-05-20T08:00:00.000Z',
     },
     assignment: input.assignment,
-    history: [
+    customerContext: input.customerContext,
+    history: input.history ?? [
       createPersistedHistoryEntry({
         previousLifecycleState: null,
         nextLifecycleState: input.lifecycleState,
@@ -145,7 +151,7 @@ describe('SupportService', () => {
       }),
     );
 
-    return new SupportService(store);
+    return new SupportService(store, new ReferenceDataService());
   }
 
   it('matches by partial publicId, issue label, address line, city, and postal code', async () => {
@@ -251,22 +257,252 @@ describe('SupportService', () => {
     );
   });
 
-  it('returns the minimal detail payload without history or intake answers', async () => {
+  it('returns the full detail payload with customer context and ordered history', async () => {
     const service = await buildServiceWithSeededRequests('detail-shape.json');
 
     const detail = await service.getRequestDetail('hrx_first');
 
     expect(detail).not.toBeNull();
     expect(detail!.publicId).toBe('hrx_first');
-    expect(detail!).not.toHaveProperty('history');
-    expect(detail!).not.toHaveProperty('intakeAnswers');
-    expect(detail!).not.toHaveProperty('intervention');
-    expect(detail!).not.toHaveProperty('customerContext');
-    expect(detail!).not.toHaveProperty('assignment');
-    expect(detail!.currentAssignmentOwnerLabel).toBeNull();
-    expect(detail!.interventionLabel).toBeNull();
+    expect(detail!.intakeAnswers[0]).toEqual({
+      questionLabel: 'Is only one drain running slowly?',
+      answerLabel: 'Yes',
+    });
+    expect(detail!.customerContext.containmentGuidance).toBeNull();
+    expect(detail!.customerContext.requestReviewSummary).toBeNull();
+    expect(detail!.assignment).toBeNull();
+    expect(detail!.intervention).toBeNull();
+    expect(detail!.explanation).toBeNull();
+    expect(detail!.history).toHaveLength(1);
+    expect(detail!.history[0].customerSnapshot.publicStatusLabel).toBe(
+      'Request received',
+    );
+    expect(detail!.history[0].previousLifecycleStateLabel).toBeNull();
+    expect(detail!.history[0].nextLifecycleStateLabel).toBe('Intake in review');
+    expect(detail!.history[0].previousPublicStatusLabel).toBeNull();
+    expect(detail!.history[0].nextPublicStatusLabel).toBe('Request received');
     expect(detail!.currentState.lifecycleStateLabel).toBe('Intake in review');
     expect(detail!.currentState.publicStatusLabel).toBe('Request received');
+    expect(detail!).not.toHaveProperty('trackingCredential');
+    expect(detail!).not.toHaveProperty('idempotencyKey');
+    expect(detail!).not.toHaveProperty('requestFingerprint');
+  });
+
+  it('surfaces persisted customer context, assignment notes, and intervention summary when present', async () => {
+    const store = RequestStoreService.forFilePath(
+      join(testDirectory, 'rich-detail.json'),
+    );
+
+    await store.createOrGetByIdempotencyKey(
+      buildPersistedRequest({
+        publicId: 'hrx_rich',
+        idempotencyKey: 'support-rich',
+        issueLabel: 'Clogged toilet',
+        lifecycleState: 'dispatch_delayed',
+        publicStatus: 'delayed',
+        createdAt: '2026-04-20T10:00:00.000Z',
+        updatedAt: '2026-04-21T09:00:00.000Z',
+        note: 'Dispatch is delayed while a building access issue is resolved.',
+        assignment: {
+          ownerType: 'provider',
+          ownerId: 'provider_northstar',
+          ownerLabel: 'Northstar Plumbing Co.',
+          assignedAt: '2026-04-20T12:30:00.000Z',
+          note: 'Call ahead before arrival.',
+        },
+        customerContext: {
+          shownContainmentGuidance: {
+            issueTypeId: 'clogged-toilet',
+            serviceabilityStatus: 'serviceable',
+            nextStep: 'continueToContainment',
+            variant: 'warning',
+            headline: 'Keep overflow risk low while we prepare the next step.',
+            intro:
+              'A contained toilet blockage should stay out of use for now.',
+            steps: [
+              {
+                title: 'Avoid flushing again',
+                detail: 'Additional flushing can worsen overflow risk.',
+              },
+            ],
+            warnings: [
+              {
+                title: 'If sewage backs up elsewhere',
+                detail: 'Move to the fallback path immediately.',
+              },
+            ],
+            reassurance:
+              'You have already shared the right details for the next step.',
+            nextActionLabel: 'Continue to request review',
+            nextActionHint:
+              'Next, we will summarize timing, pricing expectations, and your request details.',
+          },
+          shownRequestReviewSummary: {
+            issueTypeId: 'clogged-toilet',
+            issueLabel: 'Clogged toilet',
+            headline: 'Review the request details before you confirm.',
+            intro: 'A quick final check before submission.',
+            sections: [
+              {
+                title: 'Issue details',
+                editTarget: 'issueDetails',
+                editLabel: 'Edit issue details',
+                items: [{ label: 'Selected issue', value: 'Clogged toilet' }],
+              },
+              {
+                title: 'Service location',
+                editTarget: 'serviceLocation',
+                editLabel: 'Edit service location',
+                items: [{ label: 'Street address', value: '15 Spring Street' }],
+              },
+            ],
+            eta: {
+              label: 'Estimated response window',
+              value: 'Usually within 2 to 4 hours',
+              detail: 'Contained toilet issues are reviewed quickly.',
+            },
+            pricing: {
+              label: 'Pricing expectation',
+              value: 'Most visits start with an $89 to $139 assessment',
+              detail: 'Any added work is confirmed before you approve it.',
+            },
+            nextSteps: {
+              title: 'What happens next',
+              detail: 'Handrix reviews the request and confirms the best path.',
+              bullets: ['Operations reviews the request.'],
+            },
+            confirmationLabel: 'Confirm request',
+            confirmationHint: 'You can still go back to edit details.',
+          },
+        },
+        history: [
+          createPersistedHistoryEntry({
+            previousLifecycleState: null,
+            nextLifecycleState: 'intake_in_review',
+            previousPublicStatus: null,
+            nextPublicStatus: 'received',
+            occurredAt: '2026-04-20T10:05:00.000Z',
+            changeSummary:
+              'Customer confirmed the anonymous request through the guided review flow.',
+            actorType: 'customer',
+          }),
+          createPersistedHistoryEntry({
+            previousLifecycleState: 'intake_in_review',
+            nextLifecycleState: 'dispatch_in_progress',
+            previousPublicStatus: 'received',
+            nextPublicStatus: 'dispatching',
+            occurredAt: '2026-04-20T12:30:00.000Z',
+            changeSummary: 'Operations assigned Northstar Plumbing Co.',
+            actorType: 'ops',
+          }),
+          createPersistedHistoryEntry({
+            previousLifecycleState: 'dispatch_in_progress',
+            nextLifecycleState: 'dispatch_delayed',
+            previousPublicStatus: 'dispatching',
+            nextPublicStatus: 'delayed',
+            occurredAt: '2026-04-21T09:00:00.000Z',
+            changeSummary:
+              'Dispatch is delayed while a building access issue is resolved.',
+            actorType: 'ops',
+          }),
+        ],
+      }),
+    );
+
+    const service = new SupportService(store, new ReferenceDataService());
+    const detail = await service.getRequestDetail('hrx_rich');
+
+    expect(detail).not.toBeNull();
+    expect(detail!.assignment).toEqual({
+      ownerType: 'provider',
+      ownerTypeLabel: 'Provider',
+      ownerLabel: 'Northstar Plumbing Co.',
+      assignedAt: '2026-04-20T12:30:00.000Z',
+      note: 'Call ahead before arrival.',
+    });
+    expect(detail!.customerContext.containmentGuidance?.headline).toContain(
+      'Keep overflow risk low',
+    );
+    expect(detail!.customerContext.requestReviewSummary?.issueLabel).toBe(
+      'Clogged toilet',
+    );
+    expect(detail!.intervention).toMatchObject({
+      kind: 'blocker',
+      label: 'Operational blocker',
+    });
+    expect(detail!.explanation).toMatchObject({
+      kind: 'blocker',
+      label: 'Operational blocker',
+      reasonDetail:
+        'Dispatch is delayed while a building access issue is resolved.',
+    });
+    expect(detail!.explanation?.customerVisibleRecovery?.kind).toBe('delay');
+    expect(detail!.explanation?.customerVisibleRecovery?.nextActionLabel).toBe(
+      'Watch for the revised update',
+    );
+    expect(detail!.history.map((entry) => entry.changeSummary)).toEqual([
+      'Customer confirmed the anonymous request through the guided review flow.',
+      'Operations assigned Northstar Plumbing Co.',
+      'Dispatch is delayed while a building access issue is resolved.',
+    ]);
+    expect(detail!.history[2]).toMatchObject({
+      previousLifecycleStateLabel: 'Dispatch in progress',
+      nextLifecycleStateLabel: 'Dispatch delayed',
+      previousPublicStatusLabel: 'Dispatch in progress',
+      nextPublicStatusLabel: 'Dispatch delayed',
+    });
+  });
+
+  it('differentiates clarification and unavailable explanation scenarios', async () => {
+    const store = RequestStoreService.forFilePath(
+      join(testDirectory, 'scenario-explanations.json'),
+    );
+
+    await store.createOrGetByIdempotencyKey(
+      buildPersistedRequest({
+        publicId: 'hrx_clarify',
+        idempotencyKey: 'support-clarify',
+        issueLabel: 'Slow drain',
+        lifecycleState: 'clarification_needed',
+        publicStatus: 'needsClarification',
+        createdAt: '2026-04-20T10:00:00.000Z',
+        updatedAt: '2026-04-20T11:00:00.000Z',
+        note: 'Operations requested one more access detail before dispatch.',
+      }),
+    );
+
+    await store.createOrGetByIdempotencyKey(
+      buildPersistedRequest({
+        publicId: 'hrx_unavailable',
+        idempotencyKey: 'support-unavailable',
+        issueLabel: 'Burst pipe',
+        lifecycleState: 'unfulfilled',
+        publicStatus: 'unavailable',
+        createdAt: '2026-04-20T12:00:00.000Z',
+        updatedAt: '2026-04-20T14:00:00.000Z',
+        note: 'This building is outside the currently approved service path.',
+      }),
+    );
+
+    const service = new SupportService(store, new ReferenceDataService());
+
+    const clarification = await service.getRequestDetail('hrx_clarify');
+    const unavailable = await service.getRequestDetail('hrx_unavailable');
+
+    expect(clarification?.explanation).toMatchObject({
+      kind: 'clarification',
+      label: 'Clarification needed',
+    });
+    expect(clarification?.explanation?.customerVisibleRecovery?.kind).toBe(
+      'clarification',
+    );
+    expect(unavailable?.explanation).toMatchObject({
+      kind: 'unavailable',
+      label: 'Unavailable outcome',
+    });
+    expect(unavailable?.explanation?.customerVisibleRecovery?.kind).toBe(
+      'unavailable',
+    );
   });
 
   it('returns null from getRequestDetail for an unknown publicId', async () => {
@@ -275,5 +511,86 @@ describe('SupportService', () => {
     const detail = await service.getRequestDetail('hrx_missing');
 
     expect(detail).toBeNull();
+  });
+
+  it('records an internal-only support follow-up without changing the customer lifecycle', async () => {
+    const service = await buildServiceWithSeededRequests(
+      'record-internal-follow-up.json',
+    );
+
+    const detail = await service.recordIntervention('hrx_second', {
+      kind: 'blocker',
+      note: 'Support confirmed the gate code with the customer for the provider.',
+      actorId: 'support-default-user',
+      updateLifecycle: false,
+    });
+
+    expect(detail.currentState.lifecycleState).toBe('dispatch_in_progress');
+    expect(detail.currentState.publicStatus).toBe('dispatching');
+    expect(detail.latestSupportFollowUp).toMatchObject({
+      kind: 'blocker',
+      detail:
+        'Support confirmed the gate code with the customer for the provider.',
+      visibility: 'internal',
+      visibilityLabel: 'Internal only',
+      affectsLifecycle: false,
+    });
+    expect(detail.history.at(-1)).toMatchObject({
+      actorType: 'support',
+      visibility: 'internal',
+      intervention: {
+        kind: 'blocker',
+        detail:
+          'Support confirmed the gate code with the customer for the provider.',
+      },
+    });
+  });
+
+  it('records a lifecycle-aligned support intervention when follow-up changes the request state', async () => {
+    const service = await buildServiceWithSeededRequests(
+      'record-lifecycle-follow-up.json',
+    );
+
+    const detail = await service.recordIntervention('hrx_second', {
+      kind: 'clarification',
+      note: 'Please confirm whether evening building access is required.',
+      actorId: 'support-default-user',
+      updateLifecycle: true,
+    });
+
+    expect(detail.currentState.lifecycleState).toBe('clarification_needed');
+    expect(detail.currentState.publicStatus).toBe('needsClarification');
+    expect(detail.latestSupportFollowUp).toMatchObject({
+      kind: 'clarification',
+      visibility: 'customer',
+      affectsLifecycle: true,
+    });
+    expect(detail.history.at(-1)).toMatchObject({
+      actorType: 'support',
+      visibility: 'customer',
+      nextLifecycleState: 'clarification_needed',
+      nextPublicStatus: 'needsClarification',
+      intervention: {
+        kind: 'clarification',
+        detail: 'Please confirm whether evening building access is required.',
+      },
+    });
+  });
+
+  it('rejects support lifecycle updates that do not follow approved transition rules', async () => {
+    const service = await buildServiceWithSeededRequests(
+      'invalid-lifecycle-follow-up.json',
+    );
+
+    await expect(
+      service.recordIntervention('hrx_third', {
+        kind: 'blocker',
+        note: 'Support is trying to force a blocker before dispatch starts.',
+        actorId: 'support-default-user',
+        updateLifecycle: true,
+      }),
+    ).rejects.toMatchObject({
+      code: 'SUPPORT_INTERVENTION_TRANSITION_INVALID',
+    });
   });
 });

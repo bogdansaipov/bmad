@@ -10,12 +10,16 @@ import { InternalAuthGuard } from '../auth/internal-auth.guard';
 import { InternalRolesGuard } from '../auth/internal-roles.guard';
 import type { AuthenticatedInternalRequest } from '../auth/internal-auth.types';
 import { createHttpExecutionContext } from '../../../test/test-utils';
+import { ReferenceDataService } from '../reference-data/reference-data.service';
 import { RequestStoreService } from '../requests/request-store.service';
 import { SupportController } from './support.controller';
 import { SupportService } from './support.service';
 
 function createSupportService() {
-  return new SupportService({} as RequestStoreService);
+  return new SupportService(
+    {} as RequestStoreService,
+    {} as ReferenceDataService,
+  );
 }
 
 describe('SupportController', () => {
@@ -155,7 +159,7 @@ describe('SupportController', () => {
     }
   });
 
-  it('returns the minimal support request detail envelope for an existing record', async () => {
+  it('returns the full support request detail envelope for an existing record', async () => {
     const supportService = createSupportService();
     jest.spyOn(supportService, 'getRequestDetail').mockResolvedValue({
       publicId: 'hrx_abc',
@@ -179,10 +183,121 @@ describe('SupportController', () => {
         publicStatusDetail:
           'Our team is reviewing your issue details and service location so we can confirm the best next step.',
       },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      intakeAnswers: [
+        {
+          questionLabel: 'Is only one drain running slowly?',
+          answerLabel: 'Yes',
+        },
+      ],
+      customerContext: {
+        containmentGuidance: {
+          issueTypeId: 'slow-drain',
+          serviceabilityStatus: 'serviceable',
+          nextStep: 'continueToContainment',
+          variant: 'informational',
+          headline:
+            'Keep the water under control while we prepare the next step.',
+          intro:
+            'A slow drain is often manageable for the moment when the fixture stays out of use.',
+          steps: [
+            {
+              title: 'Stop using the fixture',
+              detail: 'Pausing water use lowers the chance of overflow.',
+            },
+          ],
+          warnings: [],
+          reassurance:
+            'You are taking the right first step. We will keep the next step simple.',
+          nextActionLabel: 'Continue to request review',
+          nextActionHint:
+            'Next, we will summarize timing, pricing expectations, and your request details.',
+        },
+        requestReviewSummary: {
+          issueTypeId: 'slow-drain',
+          issueLabel: 'Slow drain',
+          headline: 'Review the request details before you confirm.',
+          intro: 'A quick final check before submission.',
+          sections: [
+            {
+              title: 'Issue details',
+              editTarget: 'issueDetails',
+              editLabel: 'Edit issue details',
+              items: [{ label: 'Selected issue', value: 'Slow drain' }],
+            },
+            {
+              title: 'Service location',
+              editTarget: 'serviceLocation',
+              editLabel: 'Edit service location',
+              items: [{ label: 'Street address', value: '15 Spring Street' }],
+            },
+          ],
+          eta: {
+            label: 'Estimated response window',
+            value: 'Usually within 2 to 4 hours',
+            detail:
+              'Single-drain slowdowns are usually manageable for a short period.',
+          },
+          pricing: {
+            label: 'Pricing expectation',
+            value: 'Most visits start with an $89 to $139 assessment',
+            detail: 'Any added work is confirmed before you approve it.',
+          },
+          nextSteps: {
+            title: 'What happens next',
+            detail:
+              'After confirmation, Handrix creates the request and moves it into review.',
+            bullets: [
+              'Your issue details and service location are packaged into the request.',
+            ],
+          },
+          confirmationLabel: 'Confirm request',
+          confirmationHint:
+            'You can still go back to edit the details above before you confirm.',
+        },
+      },
+      assignment: null,
+      intervention: null,
+      explanation: null,
+      latestSupportFollowUp: null,
+      history: [
+        {
+          previousLifecycleState: null,
+          nextLifecycleState: 'intake_in_review',
+          previousLifecycleStateLabel: null,
+          nextLifecycleStateLabel: 'Intake in review',
+          previousPublicStatus: null,
+          nextPublicStatus: 'received',
+          previousPublicStatusLabel: null,
+          nextPublicStatusLabel: 'Request received',
+          occurredAt: '2026-04-20T13:05:00.000Z',
+          actorType: 'customer',
+          changeSummary:
+            'Customer confirmed the anonymous request through the guided review flow.',
+          visibility: 'customer',
+          visibilityLabel: 'Customer visible',
+          intervention: null,
+          customerSnapshot: {
+            publicStatus: 'received',
+            publicStatusLabel: 'Request received',
+            publicStatusDetail:
+              'Our team is reviewing your issue details and service location so we can confirm the best next step.',
+            nextStepDetail:
+              'Handrix is reviewing your request details and service location before the next update.',
+            recoveryState: null,
+          },
+        },
+      ],
       latestChangeSummary:
         'Customer confirmed the anonymous request through the guided review flow.',
-      currentAssignmentOwnerLabel: null,
-      interventionLabel: null,
       lastUpdatedAt: '2026-04-20T13:05:00.000Z',
     });
 
@@ -190,10 +305,141 @@ describe('SupportController', () => {
     const response = await controller.getRequestDetail('hrx_abc');
 
     expect(response.data.publicId).toBe('hrx_abc');
-    expect(response.data).not.toHaveProperty('history');
-    expect(response.data).not.toHaveProperty('intakeAnswers');
-    expect(response.data).not.toHaveProperty('customerContext');
+    expect(response.data.intakeAnswers).toHaveLength(1);
+    expect(response.data.history).toHaveLength(1);
+    expect(response.data.customerContext.requestReviewSummary).not.toBeNull();
+    expect(response.data.assignment).toBeNull();
+    expect(response.data.intervention).toBeNull();
+    expect(response.data.explanation).toBeNull();
+    expect(response.data).not.toHaveProperty('trackingCredential');
+    expect(response.data).not.toHaveProperty('idempotencyKey');
+    expect(response.data).not.toHaveProperty('requestFingerprint');
     expect(typeof response.meta?.generatedAt).toBe('string');
+  });
+
+  it('records a support intervention and returns the refreshed detail envelope', async () => {
+    const supportService = createSupportService();
+    const recordSpy = jest
+      .spyOn(supportService, 'recordIntervention')
+      .mockResolvedValue({
+        publicId: 'hrx_abc',
+        issueTypeId: 'slow-drain',
+        issueLabel: 'Slow drain',
+        createdAt: '2026-04-20T13:00:00.000Z',
+        serviceLocation: {
+          addressLine1: '15 Spring Street',
+          city: 'New York',
+          postalCode: '10011',
+          unitOrAccessNote: '',
+          locationDetails: '',
+        },
+        currentState: {
+          lifecycleState: 'clarification_needed',
+          lifecycleStateLabel: 'Clarification needed',
+          lifecycleStateDetail:
+            'The request needs additional detail before fulfillment can continue.',
+          publicStatus: 'needsClarification',
+          publicStatusLabel: 'More details needed',
+          publicStatusDetail:
+            'We need one more clarification before this request can keep moving, and we will guide you through the next step clearly.',
+        },
+        classification: {
+          issueTypeId: 'slow-drain',
+          serviceabilityStatus: 'serviceable',
+          nextStep: 'continueToContainment',
+          summaryHeadline:
+            'This request can keep moving through the guided flow.',
+          summaryDetail:
+            'You are still within the supported plumbing scope and service area for the next Handrix step.',
+        },
+        intakeAnswers: [],
+        customerContext: {
+          containmentGuidance: null,
+          requestReviewSummary: null,
+        },
+        assignment: null,
+        intervention: {
+          kind: 'clarification',
+          label: 'Clarification needed',
+          detail:
+            'Please confirm whether the building super needs advance notice.',
+          customerImpact:
+            'Support can keep the missing access detail visible in follow-up.',
+          latestRelevantChange: null,
+        },
+        explanation: null,
+        latestSupportFollowUp: {
+          kind: 'clarification',
+          label: 'Clarification needed',
+          detail:
+            'Please confirm whether the building super needs advance notice.',
+          recordedAt: '2026-04-21T10:00:00.000Z',
+          actorType: 'support',
+          visibility: 'customer',
+          visibilityLabel: 'Customer visible',
+          affectsLifecycle: true,
+        },
+        history: [],
+        latestChangeSummary:
+          'Please confirm whether the building super needs advance notice.',
+        lastUpdatedAt: '2026-04-21T10:00:00.000Z',
+      });
+
+    const controller = new SupportController(supportService);
+    const response = await controller.recordIntervention(
+      'hrx_abc',
+      {
+        kind: 'clarification',
+        note: 'Please confirm whether the building super needs advance notice.',
+        updateLifecycle: true,
+      },
+      {
+        user: {
+          id: 'support-default-user',
+          email: 'support@handrix.local',
+          displayName: 'Support Coordinator',
+          role: 'support',
+        },
+      } as AuthenticatedInternalRequest,
+    );
+
+    expect(recordSpy).toHaveBeenCalledWith('hrx_abc', {
+      kind: 'clarification',
+      note: 'Please confirm whether the building super needs advance notice.',
+      updateLifecycle: true,
+      actorId: 'support-default-user',
+    });
+    expect(response.data.latestSupportFollowUp?.detail).toContain(
+      'building super',
+    );
+  });
+
+  it('rejects an invalid support intervention payload with SUPPORT_INTERVENTION_VALIDATION_FAILED', async () => {
+    const supportService = createSupportService();
+    const controller = new SupportController(supportService);
+
+    try {
+      await controller.recordIntervention(
+        'hrx_abc',
+        { kind: 'clarification', note: '' },
+        {
+          user: {
+            id: 'support-default-user',
+            email: 'support@handrix.local',
+            displayName: 'Support Coordinator',
+            role: 'support',
+          },
+        } as AuthenticatedInternalRequest,
+      );
+      throw new Error('Expected the controller to throw.');
+    } catch (error) {
+      expect(error).toBeInstanceOf(BadRequestException);
+      expect((error as BadRequestException).getResponse()).toMatchObject({
+        error: {
+          code: 'SUPPORT_INTERVENTION_VALIDATION_FAILED',
+        },
+      });
+    }
   });
 
   it('throws 404 with SUPPORT_REQUEST_NOT_FOUND when the public id is unknown', async () => {

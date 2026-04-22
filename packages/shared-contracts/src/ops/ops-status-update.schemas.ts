@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { requestLifecycleStateSchema } from '../health/health.schemas';
+import { requestLifecycleStateSchema } from '../requests/request-lifecycle.schemas';
 import { publicRequestStatusPresentationSchema } from '../requests/request-status.schemas';
 
 export const opsStatusUpdateNoteSchema = z.string().trim().max(280);

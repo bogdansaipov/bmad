@@ -10,7 +10,16 @@ import {
   Post,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiBody,
+  ApiCreatedResponse,
+  ApiOperation,
+  ApiUnauthorizedResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { InternalAuthThrottle } from '../../common/security/throttle-policies';
+import { authOpenApiExamples } from '../../common/swagger/shared-contract-openapi';
 import { AuthService } from './auth.service';
 
 @ApiTags('auth')
@@ -23,10 +32,32 @@ export class AuthController {
     summary:
       'Authenticate an internal operations or support user and issue a signed access token.',
   })
+  @ApiBody({
+    schema: {
+      example: authOpenApiExamples.createInternalSession.requestBody,
+    },
+  })
   @ApiCreatedResponse({
     description:
       'A signed internal session, wrapped in the shared success envelope.',
+    schema: {
+      example: authOpenApiExamples.createInternalSession.successResponse,
+    },
   })
+  @ApiBadRequestResponse({
+    description:
+      'The internal auth request body did not match the shared contract.',
+    schema: {
+      example: authOpenApiExamples.createInternalSession.validationError,
+    },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The supplied staff credentials were not accepted.',
+    schema: {
+      example: authOpenApiExamples.createInternalSession.rejectedError,
+    },
+  })
+  @InternalAuthThrottle()
   createInternalSession(@Body() body: unknown) {
     const parsedBody = internalAuthRequestSchema.safeParse(body);
 

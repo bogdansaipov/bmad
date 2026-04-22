@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: handrix
+          POSTGRES_PASSWORD: handrix
+          POSTGRES_DB: handrix
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U handrix -d handrix"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      VITE_HANDRIX_ENV: staging
+      VITE_API_BASE_URL: https://api.staging.handrix.example
+      HANDRIX_ENV: staging
+      HANDRIX_API_PORT: 3000
+      HANDRIX_API_CORS_ORIGIN: https://web.staging.handrix.example
+      HANDRIX_TRUST_PROXY: true
+      HANDRIX_RATE_LIMIT_DEFAULT_LIMIT: 120
+      HANDRIX_RATE_LIMIT_DEFAULT_TTL_MS: 60000
+      HANDRIX_DATABASE_URL: postgresql://handrix:handrix@127.0.0.1:5432/handrix?schema=public
+      HANDRIX_INTERNAL_AUTH_SECRET: ci-internal-auth-secret
+      HANDRIX_INTERNAL_AUTH_ISSUER: handrix-api-staging
+      HANDRIX_INTERNAL_AUTH_TTL_MINUTES: 480
+      HANDRIX_REQUEST_TOKEN_SECRET: ci-request-token-secret
+      HANDRIX_OPS_EMAIL: ops@staging.handrix.example
+      HANDRIX_OPS_PASSWORD: ci-ops-password
+      HANDRIX_OPS_DISPLAY_NAME: Operations Coordinator
+      HANDRIX_SUPPORT_EMAIL: support@staging.handrix.example
+      HANDRIX_SUPPORT_PASSWORD: ci-support-password
+      HANDRIX_SUPPORT_DISPLAY_NAME: Support Coordinator
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify shared contracts
+        run: pnpm ci:contracts
+
+      - name: Verify frontend
+        run: pnpm ci:frontend
+
+      - name: Verify backend
+        run: pnpm ci:backend

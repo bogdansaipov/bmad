@@ -1,10 +1,17 @@
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { PrismaClient } from '@prisma/client';
 import { ReferenceDataService } from '../reference-data/reference-data.service';
 import { RequestStoreService } from './request-store.service';
 import { RequestsService } from './requests.service';
+
+function minutesAfter(isoTimestamp: string, minutes: number) {
+  return new Date(
+    new Date(isoTimestamp).getTime() + minutes * 60 * 1000,
+  ).toISOString();
+}
 
 describe('RequestsService', () => {
   const testDirectory = mkdtempSync(
@@ -12,6 +19,7 @@ describe('RequestsService', () => {
   );
   const storePath = join(testDirectory, 'requests.json');
   const requestStore = RequestStoreService.forFilePath(storePath);
+  const prisma = (requestStore as unknown as { prisma: PrismaClient }).prisma;
   const referenceDataService = new ReferenceDataService();
   const service = new RequestsService(referenceDataService, requestStore);
 
@@ -226,25 +234,7 @@ describe('RequestsService', () => {
     );
     expect(result.trackingCredential.token).toContain('.');
 
-    const persistedStore = JSON.parse(readFileSync(storePath, 'utf8')) as {
-      requests: Array<{
-        idempotencyKey: string;
-        history: Array<{
-          previousLifecycleState: string | null;
-          nextLifecycleState: string;
-          previousPublicStatus: string | null;
-          nextPublicStatus: string;
-          occurredAt: string;
-          actorType: string;
-          changeSummary: string;
-          customerSnapshot: {
-            publicStatusLabel: string;
-            nextStepDetail: string;
-          };
-        }>;
-      }>;
-    };
-    const persistedRequest = persistedStore.requests.find(
+    const persistedRequest = (await requestStore.listRequests()).find(
       (entry) => entry.idempotencyKey === 'review-submit-1',
     );
 
@@ -329,27 +319,21 @@ describe('RequestsService', () => {
 
     await service.createAnonymousRequest(request);
 
-    const persistedStore = JSON.parse(readFileSync(storePath, 'utf8')) as {
-      requests: Array<{
-        idempotencyKey: string;
-        lifecycleState: string;
-        publicStatus: string;
-      }>;
-    };
-
-    const persistedRequest = persistedStore.requests.find(
+    const persistedRequest = (await requestStore.listRequests()).find(
       (entry) => entry.idempotencyKey === request.idempotencyKey,
     );
 
     expect(persistedRequest).toBeDefined();
 
-    persistedRequest!.lifecycleState = 'dispatch_in_progress';
-    persistedRequest!.publicStatus = 'dispatching';
-    writeFileSync(
-      storePath,
-      `${JSON.stringify(persistedStore, null, 2)}\n`,
-      'utf8',
-    );
+    await prisma.serviceRequest.update({
+      where: {
+        publicId: persistedRequest!.publicId,
+      },
+      data: {
+        lifecycleState: 'dispatch_in_progress',
+        publicStatus: 'dispatching',
+      },
+    });
 
     const replayed = await service.createAnonymousRequest(request);
 
@@ -388,27 +372,21 @@ describe('RequestsService', () => {
 
     await service.createAnonymousRequest(request);
 
-    const persistedStore = JSON.parse(readFileSync(storePath, 'utf8')) as {
-      requests: Array<{
-        idempotencyKey: string;
-        lifecycleState: string;
-        publicStatus: string;
-      }>;
-    };
-
-    const persistedRequest = persistedStore.requests.find(
+    const persistedRequest = (await requestStore.listRequests()).find(
       (entry) => entry.idempotencyKey === request.idempotencyKey,
     );
 
     expect(persistedRequest).toBeDefined();
 
-    persistedRequest!.lifecycleState = 'dispatch_in_progress';
-    persistedRequest!.publicStatus = 'received';
-    writeFileSync(
-      storePath,
-      `${JSON.stringify(persistedStore, null, 2)}\n`,
-      'utf8',
-    );
+    await prisma.serviceRequest.update({
+      where: {
+        publicId: persistedRequest!.publicId,
+      },
+      data: {
+        lifecycleState: 'dispatch_in_progress',
+        publicStatus: 'received',
+      },
+    });
 
     await expect(service.createAnonymousRequest(request)).rejects.toThrow(
       'Unsupported public status "received" for lifecycle state "dispatch_in_progress".',
@@ -441,12 +419,27 @@ describe('RequestsService', () => {
       idempotencyKey: 'review-status-lookup-success',
     });
 
-    await requestStore.appendHistoryEntry({
+    const dispatchStartedAt = minutesAfter(createdRequest.createdAt, 15);
+
+    const appendedHistoryRequest = await requestStore.appendHistoryEntry({
       publicId: createdRequest.publicId,
       lifecycleState: 'dispatch_in_progress',
       publicStatus: 'dispatching',
-      createdAt: '2026-04-20T08:15:00.000Z',
+      createdAt: dispatchStartedAt,
       note: 'A Handrix team member is now coordinating the dispatch step.',
+    });
+
+    expect(appendedHistoryRequest).not.toBeNull();
+    expect(appendedHistoryRequest?.history.at(-1)).toMatchObject({
+      nextPublicStatus: 'dispatching',
+    });
+
+    expect(
+      (await requestStore.getByPublicId(createdRequest.publicId))?.history.at(
+        -1,
+      ),
+    ).toMatchObject({
+      nextPublicStatus: 'dispatching',
     });
 
     const requestStatus = await service.getRequestStatus({
@@ -465,7 +458,7 @@ describe('RequestsService', () => {
     expect(requestStatus.nextStepDetail).toContain(
       'actively moving this request forward',
     );
-    expect(requestStatus.updatedAt).toBe('2026-04-20T08:15:00.000Z');
+    expect(requestStatus.updatedAt).toBe(dispatchStartedAt);
     expect(requestStatus.timeline).toEqual([
       expect.objectContaining({
         publicStatus: 'received',
@@ -530,7 +523,7 @@ describe('RequestsService', () => {
       publicId: createdRequest.publicId,
       lifecycleState: 'clarification_needed',
       publicStatus: 'needsClarification',
-      createdAt: '2026-04-20T09:10:00.000Z',
+      createdAt: minutesAfter(createdRequest.createdAt, 10),
       note: 'We need one more confirmation about fixture access before dispatch can continue.',
     });
 
@@ -577,11 +570,13 @@ describe('RequestsService', () => {
       idempotencyKey: 'review-status-lookup-delayed',
     });
 
+    const dispatchStartedAt = minutesAfter(createdRequest.createdAt, 10);
+
     await requestStore.appendHistoryEntry({
       publicId: createdRequest.publicId,
       lifecycleState: 'dispatch_in_progress',
       publicStatus: 'dispatching',
-      createdAt: '2026-04-20T09:00:00.000Z',
+      createdAt: dispatchStartedAt,
       note: 'Dispatch coordination has started for this request.',
     });
 
@@ -589,7 +584,7 @@ describe('RequestsService', () => {
       publicId: createdRequest.publicId,
       lifecycleState: 'dispatch_delayed',
       publicStatus: 'delayed',
-      createdAt: '2026-04-20T09:25:00.000Z',
+      createdAt: minutesAfter(dispatchStartedAt, 25),
       note: 'Arrival timing is taking longer than first expected while the route is rechecked.',
     });
 
@@ -625,7 +620,7 @@ describe('RequestsService', () => {
     expect(requestStatus.history.at(-1)?.recoveryState?.kind).toBe('delay');
   });
 
-  it('normalizes older history entries into ordered customer-safe history without breaking tracking', async () => {
+  it('returns ordered customer-safe history from persisted transitions without breaking tracking', async () => {
     const createdRequest = await service.createAnonymousRequest({
       issueTypeId: 'slow-drain',
       answers: [
@@ -651,38 +646,13 @@ describe('RequestsService', () => {
       idempotencyKey: 'review-status-lookup-legacy-history',
     });
 
-    const persistedStore = JSON.parse(readFileSync(storePath, 'utf8')) as {
-      requests: Array<{
-        publicId: string;
-        history: Array<Record<string, unknown>>;
-      }>;
-    };
-    const persistedRequest = persistedStore.requests.find(
-      (entry) => entry.publicId === createdRequest.publicId,
-    );
-
-    expect(persistedRequest).toBeDefined();
-
-    persistedRequest!.history = [
-      {
-        lifecycleState: 'intake_in_review',
-        publicStatus: 'received',
-        createdAt: '2026-04-20T08:00:00.000Z',
-        note: 'Customer confirmed the anonymous request through the guided review flow.',
-      },
-      {
-        lifecycleState: 'dispatch_delayed',
-        publicStatus: 'delayed',
-        createdAt: '2026-04-20T09:25:00.000Z',
-        note: 'Arrival timing is taking longer than first expected while the route is rechecked.',
-      },
-    ];
-
-    writeFileSync(
-      storePath,
-      `${JSON.stringify(persistedStore, null, 2)}\n`,
-      'utf8',
-    );
+    await requestStore.appendHistoryEntry({
+      publicId: createdRequest.publicId,
+      lifecycleState: 'dispatch_delayed',
+      publicStatus: 'delayed',
+      createdAt: minutesAfter(createdRequest.createdAt, 25),
+      note: 'Arrival timing is taking longer than first expected while the route is rechecked.',
+    });
 
     const requestStatus = await service.getRequestStatus({
       publicId: createdRequest.publicId,
@@ -737,7 +707,7 @@ describe('RequestsService', () => {
       publicId: createdRequest.publicId,
       lifecycleState: 'unfulfilled',
       publicStatus: 'unavailable',
-      createdAt: '2026-04-20T10:05:00.000Z',
+      createdAt: minutesAfter(createdRequest.createdAt, 35),
       note: 'This service path is no longer available for the current request details.',
     });
 

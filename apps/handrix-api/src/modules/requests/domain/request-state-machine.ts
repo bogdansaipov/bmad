@@ -3,7 +3,10 @@ import type {
   RequestLifecycleState,
 } from '@handrix/shared-contracts';
 
-type LifecycleTransitionSource = 'ops-status-update' | 'ops-assignment';
+type LifecycleTransitionSource =
+  | 'ops-status-update'
+  | 'ops-assignment'
+  | 'support-intervention';
 
 type TransitionInput = {
   currentLifecycleState: RequestLifecycleState;
@@ -96,6 +99,20 @@ export function validateLifecycleTransition(
     }
 
     return { isAllowed: true };
+  }
+
+  if (input.source === 'support-intervention') {
+    if (
+      input.nextLifecycleState !== 'clarification_needed' &&
+      input.nextLifecycleState !== 'dispatch_delayed' &&
+      input.nextLifecycleState !== 'unfulfilled'
+    ) {
+      return {
+        isAllowed: false,
+        reason:
+          'Support follow-up can only record clarification, blocker, or unavailable outcomes.',
+      };
+    }
   }
 
   const allowedTransitions = getStatusUpdateTransitions({

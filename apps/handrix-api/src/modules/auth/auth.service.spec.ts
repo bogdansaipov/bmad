@@ -103,4 +103,30 @@ describe('AuthService', () => {
 
     expect(result).toBeNull();
   });
+
+  it('rejects production fallback secrets during auth config loading', () => {
+    process.env = {
+      ...originalEnv,
+      HANDRIX_ENV: 'production',
+      HANDRIX_API_CORS_ORIGIN: 'https://app.handrix.example',
+      HANDRIX_DATABASE_URL:
+        'postgresql://handrix:secure-pass@db.handrix.example:5432/handrix?schema=public',
+      HANDRIX_INTERNAL_AUTH_ISSUER: 'handrix-production',
+      HANDRIX_INTERNAL_AUTH_SECRET: 'handrix-local-internal-auth-secret',
+      HANDRIX_REQUEST_TOKEN_SECRET: 'prod-request-token-secret',
+      HANDRIX_OPS_EMAIL: 'ops@handrix.local',
+      HANDRIX_OPS_PASSWORD: 'ops-prod-pass',
+      HANDRIX_SUPPORT_EMAIL: 'support@handrix.local',
+      HANDRIX_SUPPORT_PASSWORD: 'support-prod-pass',
+    };
+
+    expect(() =>
+      new AuthService().createInternalSession({
+        email: 'ops@handrix.local',
+        password: 'ops-prod-pass',
+      }),
+    ).toThrow(
+      'HANDRIX_INTERNAL_AUTH_SECRET must not use the local development fallback.',
+    );
+  });
 });

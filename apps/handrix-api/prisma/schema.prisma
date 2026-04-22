@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("HANDRIX_DATABASE_URL")
+}
+
+enum RequestLifecycleState {
+  awaiting_confirmation
+  intake_in_review
+  dispatch_in_progress
+  dispatch_delayed
+  clarification_needed
+  completed
+  unfulfilled
+}
+
+enum PublicRequestStatus {
+  received
+  inReview
+  dispatching
+  delayed
+  needsClarification
+  completed
+  unavailable
+}
+
+enum RequestHistoryActorType {
+  system
+  customer
+  ops
+  support
+}
+
+enum RequestHistoryVisibility {
+  customer
+  internal
+}
+
+enum RequestInterventionKind {
+  clarification
+  blocker
+  unavailable
+}
+
+enum InternalUserRole {
+  ops
+  support
+}
+
+model ServiceRequest {
+  id                     String                  @id
+  publicId               String                  @unique @map("public_id")
+  idempotencyKey         String                  @unique @map("idempotency_key")
+  requestFingerprint     String                  @map("request_fingerprint")
+  issueTypeId            String                  @map("issue_type_id")
+  issueLabel             String                  @map("issue_label")
+  answers                Json
+  serviceabilityStatus   String                  @map("serviceability_status")
+  intakeNextStep         String                  @map("intake_next_step")
+  intakeSummaryHeadline  String                  @map("intake_summary_headline")
+  intakeSummaryDetail    String                  @map("intake_summary_detail")
+  intakeRecoveryCode     String?                 @map("intake_recovery_code")
+  addressLine1           String                  @map("address_line1")
+  city                   String
+  postalCode             String                  @map("postal_code")
+  unitOrAccessNote       String?                 @map("unit_or_access_note")
+  locationDetails        String?                 @map("location_details")
+  lifecycleState         RequestLifecycleState   @map("lifecycle_state")
+  publicStatus           PublicRequestStatus     @map("public_status")
+  createdAt              DateTime                @db.Timestamptz(6) @map("created_at")
+  trackingTokenDigest    String                  @map("tracking_token_digest")
+  trackingTokenExpiresAt DateTime                @db.Timestamptz(6) @map("tracking_token_expires_at")
+  customerContext        Json?                   @map("customer_context")
+  assignment             RequestAssignment?
+  history                RequestStatusHistory[]
+
+  @@index([createdAt], map: "service_requests_created_at_idx")
+  @@map("service_requests")
+}
+
+model RequestAssignment {
+  requestId   String         @id @map("request_id")
+  ownerType   String         @map("owner_type")
+  ownerId     String         @map("owner_id")
+  ownerLabel  String         @map("owner_label")
+  assignedAt  DateTime       @db.Timestamptz(6) @map("assigned_at")
+  note        String?
+  request     ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@map("request_assignments")
+}
+
+model RequestStatusHistory {
+  id                   String                    @id @db.Uuid
+  requestId            String                    @map("request_id")
+  previousLifecycleState RequestLifecycleState?  @map("previous_lifecycle_state")
+  nextLifecycleState   RequestLifecycleState     @map("next_lifecycle_state")
+  previousPublicStatus PublicRequestStatus?      @map("previous_public_status")
+  nextPublicStatus     PublicRequestStatus       @map("next_public_status")
+  occurredAt           DateTime                  @db.Timestamptz(6) @map("occurred_at")
+  actorType            RequestHistoryActorType   @map("actor_type")
+  actorId              String?                   @map("actor_id")
+  changeSummary        String                    @map("change_summary")
+  visibility           RequestHistoryVisibility
+  interventionKind     RequestInterventionKind?  @map("intervention_kind")
+  interventionDetail   String?                   @map("intervention_detail")
+  customerSnapshot     Json                      @map("customer_snapshot")
+  request              ServiceRequest            @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId, occurredAt], map: "request_status_history_request_id_occurred_at_idx")
+  @@map("request_status_history")
+}
+
+model InternalUser {
+  id          String           @id
+  email       String           @unique
+  displayName String           @map("display_name")
+  role        InternalUserRole
+  source      String
+  createdAt   DateTime         @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt   DateTime         @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  @@map("internal_users")
+}
+
+model ObservabilityEvent {
+  id                    String                @id @db.Uuid
+  eventName             String                @map("event_name")
+  correlationId         String                @map("correlation_id")
+  routeScope            String                @map("route_scope")
+  actorType             String                @map("actor_type")
+  actorId               String?               @map("actor_id")
+  publicId              String?               @map("public_id")
+  requestLifecycleState RequestLifecycleState? @map("request_lifecycle_state")
+  publicStatus          PublicRequestStatus?  @map("public_status")
+  outcome               String
+  occurredAt            DateTime              @db.Timestamptz(6) @map("occurred_at")
+  metadata              Json?
+
+  @@index([eventName, occurredAt], map: "observability_events_event_name_occurred_at_idx")
+  @@index([publicId, occurredAt], map: "observability_events_public_id_occurred_at_idx")
+  @@index([correlationId], map: "observability_events_correlation_id_idx")
+  @@map("observability_events")
+}

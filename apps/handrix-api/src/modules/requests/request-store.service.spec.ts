@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { RequestStoreService } from './request-store.service';
 
+jest.setTimeout(20000);
+
 describe('RequestStoreService', () => {
   const testDirectory = mkdtempSync(join(tmpdir(), 'handrix-request-store-'));
 
@@ -279,6 +281,106 @@ describe('RequestStoreService', () => {
       actorId: 'ops-default-user',
       intervention: {
         kind: 'blocker',
+      },
+    });
+  });
+
+  it('persists internal-only support follow-up without changing customer visibility defaults', async () => {
+    const store = RequestStoreService.forFilePath(
+      join(testDirectory, 'support-follow-up.json'),
+    );
+
+    await store.createOrGetByIdempotencyKey({
+      internalId: 'internal-support-1',
+      publicId: 'hrx_support_followup',
+      idempotencyKey: 'support-followup-1',
+      requestFingerprint: 'fingerprint-support-followup-1',
+      issueTypeId: 'slow-drain',
+      issueLabel: 'Slow drain',
+      answers: [],
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: '',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      lifecycleState: 'dispatch_delayed',
+      publicStatus: 'delayed',
+      createdAt: '2026-04-20T08:00:00.000Z',
+      trackingCredential: {
+        token: 'signed.token.support-followup',
+        expiresAt: '2026-05-20T08:00:00.000Z',
+      },
+      history: [
+        {
+          previousLifecycleState: null,
+          nextLifecycleState: 'dispatch_delayed',
+          previousPublicStatus: null,
+          nextPublicStatus: 'delayed',
+          occurredAt: '2026-04-20T08:10:00.000Z',
+          actorType: 'ops',
+          changeSummary: 'Operations marked the request as delayed.',
+          visibility: 'customer',
+          customerSnapshot: {
+            publicStatusLabel: 'Dispatch delayed',
+            publicStatusDetail:
+              'This request is still active, but the expected progress timing has changed and the next update should explain the revised expectation clearly.',
+            nextStepDetail:
+              'This request is still active, but the next service update may take longer than originally expected while Handrix works through the delay.',
+            recoveryState: {
+              kind: 'delay',
+              title: 'Dispatch delayed',
+              detail:
+                'The request is still active, but the timing has changed while we work through the delay.',
+              expectationUpdate:
+                'The next update should confirm the revised timing clearly.',
+              nextActionLabel: 'Watch for the revised update',
+              nextActionDetail:
+                'Keep the area stable and watch for the next progress update from Handrix.',
+            },
+          },
+        },
+      ],
+    });
+
+    const updatedRequest = await store.transitionRequestLifecycle({
+      publicId: 'hrx_support_followup',
+      lifecycleState: 'dispatch_delayed',
+      publicStatus: 'delayed',
+      occurredAt: '2026-04-20T09:25:00.000Z',
+      note: 'Support confirmed building access instructions with the customer.',
+      actorType: 'support',
+      actorId: 'support-default-user',
+      visibility: 'internal',
+      intervention: {
+        kind: 'blocker',
+        detail:
+          'Support confirmed building access instructions with the customer.',
+      },
+    });
+
+    expect(updatedRequest?.history.at(-1)).toMatchObject({
+      actorType: 'support',
+      actorId: 'support-default-user',
+      visibility: 'internal',
+      previousLifecycleState: 'dispatch_delayed',
+      nextLifecycleState: 'dispatch_delayed',
+      previousPublicStatus: 'delayed',
+      nextPublicStatus: 'delayed',
+      intervention: {
+        kind: 'blocker',
+        detail:
+          'Support confirmed building access instructions with the customer.',
       },
     });
   });

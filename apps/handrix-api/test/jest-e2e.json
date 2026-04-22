@@ -1,6 +1,8 @@
 {
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
+  "globalSetup": "./postgres-jest.global-setup.ts",
+  "globalTeardown": "./postgres-jest.global-teardown.ts",
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "transform": {

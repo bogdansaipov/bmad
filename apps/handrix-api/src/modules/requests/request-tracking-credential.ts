@@ -1,9 +1,6 @@
 import type { RequestTrackingCredential } from '@handrix/shared-contracts';
-import { createHmac, timingSafeEqual } from 'node:crypto';
-
-const TRACKING_TOKEN_SECRET =
-  process.env.HANDRIX_REQUEST_TOKEN_SECRET?.trim() ||
-  'handrix-local-tracking-secret';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { parseAppEnv } from '../../config/env.validation';
 
 type RequestTrackingTokenPayload = {
   publicId: string;
@@ -13,9 +10,13 @@ type RequestTrackingTokenPayload = {
 };
 
 function getTokenSignature(payloadBase64: string) {
-  return createHmac('sha256', TRACKING_TOKEN_SECRET)
+  return createHmac('sha256', parseAppEnv().requestTokenSecret)
     .update(payloadBase64)
     .digest('base64url');
+}
+
+export function hashRequestTrackingToken(token: string) {
+  return createHash('md5').update(token).digest('hex');
 }
 
 function parseTrackingToken(token: string): RequestTrackingTokenPayload {
@@ -74,10 +75,13 @@ function parseTrackingToken(token: string): RequestTrackingTokenPayload {
 export function issueRequestTrackingCredential(
   publicId: string,
   issuedAt: string,
+  expiresAtOverride?: string,
 ): RequestTrackingCredential {
-  const expiresAt = new Date(
-    new Date(issuedAt).getTime() + 1000 * 60 * 60 * 24 * 30,
-  ).toISOString();
+  const expiresAt =
+    expiresAtOverride ??
+    new Date(
+      new Date(issuedAt).getTime() + 1000 * 60 * 60 * 24 * 30,
+    ).toISOString();
   const payloadBase64 = Buffer.from(
     JSON.stringify({
       publicId,
@@ -97,7 +101,7 @@ export function issueRequestTrackingCredential(
 export function validateRequestTrackingCredential(input: {
   publicId: string;
   token: string;
-  expectedToken?: string;
+  expectedTokenDigest?: string;
   now?: Date;
 }) {
   const payload = parseTrackingToken(input.token);
@@ -107,9 +111,9 @@ export function validateRequestTrackingCredential(input: {
   }
 
   if (
-    input.expectedToken !== undefined &&
-    input.expectedToken.trim().length > 0 &&
-    input.expectedToken !== input.token
+    input.expectedTokenDigest !== undefined &&
+    input.expectedTokenDigest.trim().length > 0 &&
+    input.expectedTokenDigest !== hashRequestTrackingToken(input.token)
   ) {
     throw new Error('Invalid request tracking credential.');
   }

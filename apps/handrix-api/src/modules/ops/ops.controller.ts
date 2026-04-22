@@ -18,7 +18,21 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiBody,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import {
+  authOpenApiExamples,
+  opsOpenApiExamples,
+} from '../../common/swagger/shared-contract-openapi';
 import { InternalAuthGuard } from '../auth/internal-auth.guard';
 import { InternalRolesGuard } from '../auth/internal-roles.guard';
 import { InternalRoles } from '../auth/roles.decorator';
@@ -30,6 +44,18 @@ import {
 } from './ops.service';
 
 @ApiTags('ops')
+@ApiUnauthorizedResponse({
+  description: 'A valid protected staff session is required.',
+  schema: {
+    example: authOpenApiExamples.protectedErrors.unauthorized,
+  },
+})
+@ApiForbiddenResponse({
+  description: 'The current staff role cannot access this protected ops route.',
+  schema: {
+    example: authOpenApiExamples.protectedErrors.forbidden,
+  },
+})
 @Controller('ops')
 @UseGuards(InternalAuthGuard, InternalRolesGuard)
 export class OpsController {
@@ -44,6 +70,9 @@ export class OpsController {
   @ApiOkResponse({
     description:
       'A protected operations session payload, wrapped in the shared success envelope.',
+    schema: {
+      example: opsOpenApiExamples.sessionResponse,
+    },
   })
   getSession(@Req() request: AuthenticatedInternalRequest) {
     const currentUser = request.user!;
@@ -72,6 +101,9 @@ export class OpsController {
   @ApiOkResponse({
     description:
       'A protected operations queue payload, wrapped in the shared success envelope.',
+    schema: {
+      example: opsOpenApiExamples.queueResponse,
+    },
   })
   async getQueue() {
     const queue: OpsQueueResponse = await this.opsService.getQueue();
@@ -87,9 +119,23 @@ export class OpsController {
     summary:
       'Return the full protected operations request-detail view for a single request.',
   })
+  @ApiParam({
+    name: 'publicId',
+    type: String,
+    example: opsOpenApiExamples.pathParams.publicId,
+  })
   @ApiOkResponse({
     description:
       'A protected operations request-detail payload, wrapped in the shared success envelope.',
+    schema: {
+      example: opsOpenApiExamples.requestDetailResponse,
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'The requested operations record was not found.',
+    schema: {
+      example: opsOpenApiExamples.notFoundError,
+    },
   })
   async getRequestDetail(@Param('publicId') publicId: string) {
     const requestDetail: OpsRequestDetailResponse | null =
@@ -117,9 +163,34 @@ export class OpsController {
     summary:
       'Assign a request to a provider or internal fulfillment owner from the protected operations workspace.',
   })
+  @ApiParam({
+    name: 'publicId',
+    type: String,
+    example: opsOpenApiExamples.pathParams.publicId,
+  })
+  @ApiBody({
+    schema: {
+      example: opsOpenApiExamples.assignRequestBody,
+    },
+  })
   @ApiOkResponse({
     description:
       'The updated protected operations request-detail payload after assignment, wrapped in the shared success envelope.',
+    schema: {
+      example: opsOpenApiExamples.requestDetailResponse,
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'The assignment request did not match the shared contract.',
+    schema: {
+      example: opsOpenApiExamples.validationError,
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'The requested operations record was not found.',
+    schema: {
+      example: opsOpenApiExamples.notFoundError,
+    },
   })
   async assignRequest(
     @Param('publicId') publicId: string,
@@ -179,9 +250,35 @@ export class OpsController {
     summary:
       'Apply a guarded lifecycle status update from the protected operations workspace.',
   })
+  @ApiParam({
+    name: 'publicId',
+    type: String,
+    example: opsOpenApiExamples.pathParams.publicId,
+  })
+  @ApiBody({
+    schema: {
+      example: opsOpenApiExamples.updateStatusBody,
+    },
+  })
   @ApiOkResponse({
     description:
       'The updated protected operations request-detail payload after a lifecycle update, wrapped in the shared success envelope.',
+    schema: {
+      example: opsOpenApiExamples.requestDetailResponse,
+    },
+  })
+  @ApiBadRequestResponse({
+    description:
+      'The lifecycle update request did not match the shared contract or current transition rules.',
+    schema: {
+      example: opsOpenApiExamples.validationError,
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'The requested operations record was not found.',
+    schema: {
+      example: opsOpenApiExamples.notFoundError,
+    },
   })
   async updateRequestStatus(
     @Param('publicId') publicId: string,

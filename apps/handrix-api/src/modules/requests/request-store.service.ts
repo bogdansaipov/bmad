@@ -1,8 +1,16 @@
+import { execFileSync } from 'node:child_process';
+import { createHash, randomUUID } from 'node:crypto';
+import { resolve } from 'node:path';
+import {
+  Prisma,
+  PrismaClient,
+  PublicRequestStatus as PrismaPublicRequestStatus,
+  RequestHistoryActorType as PrismaRequestHistoryActorType,
+  RequestHistoryVisibility as PrismaRequestHistoryVisibility,
+  RequestInterventionKind as PrismaRequestInterventionKind,
+  RequestLifecycleState as PrismaRequestLifecycleState,
+} from '@prisma/client';
 import { Injectable } from '@nestjs/common';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { randomUUID } from 'node:crypto';
-import { tmpdir } from 'node:os';
-import { dirname, resolve } from 'node:path';
 import type {
   ClarifyingAnswer,
   ContainmentGuidance,
@@ -16,13 +24,19 @@ import type {
   RequestTrackingCredential,
   ServiceLocation,
 } from '@handrix/shared-contracts';
+import { PrismaService } from '../../prisma/prisma.service';
 import { getRequestRecoveryState } from './request-status-recovery.presenter';
 import { getTrackingStatusContent } from './request-status-content.presenter';
 import { getPublicRequestStatusPresentation } from './request-status.presenter';
+import {
+  hashRequestTrackingToken,
+  issueRequestTrackingCredential,
+} from './request-tracking-credential';
 
 export type RequestLifecycleState = SharedRequestLifecycleState;
 
 export type RequestHistoryActorType = 'system' | 'customer' | 'ops' | 'support';
+export type PersistedRequestHistoryVisibility = 'customer' | 'internal';
 export type PersistedRequestInterventionKind =
   | 'clarification'
   | 'blocker'
@@ -30,6 +44,7 @@ export type PersistedRequestInterventionKind =
 
 export type PersistedRequestIntervention = {
   kind: PersistedRequestInterventionKind;
+  detail?: string;
 };
 
 export type PersistedRequestCustomerSnapshot = {
@@ -61,15 +76,9 @@ export type PersistedRequestHistoryEntry = {
   actorType: RequestHistoryActorType;
   actorId?: string;
   changeSummary: string;
+  visibility?: PersistedRequestHistoryVisibility;
   intervention?: PersistedRequestIntervention | null;
   customerSnapshot: PersistedRequestCustomerSnapshot;
-};
-
-type LegacyPersistedRequestHistoryEntry = {
-  lifecycleState: RequestLifecycleState;
-  publicStatus: PublicRequestStatus;
-  createdAt: string;
-  note: string;
 };
 
 export type PersistedServiceRequest = {
@@ -91,10 +100,6 @@ export type PersistedServiceRequest = {
   history: PersistedRequestHistoryEntry[];
 };
 
-type RequestStoreData = {
-  requests: PersistedServiceRequest[];
-};
-
 type RequestStoreCreateResult =
   | { kind: 'created'; record: PersistedServiceRequest }
   | { kind: 'existing'; record: PersistedServiceRequest };
@@ -107,6 +112,8 @@ type RequestHistoryAppendInput = {
   note: string;
   actorType?: RequestHistoryActorType;
   actorId?: string;
+  visibility?: PersistedRequestHistoryVisibility;
+  intervention?: PersistedRequestIntervention | null;
 };
 
 type RequestAssignmentInput = {
@@ -126,13 +133,22 @@ type RequestLifecycleTransitionInput = {
   note: string;
   actorType?: RequestHistoryActorType;
   actorId?: string;
+  visibility?: PersistedRequestHistoryVisibility;
+  intervention?: PersistedRequestIntervention | null;
 };
 
-function isLegacyHistoryEntry(
-  entry: PersistedRequestHistoryEntry | LegacyPersistedRequestHistoryEntry,
-): entry is LegacyPersistedRequestHistoryEntry {
-  return 'lifecycleState' in entry;
-}
+const requestRecordInclude = {
+  assignment: true,
+  history: {
+    orderBy: {
+      occurredAt: 'asc',
+    },
+  },
+} satisfies Prisma.ServiceRequestInclude;
+
+type RequestRecord = Prisma.ServiceRequestGetPayload<{
+  include: typeof requestRecordInclude;
+}>;
 
 function buildCustomerSnapshot(
   publicStatus: PublicRequestStatus,
@@ -175,6 +191,163 @@ function getInterventionForLifecycleState(
   }
 }
 
+function toPrismaLifecycleState(
+  lifecycleState: RequestLifecycleState,
+): PrismaRequestLifecycleState {
+  return lifecycleState as PrismaRequestLifecycleState;
+}
+
+function toPrismaPublicStatus(
+  publicStatus: PublicRequestStatus,
+): PrismaPublicRequestStatus {
+  return publicStatus as PrismaPublicRequestStatus;
+}
+
+function toPrismaActorType(
+  actorType: RequestHistoryActorType,
+): PrismaRequestHistoryActorType {
+  return actorType as PrismaRequestHistoryActorType;
+}
+
+function toPrismaVisibility(
+  visibility: PersistedRequestHistoryVisibility,
+): PrismaRequestHistoryVisibility {
+  return visibility as PrismaRequestHistoryVisibility;
+}
+
+function toPrismaInterventionKind(
+  kind: PersistedRequestInterventionKind,
+): PrismaRequestInterventionKind {
+  return kind as PrismaRequestInterventionKind;
+}
+
+function parseJsonValue<T>(value: Prisma.JsonValue | null | undefined): T {
+  return (value ?? null) as T;
+}
+
+function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
+  return value as Prisma.InputJsonValue;
+}
+
+function serializeHistoryEntry(
+  entry: PersistedRequestHistoryEntry,
+): Omit<Prisma.RequestStatusHistoryUncheckedCreateInput, 'requestId'> {
+  return {
+    id: randomUUID(),
+    previousLifecycleState:
+      entry.previousLifecycleState === null
+        ? null
+        : toPrismaLifecycleState(entry.previousLifecycleState),
+    nextLifecycleState: toPrismaLifecycleState(entry.nextLifecycleState),
+    previousPublicStatus:
+      entry.previousPublicStatus === null
+        ? null
+        : toPrismaPublicStatus(entry.previousPublicStatus),
+    nextPublicStatus: toPrismaPublicStatus(entry.nextPublicStatus),
+    occurredAt: new Date(entry.occurredAt),
+    actorType: toPrismaActorType(entry.actorType),
+    actorId: entry.actorId ?? null,
+    changeSummary: entry.changeSummary,
+    visibility: toPrismaVisibility(entry.visibility ?? 'customer'),
+    interventionKind: entry.intervention
+      ? toPrismaInterventionKind(entry.intervention.kind)
+      : null,
+    interventionDetail: entry.intervention?.detail ?? null,
+    customerSnapshot: toInputJsonValue(entry.customerSnapshot),
+  };
+}
+
+function deserializeHistoryEntry(
+  entry: RequestRecord['history'][number],
+): PersistedRequestHistoryEntry {
+  return {
+    previousLifecycleState:
+      entry.previousLifecycleState as RequestLifecycleState | null,
+    nextLifecycleState: entry.nextLifecycleState as RequestLifecycleState,
+    previousPublicStatus:
+      entry.previousPublicStatus as PublicRequestStatus | null,
+    nextPublicStatus: entry.nextPublicStatus as PublicRequestStatus,
+    occurredAt: entry.occurredAt.toISOString(),
+    actorType: entry.actorType as RequestHistoryActorType,
+    actorId: entry.actorId ?? undefined,
+    changeSummary: entry.changeSummary,
+    visibility: entry.visibility as PersistedRequestHistoryVisibility,
+    intervention: entry.interventionKind
+      ? {
+          kind: entry.interventionKind as PersistedRequestInterventionKind,
+          ...(entry.interventionDetail
+            ? { detail: entry.interventionDetail }
+            : {}),
+        }
+      : null,
+    customerSnapshot: parseJsonValue<PersistedRequestCustomerSnapshot>(
+      entry.customerSnapshot,
+    ),
+  };
+}
+
+function deserializeRequest(record: RequestRecord): PersistedServiceRequest {
+  const history = record.history
+    .map(deserializeHistoryEntry)
+    .sort((left, right) => left.occurredAt.localeCompare(right.occurredAt));
+
+  return {
+    internalId: record.id,
+    publicId: record.publicId,
+    idempotencyKey: record.idempotencyKey,
+    requestFingerprint: record.requestFingerprint,
+    issueTypeId: record.issueTypeId as IssueTypeId,
+    issueLabel: record.issueLabel,
+    answers: parseJsonValue<ClarifyingAnswer[]>(record.answers),
+    serviceLocation: {
+      addressLine1: record.addressLine1,
+      city: record.city,
+      postalCode: record.postalCode,
+      unitOrAccessNote: record.unitOrAccessNote ?? '',
+      locationDetails: record.locationDetails ?? '',
+    },
+    classification: {
+      issueTypeId: record.issueTypeId as IssueTypeId,
+      serviceabilityStatus:
+        record.serviceabilityStatus as IntakeClassification['serviceabilityStatus'],
+      nextStep: record.intakeNextStep as IntakeClassification['nextStep'],
+      summaryHeadline: record.intakeSummaryHeadline,
+      summaryDetail: record.intakeSummaryDetail,
+      ...(record.intakeRecoveryCode
+        ? {
+            recoveryCode: record.intakeRecoveryCode as NonNullable<
+              IntakeClassification['recoveryCode']
+            >,
+          }
+        : {}),
+    },
+    lifecycleState: record.lifecycleState as RequestLifecycleState,
+    publicStatus: record.publicStatus as PublicRequestStatus,
+    createdAt: record.createdAt.toISOString(),
+    trackingCredential: issueRequestTrackingCredential(
+      record.publicId,
+      record.createdAt.toISOString(),
+      record.trackingTokenExpiresAt.toISOString(),
+    ),
+    assignment: record.assignment
+      ? {
+          ownerType: record.assignment.ownerType as OpsAssignmentOwnerType,
+          ownerId: record.assignment.ownerId,
+          ownerLabel: record.assignment.ownerLabel,
+          assignedAt: record.assignment.assignedAt.toISOString(),
+          ...(record.assignment.note ? { note: record.assignment.note } : {}),
+        }
+      : undefined,
+    customerContext:
+      record.customerContext === null
+        ? undefined
+        : parseJsonValue<PersistedRequestCustomerContext>(
+            record.customerContext,
+          ),
+    history,
+  };
+}
+
 export function createPersistedHistoryEntry(input: {
   previousLifecycleState: RequestLifecycleState | null;
   nextLifecycleState: RequestLifecycleState;
@@ -184,6 +357,7 @@ export function createPersistedHistoryEntry(input: {
   changeSummary: string;
   actorType?: RequestHistoryActorType;
   actorId?: string;
+  visibility?: PersistedRequestHistoryVisibility;
   intervention?: PersistedRequestIntervention | null;
 }): PersistedRequestHistoryEntry {
   return {
@@ -195,6 +369,7 @@ export function createPersistedHistoryEntry(input: {
     actorType: input.actorType ?? 'system',
     actorId: input.actorId,
     changeSummary: input.changeSummary,
+    visibility: input.visibility ?? 'customer',
     intervention:
       input.intervention ??
       getInterventionForLifecycleState(input.nextLifecycleState),
@@ -202,115 +377,187 @@ export function createPersistedHistoryEntry(input: {
   };
 }
 
-function normalizeHistoryEntries(
-  history: Array<
-    PersistedRequestHistoryEntry | LegacyPersistedRequestHistoryEntry
-  >,
-) {
-  const normalizedEntries: PersistedRequestHistoryEntry[] = [];
-
-  for (const entry of history) {
-    if (isLegacyHistoryEntry(entry)) {
-      const previousEntry = normalizedEntries[normalizedEntries.length - 1];
-
-      normalizedEntries.push(
-        createPersistedHistoryEntry({
-          previousLifecycleState: previousEntry?.nextLifecycleState ?? null,
-          nextLifecycleState: entry.lifecycleState,
-          previousPublicStatus: previousEntry?.nextPublicStatus ?? null,
-          nextPublicStatus: entry.publicStatus,
-          occurredAt: entry.createdAt,
-          changeSummary: entry.note,
-        }),
-      );
-      continue;
-    }
-
-    normalizedEntries.push({
-      ...entry,
-      intervention:
-        entry.intervention ??
-        getInterventionForLifecycleState(entry.nextLifecycleState),
-      customerSnapshot:
-        entry.customerSnapshot ?? buildCustomerSnapshot(entry.nextPublicStatus),
-    });
-  }
-
-  return normalizedEntries;
-}
-
-function getDefaultStorePath() {
-  if (process.env.HANDRIX_REQUEST_STORE_PATH?.trim()) {
-    return resolve(process.env.HANDRIX_REQUEST_STORE_PATH);
-  }
-
-  if (process.env.HANDRIX_ENV === 'test' || process.env.NODE_ENV === 'test') {
-    return resolve(
-      tmpdir(),
-      `handrix-service-requests-${process.pid}-${randomUUID()}.json`,
-    );
-  }
-
-  return resolve(process.cwd(), 'apps/handrix-api/.data/service-requests.json');
-}
-
 @Injectable()
 export class RequestStoreService {
-  private filePath: string;
-  private writeQueue = Promise.resolve();
-
-  constructor() {
-    this.filePath = getDefaultStorePath();
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   static forFilePath(filePath: string) {
-    const store = new RequestStoreService();
-    store.filePath = filePath;
-    return store;
+    const baseDatabaseUrl = process.env.HANDRIX_DATABASE_URL?.trim();
+
+    if (!baseDatabaseUrl) {
+      throw new Error(
+        'HANDRIX_DATABASE_URL must be set before using the test request store.',
+      );
+    }
+
+    const databaseUrl = new URL(baseDatabaseUrl);
+    databaseUrl.searchParams.set(
+      'schema',
+      `test_${createHash('sha256').update(filePath).digest('hex').slice(0, 12)}`,
+    );
+
+    execFileSync(
+      'pnpm',
+      [
+        'exec',
+        'prisma',
+        'migrate',
+        'deploy',
+        '--schema',
+        'prisma/schema.prisma',
+      ],
+      {
+        cwd: resolve(__dirname, '../../..'),
+        env: {
+          ...process.env,
+          HANDRIX_DATABASE_URL: databaseUrl.toString(),
+        },
+        stdio: 'pipe',
+      },
+    );
+
+    const prisma = new PrismaClient({
+      datasources: {
+        db: {
+          url: databaseUrl.toString(),
+        },
+      },
+    });
+
+    return new RequestStoreService(prisma as unknown as PrismaService);
   }
 
   async createOrGetByIdempotencyKey(
     record: PersistedServiceRequest,
   ): Promise<RequestStoreCreateResult> {
-    return this.withLock(async () => {
-      const store = await this.readStore();
-      const existing = store.requests.find(
-        (request) => request.idempotencyKey === record.idempotencyKey,
-      );
+    const existing = await this.prisma.serviceRequest.findUnique({
+      where: {
+        idempotencyKey: record.idempotencyKey,
+      },
+      include: requestRecordInclude,
+    });
 
-      if (existing) {
-        if (existing.requestFingerprint !== record.requestFingerprint) {
-          throw new Error(
-            'This confirmation attempt conflicts with an existing request submission.',
-          );
-        }
+    if (existing) {
+      const persistedExisting = deserializeRequest(existing);
 
-        return {
-          kind: 'existing',
-          record: existing,
-        };
+      if (persistedExisting.requestFingerprint !== record.requestFingerprint) {
+        throw new Error(
+          'This confirmation attempt conflicts with an existing request submission.',
+        );
       }
 
-      store.requests.push(record);
-      await this.writeStore(store);
+      return {
+        kind: 'existing',
+        record: persistedExisting,
+      };
+    }
+
+    try {
+      const created = await this.prisma.serviceRequest.create({
+        data: {
+          id: record.internalId,
+          publicId: record.publicId,
+          idempotencyKey: record.idempotencyKey,
+          requestFingerprint: record.requestFingerprint,
+          issueTypeId: record.issueTypeId,
+          issueLabel: record.issueLabel,
+          answers: toInputJsonValue(record.answers),
+          serviceabilityStatus: record.classification.serviceabilityStatus,
+          intakeNextStep: record.classification.nextStep,
+          intakeSummaryHeadline: record.classification.summaryHeadline,
+          intakeSummaryDetail: record.classification.summaryDetail,
+          intakeRecoveryCode: record.classification.recoveryCode ?? null,
+          addressLine1: record.serviceLocation.addressLine1,
+          city: record.serviceLocation.city,
+          postalCode: record.serviceLocation.postalCode,
+          unitOrAccessNote: record.serviceLocation.unitOrAccessNote ?? null,
+          locationDetails: record.serviceLocation.locationDetails ?? null,
+          lifecycleState: toPrismaLifecycleState(record.lifecycleState),
+          publicStatus: toPrismaPublicStatus(record.publicStatus),
+          createdAt: new Date(record.createdAt),
+          trackingTokenDigest: hashRequestTrackingToken(
+            record.trackingCredential.token,
+          ),
+          trackingTokenExpiresAt: new Date(record.trackingCredential.expiresAt),
+          customerContext: record.customerContext
+            ? toInputJsonValue(record.customerContext)
+            : Prisma.JsonNull,
+          assignment: record.assignment
+            ? {
+                create: {
+                  ownerType: record.assignment.ownerType,
+                  ownerId: record.assignment.ownerId,
+                  ownerLabel: record.assignment.ownerLabel,
+                  assignedAt: new Date(record.assignment.assignedAt),
+                  note: record.assignment.note ?? null,
+                },
+              }
+            : undefined,
+          history: {
+            create: record.history.map((entry) => serializeHistoryEntry(entry)),
+          },
+        },
+        include: requestRecordInclude,
+      });
 
       return {
         kind: 'created',
-        record,
+        record: deserializeRequest(created),
       };
-    });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        const conflicted = await this.prisma.serviceRequest.findUnique({
+          where: {
+            idempotencyKey: record.idempotencyKey,
+          },
+          include: requestRecordInclude,
+        });
+
+        if (conflicted) {
+          const persistedConflicted = deserializeRequest(conflicted);
+
+          if (
+            persistedConflicted.requestFingerprint !== record.requestFingerprint
+          ) {
+            throw new Error(
+              'This confirmation attempt conflicts with an existing request submission.',
+            );
+          }
+
+          return {
+            kind: 'existing',
+            record: persistedConflicted,
+          };
+        }
+      }
+
+      throw error;
+    }
   }
 
   async listRequests() {
-    const store = await this.readStore();
-    return store.requests;
+    const requests = await this.prisma.serviceRequest.findMany({
+      include: requestRecordInclude,
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    return requests.map(deserializeRequest);
   }
 
   async getByPublicId(publicId: string) {
-    const store = await this.readStore();
-    return (
-      store.requests.find((request) => request.publicId === publicId) ?? null
-    );
+    const request = await this.prisma.serviceRequest.findUnique({
+      where: {
+        publicId,
+      },
+      include: requestRecordInclude,
+    });
+
+    return request ? deserializeRequest(request) : null;
   }
 
   async appendHistoryEntry(input: RequestHistoryAppendInput) {
@@ -322,136 +569,123 @@ export class RequestStoreService {
       note: input.note,
       actorType: input.actorType,
       actorId: input.actorId,
+      visibility: input.visibility,
+      intervention: input.intervention,
     });
   }
 
   async assignFulfillmentOwner(input: RequestAssignmentInput) {
-    return this.withLock(async () => {
-      const store = await this.readStore();
-      const requestIndex = store.requests.findIndex(
-        (request) => request.publicId === input.publicId,
-      );
+    return this.prisma.$transaction(async (tx) => {
+      const request = await tx.serviceRequest.findUnique({
+        where: {
+          publicId: input.publicId,
+        },
+      });
 
-      if (requestIndex === -1) {
+      if (!request) {
         return null;
       }
 
-      const request = store.requests[requestIndex];
-      const nextHistoryEntry = createPersistedHistoryEntry({
-        previousLifecycleState: request.lifecycleState,
-        nextLifecycleState: input.lifecycleState,
-        previousPublicStatus: request.publicStatus,
-        nextPublicStatus: input.publicStatus,
-        occurredAt: input.assignment.assignedAt,
-        changeSummary: input.note,
-        actorType: 'ops',
-        actorId: input.actorId,
+      await tx.requestAssignment.upsert({
+        where: {
+          requestId: request.id,
+        },
+        update: {
+          ownerType: input.assignment.ownerType,
+          ownerId: input.assignment.ownerId,
+          ownerLabel: input.assignment.ownerLabel,
+          assignedAt: new Date(input.assignment.assignedAt),
+          note: input.assignment.note ?? null,
+        },
+        create: {
+          requestId: request.id,
+          ownerType: input.assignment.ownerType,
+          ownerId: input.assignment.ownerId,
+          ownerLabel: input.assignment.ownerLabel,
+          assignedAt: new Date(input.assignment.assignedAt),
+          note: input.assignment.note ?? null,
+        },
       });
 
-      const updatedRequest: PersistedServiceRequest = {
-        ...request,
-        assignment: input.assignment,
-        lifecycleState: input.lifecycleState,
-        publicStatus: input.publicStatus,
-        history: [...request.history, nextHistoryEntry],
-      };
+      await tx.requestStatusHistory.create({
+        data: {
+          requestId: request.id,
+          ...serializeHistoryEntry(
+            createPersistedHistoryEntry({
+              previousLifecycleState:
+                request.lifecycleState as RequestLifecycleState,
+              nextLifecycleState: input.lifecycleState,
+              previousPublicStatus: request.publicStatus as PublicRequestStatus,
+              nextPublicStatus: input.publicStatus,
+              occurredAt: input.assignment.assignedAt,
+              changeSummary: input.note,
+              actorType: 'ops',
+              actorId: input.actorId,
+            }),
+          ),
+        },
+      });
 
-      store.requests[requestIndex] = updatedRequest;
-      await this.writeStore(store);
+      const updated = await tx.serviceRequest.update({
+        where: {
+          id: request.id,
+        },
+        data: {
+          lifecycleState: toPrismaLifecycleState(input.lifecycleState),
+          publicStatus: toPrismaPublicStatus(input.publicStatus),
+        },
+        include: requestRecordInclude,
+      });
 
-      return updatedRequest;
+      return deserializeRequest(updated);
     });
   }
 
   async transitionRequestLifecycle(input: RequestLifecycleTransitionInput) {
-    return this.withLock(async () => {
-      const store = await this.readStore();
-      const requestIndex = store.requests.findIndex(
-        (request) => request.publicId === input.publicId,
-      );
+    return this.prisma.$transaction(async (tx) => {
+      const request = await tx.serviceRequest.findUnique({
+        where: {
+          publicId: input.publicId,
+        },
+      });
 
-      if (requestIndex === -1) {
+      if (!request) {
         return null;
       }
 
-      const request = store.requests[requestIndex];
-      const nextHistoryEntry = createPersistedHistoryEntry({
-        previousLifecycleState: request.lifecycleState,
-        nextLifecycleState: input.lifecycleState,
-        previousPublicStatus: request.publicStatus,
-        nextPublicStatus: input.publicStatus,
-        occurredAt: input.occurredAt,
-        changeSummary: input.note,
-        actorType: input.actorType,
-        actorId: input.actorId,
+      await tx.requestStatusHistory.create({
+        data: {
+          requestId: request.id,
+          ...serializeHistoryEntry(
+            createPersistedHistoryEntry({
+              previousLifecycleState:
+                request.lifecycleState as RequestLifecycleState,
+              nextLifecycleState: input.lifecycleState,
+              previousPublicStatus: request.publicStatus as PublicRequestStatus,
+              nextPublicStatus: input.publicStatus,
+              occurredAt: input.occurredAt,
+              changeSummary: input.note,
+              actorType: input.actorType,
+              actorId: input.actorId,
+              visibility: input.visibility,
+              intervention: input.intervention,
+            }),
+          ),
+        },
       });
 
-      const updatedRequest: PersistedServiceRequest = {
-        ...request,
-        lifecycleState: input.lifecycleState,
-        publicStatus: input.publicStatus,
-        history: [...request.history, nextHistoryEntry],
-      };
+      const updated = await tx.serviceRequest.update({
+        where: {
+          id: request.id,
+        },
+        data: {
+          lifecycleState: toPrismaLifecycleState(input.lifecycleState),
+          publicStatus: toPrismaPublicStatus(input.publicStatus),
+        },
+        include: requestRecordInclude,
+      });
 
-      store.requests[requestIndex] = updatedRequest;
-      await this.writeStore(store);
-
-      return updatedRequest;
+      return deserializeRequest(updated);
     });
-  }
-
-  private async withLock<T>(operation: () => Promise<T>) {
-    const nextOperation = this.writeQueue.then(operation, operation);
-    this.writeQueue = nextOperation.then(
-      () => undefined,
-      () => undefined,
-    );
-    return nextOperation;
-  }
-
-  private async readStore(): Promise<RequestStoreData> {
-    try {
-      const fileContents = await readFile(this.filePath, 'utf8');
-      const parsed = JSON.parse(fileContents) as {
-        requests?: Array<
-          Omit<PersistedServiceRequest, 'history'> & {
-            history?: Array<
-              PersistedRequestHistoryEntry | LegacyPersistedRequestHistoryEntry
-            >;
-          }
-        >;
-      };
-
-      return {
-        requests: Array.isArray(parsed.requests)
-          ? parsed.requests.map((request) => ({
-              ...request,
-              assignment: request.assignment,
-              history: normalizeHistoryEntries(request.history ?? []),
-            }))
-          : [],
-      };
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        await this.writeStore({
-          requests: [],
-        });
-
-        return {
-          requests: [],
-        };
-      }
-
-      throw error;
-    }
-  }
-
-  private async writeStore(store: RequestStoreData) {
-    await mkdir(dirname(this.filePath), { recursive: true });
-    await writeFile(
-      this.filePath,
-      `${JSON.stringify(store, null, 2)}\n`,
-      'utf8',
-    );
   }
 }

@@ -59,7 +59,9 @@ function toTimelineEntry(
 export function buildRequestStatusHistory(
   persistedRequest: PersistedServiceRequest,
 ) {
-  return persistedRequest.history.map(toHistoryEntry);
+  return persistedRequest.history
+    .filter((entry) => entry.visibility !== 'internal')
+    .map(toHistoryEntry);
 }
 
 export function buildRequestStatusTimeline(

@@ -5,7 +5,6 @@ import {
   opsInterventionSummarySchema,
 } from './ops-intervention.schemas';
 import { opsLifecycleTransitionOptionSchema } from './ops-status-update.schemas';
-import { requestLifecycleStateSchema } from '../health/health.schemas';
 import { containmentGuidanceSchema } from '../requests/containment-guidance.schemas';
 import { requestReviewSummarySchema } from '../requests/request-review.schemas';
 import {
@@ -14,6 +13,7 @@ import {
   serviceLocationSchema,
   serviceabilityStatusSchema,
 } from '../requests/intake.schemas';
+import { requestLifecycleStateSchema } from '../requests/request-lifecycle.schemas';
 import {
   publicRequestStatusPresentationSchema,
   publicRequestStatusSchema,

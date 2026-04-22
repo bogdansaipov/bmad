@@ -1,5 +1,6 @@
 import type { Request } from 'express';
 import type { InternalUserRole } from '@handrix/shared-contracts';
+import type { RouteScope } from '../../common/observability/request-context';
 
 export type InternalStaffUser = {
   id: string;
@@ -17,5 +18,7 @@ export type AuthenticatedInternalUser = {
 };
 
 export type AuthenticatedInternalRequest = Request & {
+  correlationId?: string;
+  routeScope?: RouteScope;
   user?: AuthenticatedInternalUser;
 };

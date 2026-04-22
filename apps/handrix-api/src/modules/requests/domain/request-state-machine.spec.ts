@@ -73,4 +73,30 @@ describe('request state machine', () => {
         'Complete the intake review first so the request is ready for assignment.',
     });
   });
+
+  it('allows support interventions only for clarification, blocker, or unavailable outcomes', () => {
+    expect(
+      validateLifecycleTransition({
+        currentLifecycleState: 'dispatch_in_progress',
+        currentPublicStatus: 'dispatching',
+        nextLifecycleState: 'clarification_needed',
+        hasAssignment: true,
+        source: 'support-intervention',
+      }),
+    ).toEqual({ isAllowed: true });
+
+    expect(
+      validateLifecycleTransition({
+        currentLifecycleState: 'dispatch_in_progress',
+        currentPublicStatus: 'dispatching',
+        nextLifecycleState: 'dispatch_in_progress',
+        hasAssignment: true,
+        source: 'support-intervention',
+      }),
+    ).toEqual({
+      isAllowed: false,
+      reason:
+        'Support follow-up can only record clarification, blocker, or unavailable outcomes.',
+    });
+  });
 });

@@ -11,6 +11,8 @@ import {
 import { ReferenceDataService } from '../reference-data/reference-data.service';
 import { OpsService } from './ops.service';
 
+jest.setTimeout(20000);
+
 function buildPersistedRequest(input: {
   publicId: string;
   idempotencyKey: string;

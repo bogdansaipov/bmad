@@ -27,6 +27,7 @@ import {
 } from './request-store.service';
 import { resolvePublicRequestStatusPresentation } from './request-status.presenter';
 import { buildRequestStatusResponse } from './request-status-timeline.presenter';
+import { ObservabilityService } from '../../common/observability/observability.service';
 
 type AnswerMap = Record<string, ClarifyingAnswer['value']>;
 
@@ -35,6 +36,7 @@ export class RequestsService {
   constructor(
     private readonly referenceDataService: ReferenceDataService,
     private readonly requestStoreService: RequestStoreService,
+    private readonly observabilityService: ObservabilityService = new ObservabilityService(),
   ) {}
 
   evaluateIntake(
@@ -42,17 +44,41 @@ export class RequestsService {
     answers: ClarifyingAnswer[],
     serviceLocation: ServiceLocation,
   ): IntakeClassification {
-    return this.referenceDataService.evaluateIntakeDecision(
+    const classification = this.referenceDataService.evaluateIntakeDecision(
       issueTypeId,
       answers,
       serviceLocation,
     ).classification;
+
+    void this.observabilityService.recordEvent({
+      eventName: 'request.intake.evaluated',
+      routeScope: 'requests',
+      actorType: 'customer',
+      outcome: 'success',
+      metadata: {
+        issueTypeId,
+        serviceabilityStatus: classification.serviceabilityStatus,
+        nextStep: classification.nextStep,
+      },
+    });
+
+    return classification;
   }
 
   createRequestReviewSummary(
     request: RequestReviewRequest,
   ): RequestReviewSummary | null {
     if (request.classification.nextStep !== 'continueToContainment') {
+      void this.observabilityService.recordEvent({
+        eventName: 'request.review.summary.rejected',
+        routeScope: 'requests',
+        actorType: 'customer',
+        outcome: 'rejected',
+        metadata: {
+          issueTypeId: request.issueTypeId,
+          nextStep: request.classification.nextStep,
+        },
+      });
       return null;
     }
 
@@ -67,12 +93,22 @@ export class RequestsService {
     );
 
     if (!issueType || !questionSet || !reviewTemplate) {
+      void this.observabilityService.recordEvent({
+        eventName: 'request.review.summary.rejected',
+        routeScope: 'requests',
+        actorType: 'customer',
+        outcome: 'rejected',
+        metadata: {
+          issueTypeId: request.issueTypeId,
+          reason: 'missing-reference-data',
+        },
+      });
       return null;
     }
 
     const answerMap = this.toAnswerMap(request.answers);
 
-    return {
+    const summary: RequestReviewSummary = {
       issueTypeId: request.issueTypeId,
       issueLabel: issueType.label,
       headline: 'Review the request details before you confirm.',
@@ -137,6 +173,19 @@ export class RequestsService {
       confirmationHint:
         'You can still go back to edit the details above before you confirm.',
     };
+
+    void this.observabilityService.recordEvent({
+      eventName: 'request.review.summary.generated',
+      routeScope: 'requests',
+      actorType: 'customer',
+      outcome: 'success',
+      metadata: {
+        issueTypeId: request.issueTypeId,
+        issueLabel: issueType.label,
+      },
+    });
+
+    return summary;
   }
 
   async createAnonymousRequest(
@@ -202,6 +251,26 @@ export class RequestsService {
         persistedRequest,
       );
 
+    this.observabilityService.annotateRequest({
+      actorType: 'customer',
+      publicId: result.record.publicId,
+    });
+    await this.observabilityService.recordEvent({
+      eventName: 'request.confirmed',
+      routeScope: 'requests',
+      actorType: 'customer',
+      publicId: result.record.publicId,
+      lifecycleState: result.record.lifecycleState,
+      publicStatus: result.record.publicStatus,
+      outcome: result.kind === 'created' ? 'success' : 'existing',
+      occurredAt: result.record.createdAt,
+      metadata: {
+        issueTypeId: result.record.issueTypeId,
+        issueLabel: result.record.issueLabel,
+        serviceabilityStatus: result.record.classification.serviceabilityStatus,
+      },
+    });
+
     return this.toCreateRequestResponse(result.record);
   }
 
@@ -220,11 +289,27 @@ export class RequestsService {
       validateRequestTrackingCredential({
         publicId: request.publicId,
         token: request.trackingToken,
-        expectedToken: persistedRequest.trackingCredential.token,
       });
     } catch {
       throw new Error('This request status is not available right now.');
     }
+
+    this.observabilityService.annotateRequest({
+      actorType: 'customer',
+      publicId: persistedRequest.publicId,
+    });
+    await this.observabilityService.recordEvent({
+      eventName: 'request.status.looked_up',
+      routeScope: 'requests',
+      actorType: 'customer',
+      publicId: persistedRequest.publicId,
+      lifecycleState: persistedRequest.lifecycleState,
+      publicStatus: persistedRequest.publicStatus,
+      outcome: 'success',
+      metadata: {
+        issueTypeId: persistedRequest.issueTypeId,
+      },
+    });
 
     return this.toRequestStatusResponse(persistedRequest);
   }

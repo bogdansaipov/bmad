@@ -1,5 +1,5 @@
 # generated: 2026-04-08 15:44:19 +0500
-# last_updated: 2026-04-21 18:00:00 +0500
+# last_updated: 2026-04-22 11:29:16 +0500
 # project: demo1
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-08 15:44:19 +0500
-last_updated: 2026-04-21 18:00:00 +0500
+last_updated: 2026-04-22 13:55:14 +0500
 project: demo1
 project_key: NOKEY
 tracking_system: file-system
@@ -60,29 +60,29 @@ development_status:
   2-6-preserve-customer-visible-request-history: done
   epic-2-retrospective: done
 
-  epic-3: in-progress
-  3-1-enable-operations-staff-authentication-and-access: review
-  3-2-show-an-operations-request-queue: review
-  3-3-let-operations-review-full-request-details: review
-  3-4-assign-requests-to-a-provider-or-internal-fulfillment-owner: review
-  3-5-manage-lifecycle-status-updates-with-guardrails: review
-  3-6-flag-requests-that-need-intervention-or-clarification: review
-  3-7-maintain-scope-rules-and-supported-service-configuration: review
+  epic-3: done
+  3-1-enable-operations-staff-authentication-and-access: done
+  3-2-show-an-operations-request-queue: done
+  3-3-let-operations-review-full-request-details: done
+  3-4-assign-requests-to-a-provider-or-internal-fulfillment-owner: done
+  3-5-manage-lifecycle-status-updates-with-guardrails: done
+  3-6-flag-requests-that-need-intervention-or-clarification: done
+  3-7-maintain-scope-rules-and-supported-service-configuration: done
   epic-3-retrospective: optional
 
-  epic-4: in-progress
+  epic-4: done
   4-1-enable-support-staff-authentication-and-access: done
-  4-2-let-support-search-and-open-individual-requests: review
-  4-3-show-support-the-full-request-context: backlog
-  4-4-explain-delays-blocks-and-unavailable-outcomes-clearly: backlog
-  4-5-support-manual-intervention-and-follow-up: backlog
+  4-2-let-support-search-and-open-individual-requests: done
+  4-3-show-support-the-full-request-context: done
+  4-4-explain-delays-blocks-and-unavailable-outcomes-clearly: done
+  4-5-support-manual-intervention-and-follow-up: done
   epic-4-retrospective: optional
 
-  epic-5: backlog
-  5-1-establish-durable-persistence-and-schema-management: backlog
-  5-2-add-request-centric-observability-and-health-monitoring: backlog
-  5-3-enforce-security-rate-limiting-and-data-protection-baselines: backlog
-  5-4-validate-environment-configuration-and-deployment-readiness: backlog
-  5-5-protect-future-expansion-through-stable-contracts-and-lifecycle-boundaries: backlog
+  epic-5: in-progress
+  5-1-establish-durable-persistence-and-schema-management: review
+  5-2-add-request-centric-observability-and-health-monitoring: review
+  5-3-enforce-security-rate-limiting-and-data-protection-baselines: review
+  5-4-validate-environment-configuration-and-deployment-readiness: review
+  5-5-protect-future-expansion-through-stable-contracts-and-lifecycle-boundaries: review
   5-6-instrument-mvp-success-measurement: backlog
   epic-5-retrospective: optional

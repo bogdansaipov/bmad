@@ -1,4 +1,4 @@
-type NodeEnv = 'development' | 'test' | 'production';
+type NodeEnv = 'development' | 'test' | 'staging' | 'production';
 type InternalUserRole = 'ops' | 'support';
 
 export type InternalStaffUserConfig = {
@@ -10,13 +10,18 @@ export type InternalStaffUserConfig = {
 };
 
 export type AppEnv = {
-  corsOrigin: string;
+  corsOrigin: string | string[];
+  databaseUrl: string;
   internalAuthIssuer: string;
   internalAuthSecret: string;
   internalAuthTtlMinutes: number;
   internalStaffUsers: InternalStaffUserConfig[];
   nodeEnv: NodeEnv;
   port: number;
+  rateLimitDefaultLimit: number;
+  rateLimitDefaultTtlMs: number;
+  requestTokenSecret: string;
+  trustProxy: boolean;
 };
 
 function parsePort(rawPort: string | undefined): number {
@@ -38,12 +43,17 @@ function parseNodeEnv(rawNodeEnv: string | undefined): NodeEnv {
   if (
     nodeEnv === 'development' ||
     nodeEnv === 'test' ||
+    nodeEnv === 'staging' ||
     nodeEnv === 'production'
   ) {
     return nodeEnv;
   }
 
   throw new Error(`Invalid HANDRIX_ENV value: ${nodeEnv}`);
+}
+
+function isDeployedEnv(nodeEnv: NodeEnv) {
+  return nodeEnv === 'staging' || nodeEnv === 'production';
 }
 
 function parsePositiveInteger(
@@ -64,6 +74,70 @@ function parsePositiveInteger(
   return parsedValue;
 }
 
+function parseBoolean(rawValue: string | undefined, fallback: boolean) {
+  if (!rawValue) {
+    return fallback;
+  }
+
+  const normalizedValue = rawValue.trim().toLowerCase();
+
+  if (['true', '1', 'yes', 'on'].includes(normalizedValue)) {
+    return true;
+  }
+
+  if (['false', '0', 'no', 'off'].includes(normalizedValue)) {
+    return false;
+  }
+
+  throw new Error(`Invalid boolean value: ${rawValue}`);
+}
+
+function normalizeUrl(value: string, label: string) {
+  let parsedUrl: URL;
+
+  try {
+    parsedUrl = new URL(value);
+  } catch {
+    throw new Error(`Invalid ${label} value: ${value}`);
+  }
+
+  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+    throw new Error(`Invalid ${label} value: ${value}`);
+  }
+
+  return parsedUrl;
+}
+
+function parseCorsOrigins(rawValue: string | undefined, nodeEnv: NodeEnv) {
+  const normalizedOrigins = (rawValue ?? 'http://localhost:5173')
+    .split(',')
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+
+  if (normalizedOrigins.length === 0) {
+    throw new Error(
+      'HANDRIX_API_CORS_ORIGIN must include at least one origin.',
+    );
+  }
+
+  const parsedOrigins = normalizedOrigins.map((origin) =>
+    normalizeUrl(origin, 'HANDRIX_API_CORS_ORIGIN'),
+  );
+
+  if (
+    isDeployedEnv(nodeEnv) &&
+    parsedOrigins.some((origin) => origin.hostname === 'localhost')
+  ) {
+    throw new Error(
+      'HANDRIX_API_CORS_ORIGIN must not use localhost origins in production.',
+    );
+  }
+
+  return normalizedOrigins.length === 1
+    ? normalizedOrigins[0]
+    : normalizedOrigins;
+}
+
 function parseRequiredValue(
   rawValue: string | undefined,
   fallback: string,
@@ -76,11 +150,26 @@ function parseRequiredValue(
     return trimmedValue;
   }
 
-  if (nodeEnv === 'production') {
+  if (isDeployedEnv(nodeEnv)) {
     throw new Error(`Missing required ${label} value.`);
   }
 
   return fallback;
+}
+
+function parseRequiredSecretValue(
+  rawValue: string | undefined,
+  fallback: string,
+  label: string,
+  nodeEnv: NodeEnv,
+) {
+  const parsedValue = parseRequiredValue(rawValue, fallback, label, nodeEnv);
+
+  if (isDeployedEnv(nodeEnv) && parsedValue === fallback) {
+    throw new Error(`${label} must not use the local development fallback.`);
+  }
+
+  return parsedValue;
 }
 
 function parseInternalStaffUser(input: {
@@ -124,6 +213,12 @@ function parseInternalStaffUser(input: {
     );
   }
 
+  if (isDeployedEnv(input.nodeEnv) && password === input.defaultPassword) {
+    throw new Error(
+      `HANDRIX_${input.role.toUpperCase()}_PASSWORD must not use the local development fallback.`,
+    );
+  }
+
   return {
     id: `${input.role}-default-user`,
     email,
@@ -137,10 +232,20 @@ export function parseAppEnv(env: NodeJS.ProcessEnv = process.env): AppEnv {
   const nodeEnv = parseNodeEnv(env.HANDRIX_ENV);
 
   return {
-    corsOrigin: env.HANDRIX_API_CORS_ORIGIN?.trim() || 'http://localhost:5173',
-    internalAuthIssuer:
-      env.HANDRIX_INTERNAL_AUTH_ISSUER?.trim() || 'handrix-api',
-    internalAuthSecret: parseRequiredValue(
+    corsOrigin: parseCorsOrigins(env.HANDRIX_API_CORS_ORIGIN, nodeEnv),
+    databaseUrl: parseRequiredValue(
+      env.HANDRIX_DATABASE_URL,
+      'postgresql://handrix:handrix@localhost:5432/handrix?schema=public',
+      'HANDRIX_DATABASE_URL',
+      nodeEnv,
+    ),
+    internalAuthIssuer: parseRequiredValue(
+      env.HANDRIX_INTERNAL_AUTH_ISSUER,
+      'handrix-api',
+      'HANDRIX_INTERNAL_AUTH_ISSUER',
+      nodeEnv,
+    ),
+    internalAuthSecret: parseRequiredSecretValue(
       env.HANDRIX_INTERNAL_AUTH_SECRET,
       'handrix-local-internal-auth-secret',
       'HANDRIX_INTERNAL_AUTH_SECRET',
@@ -175,5 +280,22 @@ export function parseAppEnv(env: NodeJS.ProcessEnv = process.env): AppEnv {
     ],
     nodeEnv,
     port: parsePort(env.HANDRIX_API_PORT),
+    rateLimitDefaultLimit: parsePositiveInteger(
+      env.HANDRIX_RATE_LIMIT_DEFAULT_LIMIT,
+      120,
+      'HANDRIX_RATE_LIMIT_DEFAULT_LIMIT',
+    ),
+    rateLimitDefaultTtlMs: parsePositiveInteger(
+      env.HANDRIX_RATE_LIMIT_DEFAULT_TTL_MS,
+      60000,
+      'HANDRIX_RATE_LIMIT_DEFAULT_TTL_MS',
+    ),
+    requestTokenSecret: parseRequiredSecretValue(
+      env.HANDRIX_REQUEST_TOKEN_SECRET,
+      'handrix-local-tracking-secret',
+      'HANDRIX_REQUEST_TOKEN_SECRET',
+      nodeEnv,
+    ),
+    trustProxy: parseBoolean(env.HANDRIX_TRUST_PROXY, false),
   };
 }

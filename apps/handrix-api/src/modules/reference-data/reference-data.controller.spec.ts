@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { type ContainmentGuidanceRequest } from '@handrix/shared-contracts';
 import { ReferenceDataController } from './reference-data.controller';
 import { ReferenceDataService } from './reference-data.service';
@@ -59,5 +60,23 @@ describe('ReferenceDataController', () => {
     expect(decision.scopeDecision.scopeDecisionLabel).toBe(
       'Within supported plumbing scope',
     );
+  });
+
+  it('returns the shared error envelope for unsupported issue types', () => {
+    const controller = new ReferenceDataController(referenceDataService);
+
+    expect(() => controller.getIntakeQuestionSet('not-a-real-issue')).toThrow(
+      BadRequestException,
+    );
+
+    try {
+      controller.getIntakeQuestionSet('not-a-real-issue');
+    } catch (error) {
+      expect((error as BadRequestException).getResponse()).toMatchObject({
+        error: {
+          code: 'REFERENCE_DATA_ISSUE_TYPE_INVALID',
+        },
+      });
+    }
   });
 });
