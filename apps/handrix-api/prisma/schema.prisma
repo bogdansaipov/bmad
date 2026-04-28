@@ -71,13 +71,19 @@ model ServiceRequest {
   lifecycleState         RequestLifecycleState   @map("lifecycle_state")
   publicStatus           PublicRequestStatus     @map("public_status")
   createdAt              DateTime                @db.Timestamptz(6) @map("created_at")
+  confirmedAt            DateTime?               @db.Timestamptz(6) @map("confirmed_at")
+  fulfilledAt            DateTime?               @db.Timestamptz(6) @map("fulfilled_at")
+  cancelledAt            DateTime?               @db.Timestamptz(6) @map("cancelled_at")
   trackingTokenDigest    String                  @map("tracking_token_digest")
   trackingTokenExpiresAt DateTime                @db.Timestamptz(6) @map("tracking_token_expires_at")
   customerContext        Json?                   @map("customer_context")
   assignment             RequestAssignment?
   history                RequestStatusHistory[]
+  feedback               RequestFeedback?
 
   @@index([createdAt], map: "service_requests_created_at_idx")
+  @@index([confirmedAt], map: "service_requests_confirmed_at_idx")
+  @@index([fulfilledAt], map: "service_requests_fulfilled_at_idx")
   @@map("service_requests")
 }
 
@@ -124,6 +130,19 @@ model InternalUser {
   updatedAt   DateTime         @updatedAt @db.Timestamptz(6) @map("updated_at")
 
   @@map("internal_users")
+}
+
+model RequestFeedback {
+  id                 String          @id @db.Uuid
+  requestId          String          @unique @map("request_id")
+  satisfactionRating Int             @map("satisfaction_rating")
+  reducedUncertainty Boolean?        @map("reduced_uncertainty")
+  freeText           String?         @map("free_text")
+  recordedAt         DateTime        @default(now()) @db.Timestamptz(6) @map("recorded_at")
+  request            ServiceRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([recordedAt], map: "request_feedback_recorded_at_idx")
+  @@map("request_feedback")
 }
 
 model ObservabilityEvent {

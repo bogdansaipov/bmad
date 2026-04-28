@@ -1,22 +1,23 @@
-import type {
-  OpsAssignRequest,
-  OpsAssignmentOwnerOption,
-  OpsAssignmentStatus,
-  OpsCustomerContext,
-  OpsCurrentAssignment,
-  OpsInterventionHistory,
-  OpsInterventionSummary,
-  OpsLifecycleTransitionOption,
-  OpsQueueItem,
-  OpsQueueResponse,
-  OpsQueueState,
-  OpsQueueSummary,
-  OpsRequestDetailAnswer,
-  OpsRequestDetailCurrentState,
-  OpsRequestDetailHistoryEntry,
-  OpsRequestDetailResponse,
-  OpsRequestServiceabilitySummary,
-  OpsUpdateRequestStatus,
+import {
+  OBSERVABILITY_EVENT_NAMES,
+  type OpsAssignRequest,
+  type OpsAssignmentOwnerOption,
+  type OpsAssignmentStatus,
+  type OpsCustomerContext,
+  type OpsCurrentAssignment,
+  type OpsInterventionHistory,
+  type OpsInterventionSummary,
+  type OpsLifecycleTransitionOption,
+  type OpsQueueItem,
+  type OpsQueueResponse,
+  type OpsQueueState,
+  type OpsQueueSummary,
+  type OpsRequestDetailAnswer,
+  type OpsRequestDetailCurrentState,
+  type OpsRequestDetailHistoryEntry,
+  type OpsRequestDetailResponse,
+  type OpsRequestServiceabilitySummary,
+  type OpsUpdateRequestStatus,
 } from '@handrix/shared-contracts';
 import { Injectable } from '@nestjs/common';
 import { ObservabilityService } from '../../common/observability/observability.service';
@@ -923,6 +924,22 @@ export class OpsService {
         nextLifecycleState: input.nextLifecycleState,
       },
     });
+
+    if (input.nextLifecycleState === 'unfulfilled') {
+      await this.observabilityService.recordEvent({
+        eventName: OBSERVABILITY_EVENT_NAMES.requestCancelled,
+        routeScope: 'ops',
+        actorType: 'ops',
+        actorId: input.actorId,
+        publicId: updatedRequest.publicId,
+        lifecycleState: updatedRequest.lifecycleState,
+        publicStatus: updatedRequest.publicStatus,
+        outcome: 'success',
+        metadata: {
+          previousLifecycleState: request.lifecycleState,
+        },
+      });
+    }
 
     return this.toRequestDetail(updatedRequest);
   }

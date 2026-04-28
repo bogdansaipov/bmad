@@ -3,14 +3,20 @@ import {
   createRequestRequestSchema,
   createSuccessResponse,
   evaluateIntakeRequestSchema,
+  publicObservabilityEventIngestionSchema,
   requestStatusLookupRequestSchema,
   requestReviewRequestSchema,
+  submitFeedbackDtoSchema,
 } from '@handrix/shared-contracts';
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
+  Headers,
   InternalServerErrorException,
+  NotFoundException,
+  Param,
   Post,
 } from '@nestjs/common';
 import {
@@ -26,7 +32,7 @@ import {
   PublicWriteThrottle,
 } from '../../common/security/throttle-policies';
 import { requestsOpenApiExamples } from '../../common/swagger/shared-contract-openapi';
-import { RequestsService } from './requests.service';
+import { RequestFeedbackError, RequestsService } from './requests.service';
 
 @ApiTags('requests')
 @Controller('requests')
@@ -306,6 +312,110 @@ export class RequestsController {
           message: 'We could not open that request status right now.',
           recoveryHint:
             'Please try again in a moment using the same confirmation details.',
+        }),
+      );
+    }
+  }
+
+  @Post('events')
+  @ApiOperation({
+    summary:
+      'Ingest an anonymous front-end funnel event (e.g. flow.started) for MVP measurement.',
+  })
+  @PublicWriteThrottle()
+  async createPublicEvent(@Body() body: unknown) {
+    const parsedBody = publicObservabilityEventIngestionSchema.safeParse(body);
+
+    if (!parsedBody.success) {
+      throw new BadRequestException(
+        createErrorResponse({
+          code: 'REQUEST_EVENT_INGESTION_VALIDATION_FAILED',
+          message: 'That event could not be accepted.',
+          recoveryHint: 'Only whitelisted public event names are accepted.',
+        }),
+      );
+    }
+
+    await this.requestsService.recordPublicIngestedEvent(parsedBody.data);
+
+    return createSuccessResponse(
+      { accepted: true },
+      { generatedAt: new Date().toISOString() },
+    );
+  }
+
+  @Post(':publicId/feedback')
+  @ApiOperation({
+    summary:
+      'Submit post-service feedback for a resolved anonymous customer request.',
+  })
+  @PublicWriteThrottle()
+  async submitFeedback(
+    @Param('publicId') publicId: string,
+    @Headers('x-tracking-token') trackingTokenHeader: string | undefined,
+    @Body() body: unknown,
+  ) {
+    const trackingToken =
+      typeof trackingTokenHeader === 'string' ? trackingTokenHeader.trim() : '';
+
+    if (trackingToken.length === 0) {
+      throw new BadRequestException(
+        createErrorResponse({
+          code: 'REQUEST_FEEDBACK_UNAUTHORIZED',
+          message: 'We could not record that feedback.',
+          recoveryHint:
+            'Return to the tracking view and try again using the latest tracking identity.',
+        }),
+      );
+    }
+
+    const parsedBody = submitFeedbackDtoSchema.safeParse(body);
+
+    if (!parsedBody.success) {
+      throw new BadRequestException(
+        createErrorResponse({
+          code: 'REQUEST_FEEDBACK_VALIDATION_FAILED',
+          message: 'We could not record that feedback.',
+          recoveryHint:
+            'Share a satisfaction rating between 1 and 5 and try again.',
+        }),
+      );
+    }
+
+    try {
+      const result = await this.requestsService.submitFeedback({
+        publicId,
+        trackingToken,
+        feedback: parsedBody.data,
+      });
+
+      return createSuccessResponse(result, {
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      if (error instanceof RequestFeedbackError) {
+        const payload = createErrorResponse({
+          code: error.code,
+          message: error.message,
+          recoveryHint: error.recoveryHint,
+        });
+
+        if (error.status === 'notFound') {
+          throw new NotFoundException(payload);
+        }
+
+        if (error.status === 'conflict') {
+          throw new ConflictException(payload);
+        }
+
+        throw new BadRequestException(payload);
+      }
+
+      throw new InternalServerErrorException(
+        createErrorResponse({
+          code: 'REQUEST_FEEDBACK_UNAVAILABLE',
+          message: 'We could not record that feedback right now.',
+          recoveryHint: 'Please try again in a moment.',
         }),
       );
     }

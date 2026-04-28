@@ -21,16 +21,23 @@ describe('RequestsController', () => {
   let controllerCounter = 0;
 
   function buildController() {
+    const { controller } = buildControllerWithStore();
+    return controller;
+  }
+
+  function buildControllerWithStore() {
     controllerCounter += 1;
 
-    return new RequestsController(
-      new RequestsService(
-        new ReferenceDataService(),
-        RequestStoreService.forFilePath(
-          join(testDirectory, `controller-${controllerCounter}.json`),
-        ),
-      ),
+    const store = RequestStoreService.forFilePath(
+      join(testDirectory, `controller-${controllerCounter}.json`),
     );
+    const prisma = store.getPrismaClient();
+
+    const controller = new RequestsController(
+      new RequestsService(new ReferenceDataService(), store, prisma),
+    );
+
+    return { controller, store, prisma };
   }
 
   it('returns a serviceable intake evaluation when the request stays in scope', () => {
@@ -184,7 +191,11 @@ describe('RequestsController', () => {
       join(testDirectory, 'controller-recovery.json'),
     );
     const controller = new RequestsController(
-      new RequestsService(new ReferenceDataService(), store),
+      new RequestsService(
+        new ReferenceDataService(),
+        store,
+        store.getPrismaClient(),
+      ),
     );
     const createdRequest = await controller.createRequest({
       issueTypeId: 'slow-drain',
@@ -321,6 +332,258 @@ describe('RequestsController', () => {
         },
       });
     }
+  });
+
+  it('accepts a flow.started ingestion event', async () => {
+    const controller = buildController();
+
+    const response = await controller.createPublicEvent({
+      eventName: 'flow.started',
+      metadata: { surface: 'web' },
+    });
+
+    expect(response.data).toEqual({ accepted: true });
+    expect(response.meta?.generatedAt).toEqual(expect.any(String));
+  });
+
+  it('rejects an unknown public event name', async () => {
+    const controller = buildController();
+
+    await expect(
+      controller.createPublicEvent({ eventName: 'something.else' }),
+    ).rejects.toMatchObject({
+      response: {
+        error: {
+          code: 'REQUEST_EVENT_INGESTION_VALIDATION_FAILED',
+        },
+      },
+    });
+  });
+
+  it('rejects feedback submission when the request has not yet resolved', async () => {
+    const { controller } = buildControllerWithStore();
+    const createdRequest = await controller.createRequest({
+      issueTypeId: 'slow-drain',
+      answers: [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: 'Bathroom sink on the second floor',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'controller-feedback-not-ready',
+    });
+
+    await expect(
+      controller.submitFeedback(
+        createdRequest.data.publicId,
+        createdRequest.data.trackingCredential.token,
+        { satisfactionRating: 4 },
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        error: {
+          code: 'REQUEST_FEEDBACK_NOT_READY',
+        },
+      },
+    });
+  });
+
+  it('records feedback once a request is resolved', async () => {
+    const { controller, store, prisma } = buildControllerWithStore();
+    const createdRequest = await controller.createRequest({
+      issueTypeId: 'slow-drain',
+      answers: [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: 'Bathroom sink on the second floor',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'controller-feedback-happy-path',
+    });
+
+    await store.transitionRequestLifecycle({
+      publicId: createdRequest.data.publicId,
+      lifecycleState: 'completed',
+      publicStatus: 'completed',
+      occurredAt: new Date(
+        new Date(createdRequest.data.createdAt).getTime() + 60 * 60 * 1000,
+      ).toISOString(),
+      note: 'Fulfillment complete.',
+    });
+
+    const response = await controller.submitFeedback(
+      createdRequest.data.publicId,
+      createdRequest.data.trackingCredential.token,
+      { satisfactionRating: 5, reducedUncertainty: true },
+    );
+
+    expect(response.data.satisfactionRating).toBe(5);
+    expect(response.data.acknowledgement).toContain('Thank you');
+
+    const stored = await prisma.requestFeedback.findFirst({
+      where: {
+        request: { publicId: createdRequest.data.publicId },
+      },
+    });
+
+    expect(stored).toMatchObject({
+      satisfactionRating: 5,
+      reducedUncertainty: true,
+    });
+  });
+
+  it('rejects feedback when the tracking token is missing', async () => {
+    const { controller } = buildControllerWithStore();
+
+    await expect(
+      controller.submitFeedback('hrx_missing', undefined, {
+        satisfactionRating: 3,
+      }),
+    ).rejects.toMatchObject({
+      response: {
+        error: {
+          code: 'REQUEST_FEEDBACK_UNAUTHORIZED',
+        },
+      },
+    });
+  });
+
+  it('rejects duplicate feedback submission with a conflict error', async () => {
+    const { controller, store } = buildControllerWithStore();
+    const createdRequest = await controller.createRequest({
+      issueTypeId: 'slow-drain',
+      answers: [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: 'Bathroom sink on the second floor',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'controller-feedback-duplicate',
+    });
+
+    await store.transitionRequestLifecycle({
+      publicId: createdRequest.data.publicId,
+      lifecycleState: 'completed',
+      publicStatus: 'completed',
+      occurredAt: new Date(
+        new Date(createdRequest.data.createdAt).getTime() + 60 * 60 * 1000,
+      ).toISOString(),
+      note: 'Fulfillment complete.',
+    });
+
+    await controller.submitFeedback(
+      createdRequest.data.publicId,
+      createdRequest.data.trackingCredential.token,
+      { satisfactionRating: 4 },
+    );
+
+    await expect(
+      controller.submitFeedback(
+        createdRequest.data.publicId,
+        createdRequest.data.trackingCredential.token,
+        { satisfactionRating: 2 },
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        error: {
+          code: 'REQUEST_FEEDBACK_ALREADY_SUBMITTED',
+        },
+      },
+    });
+  });
+
+  it('rejects feedback submission when the satisfactionRating is out of range', async () => {
+    const { controller, store } = buildControllerWithStore();
+    const createdRequest = await controller.createRequest({
+      issueTypeId: 'slow-drain',
+      answers: [
+        { questionId: 'singleDrainAffected', value: true },
+        { questionId: 'standingWater', value: true },
+      ],
+      serviceLocation: {
+        addressLine1: '15 Spring Street',
+        city: 'New York',
+        postalCode: '10011',
+        unitOrAccessNote: '',
+        locationDetails: 'Bathroom sink on the second floor',
+      },
+      classification: {
+        issueTypeId: 'slow-drain',
+        serviceabilityStatus: 'serviceable',
+        nextStep: 'continueToContainment',
+        summaryHeadline:
+          'This request can keep moving through the guided flow.',
+        summaryDetail:
+          'You are still within the supported plumbing scope and service area for the next Handrix step.',
+      },
+      idempotencyKey: 'controller-feedback-validation',
+    });
+
+    await store.transitionRequestLifecycle({
+      publicId: createdRequest.data.publicId,
+      lifecycleState: 'completed',
+      publicStatus: 'completed',
+      occurredAt: new Date(
+        new Date(createdRequest.data.createdAt).getTime() + 60 * 60 * 1000,
+      ).toISOString(),
+      note: 'Fulfillment complete.',
+    });
+
+    await expect(
+      controller.submitFeedback(
+        createdRequest.data.publicId,
+        createdRequest.data.trackingCredential.token,
+        { satisfactionRating: 9 },
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        error: {
+          code: 'REQUEST_FEEDBACK_VALIDATION_FAILED',
+        },
+      },
+    });
   });
 
   afterAll(async () => {

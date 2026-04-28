@@ -1,20 +1,21 @@
-import type {
-  InternalSupportSession,
-  SupportInterventionKind,
-  SupportInterventionRequest,
-  SupportRequestDetailAnswer,
-  SupportRequestDetailAssignment,
-  SupportRequestDetailCurrentState,
-  SupportRequestDetailCustomerContext,
-  SupportRequestDetailExplanation,
-  SupportRequestDetailFollowUp,
-  SupportRequestDetailHistoryEntry,
-  SupportRequestDetailHistoryIntervention,
-  SupportRequestDetailIntervention,
-  SupportRequestDetailResponse,
-  SupportRequestSearchResponse,
-  SupportRequestSearchResult,
-  SupportSearchRequestQuery,
+import {
+  OBSERVABILITY_EVENT_NAMES,
+  type InternalSupportSession,
+  type SupportInterventionKind,
+  type SupportInterventionRequest,
+  type SupportRequestDetailAnswer,
+  type SupportRequestDetailAssignment,
+  type SupportRequestDetailCurrentState,
+  type SupportRequestDetailCustomerContext,
+  type SupportRequestDetailExplanation,
+  type SupportRequestDetailFollowUp,
+  type SupportRequestDetailHistoryEntry,
+  type SupportRequestDetailHistoryIntervention,
+  type SupportRequestDetailIntervention,
+  type SupportRequestDetailResponse,
+  type SupportRequestSearchResponse,
+  type SupportRequestSearchResult,
+  type SupportSearchRequestQuery,
 } from '@handrix/shared-contracts';
 import { Injectable } from '@nestjs/common';
 import { ObservabilityService } from '../../common/observability/observability.service';
@@ -563,7 +564,7 @@ export class SupportService {
       publicId: request.publicId,
     });
     await this.observabilityService.recordEvent({
-      eventName: 'support.request.opened',
+      eventName: OBSERVABILITY_EVENT_NAMES.supportRequestOpened,
       routeScope: 'support',
       actorType: 'support',
       publicId: request.publicId,
@@ -655,7 +656,7 @@ export class SupportService {
       publicId: updatedRequest.publicId,
     });
     await this.observabilityService.recordEvent({
-      eventName: 'support.request.intervention_recorded',
+      eventName: OBSERVABILITY_EVENT_NAMES.supportRequestInterventionRecorded,
       routeScope: 'support',
       actorType: 'support',
       actorId: input.actorId,
@@ -668,6 +669,22 @@ export class SupportService {
         updateLifecycle: input.updateLifecycle === true,
       },
     });
+
+    if (shouldUpdateLifecycle && nextLifecycleState === 'unfulfilled') {
+      await this.observabilityService.recordEvent({
+        eventName: OBSERVABILITY_EVENT_NAMES.requestCancelled,
+        routeScope: 'support',
+        actorType: 'support',
+        actorId: input.actorId,
+        publicId: updatedRequest.publicId,
+        lifecycleState: updatedRequest.lifecycleState,
+        publicStatus: updatedRequest.publicStatus,
+        outcome: 'success',
+        metadata: {
+          previousLifecycleState: request.lifecycleState,
+        },
+      });
+    }
 
     return this.toRequestDetail(updatedRequest);
   }

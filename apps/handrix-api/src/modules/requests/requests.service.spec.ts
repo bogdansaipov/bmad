@@ -2,7 +2,6 @@ import { mkdtempSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { PrismaClient } from '@prisma/client';
 import { ReferenceDataService } from '../reference-data/reference-data.service';
 import { RequestStoreService } from './request-store.service';
 import { RequestsService } from './requests.service';
@@ -19,9 +18,13 @@ describe('RequestsService', () => {
   );
   const storePath = join(testDirectory, 'requests.json');
   const requestStore = RequestStoreService.forFilePath(storePath);
-  const prisma = (requestStore as unknown as { prisma: PrismaClient }).prisma;
+  const prisma = requestStore.getPrismaClient();
   const referenceDataService = new ReferenceDataService();
-  const service = new RequestsService(referenceDataService, requestStore);
+  const service = new RequestsService(
+    referenceDataService,
+    requestStore,
+    prisma,
+  );
 
   it('classifies in-scope intake details as serviceable', () => {
     const result = service.evaluateIntake(

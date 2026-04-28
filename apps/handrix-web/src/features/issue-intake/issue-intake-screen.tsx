@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   ClarifyingAnswer,
   ContainmentGuidance,
@@ -24,6 +24,7 @@ import {
   loadIntakeQuestionSet,
   loadIssueTypes,
 } from './issue-types-api'
+import { reportFlowStarted } from './observability-events-api'
 import { IssueSelectionCard } from './issue-selection-card'
 import type { SavedTrackedRequest } from '../request-tracking/request-tracking-storage'
 
@@ -87,8 +88,18 @@ export function IssueIntakeScreen({
   const [requestIdempotencyKey, setRequestIdempotencyKey] = useState('')
   const [confirmedRequest, setConfirmedRequest] = useState<CreateRequestResponse | null>(null)
   const [step, setStep] = useState<FlowStep>('select')
+  const hasReportedFlowStartedRef = useRef(false)
 
   const isConfirmationVisible = step === 'review' && confirmedRequest !== null
+
+  useEffect(() => {
+    if (hasReportedFlowStartedRef.current) {
+      return
+    }
+
+    hasReportedFlowStartedRef.current = true
+    void reportFlowStarted()
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()

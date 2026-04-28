@@ -8,6 +8,7 @@ import { parseAppEnv } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
+import { MeasurementModule } from './modules/measurement/measurement.module';
 import { OpsModule } from './modules/ops/ops.module';
 import { ReferenceDataModule } from './modules/reference-data/reference-data.module';
 import { RequestsModule } from './modules/requests/requests.module';
@@ -31,6 +32,7 @@ import { SupportModule } from './modules/support/support.module';
     PrismaModule,
     AuthModule,
     HealthModule,
+    MeasurementModule,
     OpsModule,
     ReferenceDataModule,
     RequestsModule,

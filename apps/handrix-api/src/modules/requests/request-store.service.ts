@@ -94,6 +94,9 @@ export type PersistedServiceRequest = {
   lifecycleState: RequestLifecycleState;
   publicStatus: PublicRequestStatus;
   createdAt: string;
+  confirmedAt?: string | null;
+  fulfilledAt?: string | null;
+  cancelledAt?: string | null;
   trackingCredential: RequestTrackingCredential;
   assignment?: PersistedRequestAssignment;
   customerContext?: PersistedRequestCustomerContext;
@@ -299,6 +302,9 @@ function deserializeRequest(record: RequestRecord): PersistedServiceRequest {
     issueTypeId: record.issueTypeId as IssueTypeId,
     issueLabel: record.issueLabel,
     answers: parseJsonValue<ClarifyingAnswer[]>(record.answers),
+    confirmedAt: record.confirmedAt?.toISOString() ?? null,
+    fulfilledAt: record.fulfilledAt?.toISOString() ?? null,
+    cancelledAt: record.cancelledAt?.toISOString() ?? null,
     serviceLocation: {
       addressLine1: record.addressLine1,
       city: record.city,
@@ -380,6 +386,12 @@ export function createPersistedHistoryEntry(input: {
 @Injectable()
 export class RequestStoreService {
   constructor(private readonly prisma: PrismaService) {}
+
+  // Exposed for test harnesses that wire Prisma into adjacent services
+  // without running the full Nest DI module.
+  getPrismaClient(): PrismaService {
+    return this.prisma;
+  }
 
   static forFilePath(filePath: string) {
     const baseDatabaseUrl = process.env.HANDRIX_DATABASE_URL?.trim();
@@ -475,6 +487,7 @@ export class RequestStoreService {
           lifecycleState: toPrismaLifecycleState(record.lifecycleState),
           publicStatus: toPrismaPublicStatus(record.publicStatus),
           createdAt: new Date(record.createdAt),
+          confirmedAt: new Date(record.createdAt),
           trackingTokenDigest: hashRequestTrackingToken(
             record.trackingCredential.token,
           ),
@@ -674,6 +687,13 @@ export class RequestStoreService {
         },
       });
 
+      const lifecycleTimestampPatch = buildLifecycleTimestampPatch({
+        nextLifecycleState: input.lifecycleState,
+        existingFulfilledAt: request.fulfilledAt,
+        existingCancelledAt: request.cancelledAt,
+        occurredAt: input.occurredAt,
+      });
+
       const updated = await tx.serviceRequest.update({
         where: {
           id: request.id,
@@ -681,6 +701,7 @@ export class RequestStoreService {
         data: {
           lifecycleState: toPrismaLifecycleState(input.lifecycleState),
           publicStatus: toPrismaPublicStatus(input.publicStatus),
+          ...lifecycleTimestampPatch,
         },
         include: requestRecordInclude,
       });
@@ -688,4 +709,32 @@ export class RequestStoreService {
       return deserializeRequest(updated);
     });
   }
+}
+
+function buildLifecycleTimestampPatch(input: {
+  nextLifecycleState: RequestLifecycleState;
+  existingFulfilledAt: Date | null;
+  existingCancelledAt: Date | null;
+  occurredAt: string;
+}) {
+  const patch: {
+    fulfilledAt?: Date;
+    cancelledAt?: Date;
+  } = {};
+
+  if (
+    input.nextLifecycleState === 'completed' &&
+    input.existingFulfilledAt === null
+  ) {
+    patch.fulfilledAt = new Date(input.occurredAt);
+  }
+
+  if (
+    input.nextLifecycleState === 'unfulfilled' &&
+    input.existingCancelledAt === null
+  ) {
+    patch.cancelledAt = new Date(input.occurredAt);
+  }
+
+  return patch;
 }

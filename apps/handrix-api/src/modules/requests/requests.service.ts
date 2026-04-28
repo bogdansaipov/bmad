@@ -1,18 +1,24 @@
 import {
+  OBSERVABILITY_EVENT_NAMES,
   type ClarifyingAnswer,
   type CreateRequestRequest,
   type CreateRequestResponse,
   type IssueTypeId,
   type PublicRequestStatus,
+  type PublicObservabilityEventIngestionRequest,
   type RequestReviewRequest,
   type RequestReviewSummary,
   type RequestStatusLookupRequest,
   type RequestStatusResponse,
   type IntakeClassification,
   type ServiceLocation,
+  type SubmitFeedbackDto,
+  type SubmitFeedbackResponse,
 } from '@handrix/shared-contracts';
 import { Injectable } from '@nestjs/common';
 import { createHash, randomUUID } from 'node:crypto';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
 import { ReferenceDataService } from '../reference-data/reference-data.service';
 import {
   issueRequestTrackingCredential,
@@ -31,11 +37,26 @@ import { ObservabilityService } from '../../common/observability/observability.s
 
 type AnswerMap = Record<string, ClarifyingAnswer['value']>;
 
+export class RequestFeedbackError extends Error {
+  constructor(
+    readonly code: string,
+    message: string,
+    readonly recoveryHint: string,
+    readonly status: 'badRequest' | 'notFound' | 'conflict' = 'badRequest',
+  ) {
+    super(message);
+    this.name = 'RequestFeedbackError';
+  }
+}
+
+const FLOW_STARTED_DEDUP_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 @Injectable()
 export class RequestsService {
   constructor(
     private readonly referenceDataService: ReferenceDataService,
     private readonly requestStoreService: RequestStoreService,
+    private readonly prismaService: PrismaService,
     private readonly observabilityService: ObservabilityService = new ObservabilityService(),
   ) {}
 
@@ -44,6 +65,21 @@ export class RequestsService {
     answers: ClarifyingAnswer[],
     serviceLocation: ServiceLocation,
   ): IntakeClassification {
+    const issueType = this.referenceDataService.getIssueType(issueTypeId);
+
+    if (issueType !== null) {
+      void this.observabilityService.recordEvent({
+        eventName: OBSERVABILITY_EVENT_NAMES.issueSelected,
+        routeScope: 'requests',
+        actorType: 'customer',
+        outcome: 'success',
+        metadata: {
+          issueTypeId,
+          issueLabel: issueType.label,
+        },
+      });
+    }
+
     const classification = this.referenceDataService.evaluateIntakeDecision(
       issueTypeId,
       answers,
@@ -51,7 +87,7 @@ export class RequestsService {
     ).classification;
 
     void this.observabilityService.recordEvent({
-      eventName: 'request.intake.evaluated',
+      eventName: OBSERVABILITY_EVENT_NAMES.requestIntakeEvaluated,
       routeScope: 'requests',
       actorType: 'customer',
       outcome: 'success',
@@ -256,7 +292,7 @@ export class RequestsService {
       publicId: result.record.publicId,
     });
     await this.observabilityService.recordEvent({
-      eventName: 'request.confirmed',
+      eventName: OBSERVABILITY_EVENT_NAMES.requestConfirmed,
       routeScope: 'requests',
       actorType: 'customer',
       publicId: result.record.publicId,
@@ -299,7 +335,7 @@ export class RequestsService {
       publicId: persistedRequest.publicId,
     });
     await this.observabilityService.recordEvent({
-      eventName: 'request.status.looked_up',
+      eventName: OBSERVABILITY_EVENT_NAMES.requestStatusLookedUp,
       routeScope: 'requests',
       actorType: 'customer',
       publicId: persistedRequest.publicId,
@@ -312,6 +348,140 @@ export class RequestsService {
     });
 
     return this.toRequestStatusResponse(persistedRequest);
+  }
+
+  async recordPublicIngestedEvent(
+    input: PublicObservabilityEventIngestionRequest,
+  ): Promise<void> {
+    if (
+      input.eventName === OBSERVABILITY_EVENT_NAMES.flowStarted &&
+      input.sessionId
+    ) {
+      const sinceWindow = new Date(Date.now() - FLOW_STARTED_DEDUP_WINDOW_MS);
+      const existing = await this.prismaService.observabilityEvent.findFirst({
+        where: {
+          eventName: OBSERVABILITY_EVENT_NAMES.flowStarted,
+          occurredAt: { gte: sinceWindow },
+          metadata: {
+            path: ['sessionId'],
+            equals: input.sessionId,
+          },
+        },
+        select: { id: true },
+      });
+
+      if (existing) {
+        return;
+      }
+    }
+
+    const metadata: Record<string, unknown> = { ...(input.metadata ?? {}) };
+    if (input.sessionId) {
+      metadata.sessionId = input.sessionId;
+    }
+
+    await this.observabilityService.recordEvent({
+      eventName: input.eventName,
+      routeScope: 'requests',
+      actorType: 'customer',
+      outcome: 'success',
+      metadata,
+    });
+  }
+
+  async submitFeedback(input: {
+    publicId: string;
+    trackingToken: string;
+    feedback: SubmitFeedbackDto;
+  }): Promise<SubmitFeedbackResponse> {
+    try {
+      validateRequestTrackingCredential({
+        publicId: input.publicId,
+        token: input.trackingToken,
+      });
+    } catch {
+      throw new RequestFeedbackError(
+        'REQUEST_FEEDBACK_UNAUTHORIZED',
+        'We could not record that feedback.',
+        'Return to the tracking view and try again using the latest tracking identity.',
+      );
+    }
+
+    const persistedRequest = await this.requestStoreService.getByPublicId(
+      input.publicId,
+    );
+
+    if (persistedRequest === null) {
+      throw new RequestFeedbackError(
+        'REQUEST_FEEDBACK_UNAUTHORIZED',
+        'We could not record that feedback.',
+        'Return to the tracking view and try again using the latest tracking identity.',
+      );
+    }
+
+    if (
+      persistedRequest.lifecycleState !== 'completed' &&
+      persistedRequest.lifecycleState !== 'unfulfilled'
+    ) {
+      throw new RequestFeedbackError(
+        'REQUEST_FEEDBACK_NOT_READY',
+        'Feedback is only accepted after the request is resolved.',
+        'Wait for the request to finish fulfillment before sharing feedback.',
+      );
+    }
+
+    const recordedAt = new Date();
+
+    try {
+      await this.prismaService.requestFeedback.create({
+        data: {
+          id: randomUUID(),
+          requestId: persistedRequest.internalId,
+          satisfactionRating: input.feedback.satisfactionRating,
+          reducedUncertainty: input.feedback.reducedUncertainty ?? null,
+          freeText: input.feedback.freeText ?? null,
+          recordedAt,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new RequestFeedbackError(
+          'REQUEST_FEEDBACK_ALREADY_SUBMITTED',
+          'Feedback has already been recorded for this request.',
+          'Each request accepts feedback once — no further action is needed.',
+          'conflict',
+        );
+      }
+
+      throw error;
+    }
+
+    this.observabilityService.annotateRequest({
+      actorType: 'customer',
+      publicId: persistedRequest.publicId,
+    });
+    await this.observabilityService.recordEvent({
+      eventName: OBSERVABILITY_EVENT_NAMES.fulfillmentOutcomeRecorded,
+      routeScope: 'requests',
+      actorType: 'customer',
+      publicId: persistedRequest.publicId,
+      lifecycleState: persistedRequest.lifecycleState,
+      publicStatus: persistedRequest.publicStatus,
+      outcome: 'success',
+      metadata: {
+        satisfactionRating: input.feedback.satisfactionRating,
+        reducedUncertainty: input.feedback.reducedUncertainty ?? null,
+      },
+    });
+
+    return {
+      recordedAt: recordedAt.toISOString(),
+      satisfactionRating: input.feedback.satisfactionRating,
+      acknowledgement: 'Thank you for sharing feedback on your request.',
+    };
   }
 
   private toAnswerMap(answers: ClarifyingAnswer[]): AnswerMap {
