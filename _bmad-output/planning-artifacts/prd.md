@@ -14,9 +14,14 @@ stepsCompleted:
   - 'step-10-nonfunctional'
   - 'step-11-polish'
   - 'step-12-complete'
+  - 'step-e-01-discovery'
+  - 'step-e-02-review'
+  - 'step-e-03-edit'
 inputDocuments:
   - '/home/bogdansaipov/Projects/demos/demo1/_bmad-output/brainstorming/brainstorming-session-2026-04-07-142531.md'
+  - '/home/bogdansaipov/Projects/demos/demo1/_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-11-124054.md'
 workflowType: 'prd'
+workflow: 'edit'
 documentCounts:
   productBriefs: 0
   research: 0
@@ -25,345 +30,409 @@ documentCounts:
 classification:
   projectType: 'web_app'
   domain: 'general'
-  complexity: 'low'
+  complexity: 'medium'
   projectContext: 'greenfield'
+lastEdited: '2026-05-11'
+editHistory:
+  - date: '2026-05-11'
+    changes: 'Rewrote PRD from urgent plumbing coordination into a two-sided handyman marketplace MVP based on the approved sprint change proposal.'
 ---
 
 # Product Requirements Document - demo1
 
-**Author:** Bogdansaipov
-**Date:** 2026-04-07 14:25:31
+**Author:** Bogdansaipov  
+**Last Updated:** 2026-05-11
 
 ## Executive Summary
 
-Handrix is a greenfield web application focused on urgent minor home repair situations, with the MVP intentionally narrowed to small-plumbing issues such as leaking faucets, minor pipe leaks, and common toilet problems. The product is designed around a specific user state: a homeowner or tenant experiencing a stressful but common repair issue and needing immediate confidence, clear next steps, and fast access to trusted help.
+Handrix is a greenfield mobile-first web application for fast home-repair request fulfillment. The MVP is a two-sided marketplace where customers create repair requests, nearby qualified handymen receive matching jobs, and both sides track service progress in real time through a simple map-driven experience.
 
-The core problem Handrix solves is not simply "finding a handyman." The deeper problem is uncertainty during the first minutes of a home repair incident: users do not know what to do immediately, how serious the issue is, what it may cost, when help can arrive, or whether the provider can be trusted. Existing alternatives such as search, directories, and generic service marketplaces often increase cognitive load instead of reducing it.
+The core problem Handrix solves is not generic home-services discovery. Users with a home repair issue need a fast, low-friction way to request help, understand who is responding, see when help is moving, and avoid the back-and-forth uncertainty of calling providers one by one. Handymen need an equally lightweight way to receive relevant jobs, accept work quickly, navigate to the customer, and update progress without administrative overhead.
 
-Handrix addresses this with a guided confidence loop: issue selection, immediate containment guidance, expectation setting, one-tap confirmation, and visible dispatch progress. The intended result is that users move from panic and ambiguity to control and forward motion within minutes. For the MVP, product value should be judged by how quickly and credibly Handrix reduces uncertainty and gets a qualified provider moving, rather than by breadth of categories or marketplace depth.
+Handrix addresses this with an account-based marketplace loop:
+
+- customers register or log in
+- customers create a request with category, description, image, and location
+- the platform automatically routes the request to relevant nearby handymen
+- the first handyman to accept becomes assigned
+- both sides see live status progression and map-based tracking until the job is complete
+
+For the MVP, product value should be judged by how quickly a valid request becomes an assigned and trackable job, how clearly both sides understand the current state, and how simply the product supports completion without manual internal coordination as a primary operating model.
 
 ### What Makes This Special
 
-Handrix is differentiated by framing the service as an uncertainty-reduction product rather than a generic home-services marketplace. Users are not primarily buying listings, discovery, or AI novelty; they are buying reassurance, trust, speed, and clarity during a moment that feels urgent and disruptive.
+Handrix is differentiated by combining marketplace speed with low-cognitive-load execution. The product should feel closer to an on-demand service app than to a directory, lead marketplace, or long-form booking system.
 
-The key insight is that the highest-value part of the experience happens before the technician arrives. If Handrix can help users stabilize the situation, understand what happens next, and feel confident that help is truly on the way, it creates a materially better experience than traditional search-and-call behavior or broad service platforms.
+Its core advantage is operational clarity:
 
-This makes the initial plumbing wedge strategically attractive. Minor plumbing emergencies are common, time-sensitive, emotionally charged, and more operationally standardizable than a broad handyman launch. By focusing the MVP on a narrow category with repeatable workflows and clearer expectation-setting, Handrix increases its chance of delivering a believable and trust-building first experience within a 3-4 month build window.
+- customers do not need to compare many providers before acting
+- handymen only see jobs they are eligible to perform
+- assignment happens through automatic matching and first acceptance
+- the map and status model make progress visible rather than ambiguous
+
+This makes Handrix strongest when the user already knows they need help and wants a quick path from issue recognition to active fulfillment. The MVP should optimize for speed, confidence, and progress visibility, not marketplace depth or complex pricing.
 
 ## Project Classification
 
-Handrix is classified as a web application in the general software domain with a greenfield project context. Domain complexity is low in the BMAD classification framework because the concept does not currently depend on regulated-industry compliance or unusually specialized technical constraints. However, product and operational execution still carry meaningful complexity around provider trust, dispatch responsiveness, pricing clarity, and service consistency.
+Handrix is classified as a greenfield web application in the general software domain. It remains low in regulatory complexity, but the revised MVP is now medium in product and technical complexity because it is a two-sided marketplace with authenticated users, automatic matching, live status updates, map-based tracking, and supply-demand coordination.
+
+The main complexity drivers are:
+
+- two distinct user roles with different workflows
+- location-aware matching and assignment correctness
+- real-time status and location visibility
+- pricing that must be simple but credible
+- platform evolution without locking to a single map provider
 
 ## Success Criteria
 
 ### User Success
 
-Users should be able to identify their issue, receive immediate containment guidance, understand what happens next, and request help with minimal friction during a stressful moment. The core success moment is not just booking a provider; it is the moment the user feels the situation is under control because they know what to do now, what to expect, and that help is actively progressing.
+Customers should be able to sign in, create a request in a few short steps, receive an estimate, and quickly see whether a handyman has accepted. Once assigned, they should be able to follow progress clearly on a map and through simple lifecycle states.
+
+Handymen should be able to sign in, see only relevant jobs, accept work with minimal friction, update job status quickly, and keep location/status signals accurate without interrupting their workflow.
 
 For the MVP, user success should mean:
-- Users can complete the request flow in a few minutes without needing to call support.
-- Users feel reassured and informed before technician arrival.
-- Users can track dispatch progress clearly enough that they do not need to seek updates elsewhere.
-- Users receive a service experience that feels more certain and less chaotic than search, calling local providers, or using a generic marketplace.
+
+- customers can create a request with minimal clicks and low confusion
+- customers understand whether the request is pending, assigned, in progress, or complete
+- handymen can evaluate and accept relevant jobs quickly
+- both sides can rely on the tracking view as the primary source of truth during fulfillment
 
 ### Business Success
 
-The MVP should prove that a narrow urgent-plumbing wedge can generate repeatable demand and an operationally believable fulfillment model. Early business success is not broad category expansion; it is evidence that Handrix can create trust, conversion, and service completion in one focused category.
+The MVP should prove that Handrix can coordinate real repair demand and real handyman supply through a lightweight marketplace model.
 
 Initial business success should mean:
-- The small-plumbing use case generates meaningful booking conversion from submitted issue flows.
-- A significant share of booked jobs are successfully fulfilled within the promised service window.
-- Users report enough trust and clarity that referral and repeat-intent signals emerge.
-- The operating model shows that a focused city or service area could be expanded without collapsing quality or response times.
+
+- a meaningful share of authenticated customers complete request creation after logging in
+- a meaningful share of valid requests receive a handyman acceptance in a reasonable time
+- accepted jobs progress through fulfillment without heavy internal manual intervention
+- the launch category set and geography show enough marketplace liquidity to justify continued expansion
 
 ### Technical Success
 
-The product must be technically reliable enough to support urgent-use behavior. In this context, technical success is less about advanced architecture and more about trust-preserving execution. Slow flows, broken status updates, or unclear confirmation states directly damage the value proposition.
+Technical success depends on correctness and clarity rather than advanced infrastructure breadth.
 
 For the MVP, technical success should mean:
-- The guided request flow is fast, mobile-friendly, and dependable.
-- Dispatch/progress states are clear and update consistently.
-- The core booking path works without critical drop-offs caused by UX or system reliability issues.
-- Internal operations can manage requests, statuses, and provider assignment without excessive manual confusion.
+
+- customer and handyman authentication are reliable and secure
+- matching and assignment prevent duplicate acceptance
+- live status and location updates remain timely enough to support trust
+- request, assignment, and status history remain durable and recoverable
+- the platform preserves a clean path to additional categories, providers, and map vendors
 
 ### Measurable Outcomes
 
 Suggested MVP measurable outcomes:
-- A majority of users who start the guided flow complete issue selection and reach confirmation.
-- Median time from flow start to confirmed request stays under 3 minutes.
-- A high percentage of fulfilled requests occur within the promised response window.
-- Post-service feedback shows users strongly agree that Handrix reduced stress and uncertainty.
-- Support contact rate during the pre-dispatch period remains low enough to indicate the flow is self-explanatory.
-- Cancellation rate after confirmation stays low enough to show expectation-setting is credible.
+
+- a majority of logged-in customers who start request creation complete submission
+- median time from request submission to handyman assignment stays within the target service window for the launch market
+- a meaningful share of eligible requests receive at least one handyman acceptance opportunity
+- live status and location updates are reflected quickly enough that users do not need offline follow-up for basic tracking
+- completed-job rate is high enough to demonstrate the marketplace loop is operationally viable
+- support-dependent interventions remain low enough to justify keeping chat and dedicated support tooling out of MVP
 
 ## Product Scope
 
 ### MVP - Minimum Viable Product
 
 The MVP should include:
-- Narrow issue intake for small plumbing problems only.
-- Immediate containment/stabilization guidance by issue type.
-- Clear expectation setting around response window and service process.
-- One-tap request confirmation.
-- Visible dispatch/progress tracking for the user.
-- Internal workflow for provider assignment and status management.
-- Basic pricing clarity or pricing expectation framework that avoids surprise.
+
+- customer registration and login with email and password
+- handyman registration and login with email and password
+- role-aware customer and handyman application flows
+- configurable launch service categories such as plumbing and basic electrical/light-installation tasks
+- customer request creation with title, description, image upload, category selection, and location capture
+- browser geolocation as the default location signal when available
+- manual map-based location adjustment before submission
+- simple estimate pricing shown before request submission
+- automatic routing of requests to eligible handymen by category and location
+- first-accept assignment behavior
+- customer request dashboard with request history and current statuses
+- handyman jobs list and active job workflow
+- map-based live tracking for assigned and in-progress jobs
+- handyman-controlled status updates for `on the way`, `arrived`, `working`, and `complete`
+- customer-visible request lifecycle states of `pending`, `assigned`, `on the way`, `arrived`, `working`, `complete`, and `rejected`
 
 ### Growth Features (Post-MVP)
 
 Post-MVP growth could include:
-- Additional repair categories beyond small plumbing.
-- Richer provider profiles, reviews, and trust indicators.
-- Smarter triage, photo upload, and issue qualification.
-- Dynamic pricing sophistication.
-- Customer accounts, saved addresses, and repeat booking optimizations.
-- Broader service-area expansion and marketplace tooling.
+
+- in-app chat between customer and handyman
+- richer handyman profiles, ratings, and trust signals
+- advanced pricing logic
+- saved addresses and faster repeat booking flows
+- broader service-category coverage
+- richer service-area rules beyond simple radius matching
+- more advanced route, ETA, and navigation features
+- internal operations and support tooling if marketplace scale requires it
 
 ### Vision (Future)
 
-The longer-term vision could evolve into:
-- A trusted rapid-response home repair platform across multiple urgent service categories.
-- A proactive home-maintenance confidence product, not just an incident-response tool.
-- A system that becomes the default first stop when something goes wrong at home because it combines guidance, dispatch, trust, and predictable outcomes better than search or generic marketplaces.
+The longer-term vision is a trusted on-demand home-services platform that can support multiple repair categories, stronger provider quality signals, richer customer convenience features, and broader regional scale without redefining the core marketplace lifecycle.
+
+Chat is explicitly deferred from the MVP. The platform should preserve a technical path to add it later, but the initial product should prove that request creation, matching, assignment, live tracking, and completion can work clearly without it.
 
 ## User Journeys
 
-### Journey 1: Primary User - Success Path
+### Journey 1: Customer Creates a Request and Tracks Fulfillment
 
-Nodira is a renter who notices water pooling under her kitchen sink late in the afternoon. She is not sure whether the leak is serious, whether she should shut something off immediately, or whether calling around will waste the next hour. Her main goal is simple: stop the situation from getting worse and get reliable help fast without having to become an expert in plumbing.
+Nodira notices a leaking faucet in her kitchen and wants help quickly. She already has or creates a Handrix customer account with email and password. After login, she lands on a simple home screen that shows her existing requests and a clear action to create a new one.
 
-She opens Handrix and is met with a narrow issue-selection flow that feels designed for her exact situation rather than a generic service marketplace. She selects a small-plumbing issue, answers a few clarifying prompts, and receives immediate containment guidance that helps her reduce stress and take one or two sensible actions. At this point, the product has already created value because it replaced panic with a sense of control.
+She creates a request by selecting a service category, entering a short title and description, attaching a photo, and confirming the job location. The product defaults to her browser geolocation when available, then lets her adjust the pin manually on a map before submission. Handrix shows a simple estimate before she confirms.
 
-As she continues, Handrix sets expectations clearly: what kind of issue this seems to be, what kind of response window to expect, and what the next step is. Nodira confirms the request in one tap and begins watching visible dispatch progress. The emotional climax is not just the booking itself; it is the moment she believes the situation is being handled and she no longer needs to search, compare, or chase updates.
+After submission, Nodira sees the new request in a `pending` state while matching handymen are notified. When a handyman accepts, the request immediately becomes `assigned`, and she can open a tracking view that shows the handyman identity, the job location, and live movement on a map. As the handyman updates status to `on the way`, `arrived`, `working`, and `complete`, Nodira sees those changes reflected in real time.
 
-The resolution is a completed service request that feels calm, understandable, and trustworthy from start to finish. This journey reveals requirements for issue triage, containment guidance, expectation setting, one-tap confirmation, status tracking, and trust-building UX.
+This journey drives requirements for customer auth, request creation, image upload, geo capture, price estimation, matching, assignment, live map tracking, and visible lifecycle progression.
 
-### Journey 2: Primary User - Edge Case / Expectation Recovery
+### Journey 2: Customer Sees No Accepted Match Yet
 
-Jasur discovers that his toilet is overflowing in the evening and needs help urgently. He starts the Handrix flow, but his situation is slightly outside the clean happy path: the issue may be serviceable, but immediate dispatch is limited or the request needs additional clarification before assignment.
+Jasur has a clogged drain and creates a request in the evening. He completes the same request flow, but no handyman has accepted yet. Instead of showing ambiguous waiting language, Handrix keeps the request visible as `pending` and makes that state understandable: the request exists, matching handymen are being notified, and assignment has not happened yet.
 
-He still expects fast certainty, so the risk here is not only operational delay but loss of trust. If Handrix simply stalls or produces vague messaging, the product fails at its core promise. Instead, the system asks one or two additional clarifying questions, gives immediate containment instructions, and transparently explains the current status and expected next step.
+If enough matching opportunities are exhausted without acceptance, the request can transition to `rejected`. Jasur should see that clearly and understand that the current request did not receive acceptance through the MVP marketplace flow. This should feel explicit rather than confusing.
 
-The critical moment in this journey is recovery from uncertainty. Jasur may not get an instant technician assignment, but he should still feel that the system is honest, useful, and actively helping him move forward. If necessary, Handrix presents fallback messaging such as revised response expectations or next-best actions while preserving confidence.
+This journey drives requirements for pending-state clarity, rejected-state clarity, and honest lifecycle communication without relying on dedicated support workflows in MVP.
 
-The resolution is that even when the perfect path is unavailable, the user remains informed, supported, and less likely to abandon the experience in frustration. This journey reveals requirements for error handling, transparent fallback states, serviceability checks, revised expectation messaging, and trust-preserving recovery UX.
+### Journey 3: Handyman Accepts and Completes a Job
 
-### Journey 3: Operations User - Dispatch Coordinator
+Azamat is a handyman who supports plumbing and light-installation categories within a configured service radius. He signs into Handrix and sees available jobs that match his supported categories and current service area.
 
-Malika is the internal operations coordinator responsible for making sure incoming requests are assigned quickly and do not disappear into ambiguity. Her job is not glamorous, but for the MVP she is central to whether the promise of Handrix is real. If the user sees progress but the operations side is disorganized, trust breaks immediately.
+When a matching request appears, he can open the job, review the request details, and either accept or decline. If he declines, the job disappears from his available list while remaining available to other eligible handymen. If he accepts first, the request becomes assigned to him and no longer remains open to others.
 
-Her day begins with a queue of incoming small-plumbing requests. She needs to see new requests clearly, understand issue type and urgency, know what the customer has already been told, and assign the right provider without bouncing between disconnected tools. She also needs to update statuses in a way that keeps the customer-facing timeline credible and accurate.
+Once assigned, Azamat sees the customer/job location on a map, begins sharing live location during the active job, and updates status as he progresses: `on the way`, `arrived`, `working`, and `complete`. He should be able to handle this flow quickly from mobile without extra administrative steps.
 
-The climax in Malika's journey is the dispatch decision: matching a request to an available provider quickly enough to preserve the promised response window. If assignment is delayed, she needs the ability to update status and adjust expectations without creating conflicting information for the customer.
+This journey drives requirements for handyman auth, category eligibility, job feed filtering, first-accept assignment, active job tracking, location updates, and status controls.
 
-The resolution is an operational flow that is simple enough for a lean MVP team to run consistently. This journey reveals requirements for an internal ops dashboard, request queue visibility, assignment workflow, status management, and coordination between internal updates and customer-facing progress.
+### Journey 4: Returning Customer Manages Multiple Requests
 
-### Journey 4: Support / Trust Recovery User
+A returning customer signs in and lands on the requests dashboard. Instead of starting from a one-off intake flow each time, the customer can see previous and current requests, understand which ones are complete, and create a new request from the same home screen.
 
-Aziza works in customer support and steps in when a user is confused, anxious, or uncertain whether their request is actually progressing. She represents the recovery layer when the self-serve flow is not enough or when the user needs reassurance from a human.
-
-She receives a message from a customer asking whether anyone is really coming and what they should do while waiting. To be effective, Aziza needs a single view of the request history, issue type, containment guidance already shown, current dispatch state, and latest operational notes. Without that context, support becomes repetitive and inconsistent, which increases rather than reduces uncertainty.
-
-The key moment in this journey is fast situational understanding. Support should be able to answer with confidence, reinforce the next step, and avoid contradicting what the product already communicated. The best support experience feels like a continuation of the same confidence loop, not a separate and confusing channel.
-
-The resolution is that the customer leaves the interaction reassured rather than escalated. This journey reveals requirements for support visibility into request state, interaction history, consistent messaging, and a lightweight intervention path when the automated flow needs human backup.
+This journey drives requirements for account-based continuity, request history visibility, and a dashboard-first customer experience.
 
 ### Journey Requirements Summary
 
-These journeys point to a focused but complete MVP capability set:
-- Customer-side issue selection and guided triage for a narrow plumbing scope.
-- Immediate containment guidance that creates value before dispatch.
-- Clear expectation-setting and trust-building messaging throughout the flow.
-- One-tap confirmation and visible status progression after request submission.
-- Internal operations tooling for request intake, assignment, and status updates.
-- Recovery paths for unserviceable, delayed, or ambiguous requests.
-- Support visibility so human interventions reinforce rather than break the confidence loop.
+These journeys point to a focused MVP capability set:
+
+- authenticated customer and handyman roles
+- dashboard-first customer and handyman entry points
+- low-friction request creation
+- location-aware matching and assignment
+- first-accept job ownership
+- real-time status and map-based tracking
+- simple estimate pricing before submission
+- clear request history and lifecycle visibility
 
 ## Web App Specific Requirements
 
 ### Project-Type Overview
 
-Handrix should be implemented as a single-page application using React to support a smooth, app-like request flow optimized for urgent-use behavior. The frontend experience should minimize reloads, preserve context between steps, and keep the user focused on the confidence loop from issue selection through dispatch tracking.
+Handrix should be implemented as a mobile-first single-page application using React, with a NestJS backend responsible for authentication, request management, matching, assignment, realtime delivery, and persistence.
 
-The MVP web application should be mobile-first, with modern mobile browsers as the primary target environment and desktop browser support as a secondary priority. This reflects the likely real-world usage pattern in which users open the product on their phone while dealing with a live home repair issue.
+The product should feel app-like on mobile browsers, with fast transitions, clear status presentation, and minimal click depth for both customer and handyman roles. Desktop support remains important, but the primary design target is mobile usage during real-world field or household contexts.
 
 ### Technical Architecture Considerations
 
-The frontend should communicate with backend APIs implemented in NestJS, which will handle issue intake, request creation, dispatch logic, status updates, and internal operational workflows. This creates a clean separation between the customer-facing guided experience and the service orchestration logic needed to fulfill requests reliably.
+The frontend should communicate with backend APIs implemented in NestJS. The backend should manage account auth, category eligibility, request creation, pricing estimate generation, matching, assignment, status history, and realtime updates.
 
-Real-time behavior is required for dispatch and status visibility, but the MVP does not need a complex live architecture on day one. Initial implementation can use polling for status updates, with the option to evolve later to push-based mechanisms if operational scale or UX needs justify it.
+Realtime behavior is a core MVP requirement for assigned and active jobs. Handrix should use WebSocket-based live job updates for status and location changes during assigned and in-progress requests. Polling can remain acceptable for lower-frequency dashboard refreshes such as customer request lists or handyman available-jobs lists.
 
-Performance and state continuity are especially important because the product is used in stressful, time-sensitive contexts. The request flow should feel fast and stable on mobile networks, preserve user progress across steps, and avoid unnecessary latency or jarring transitions that increase anxiety.
+Location and mapping should be treated as replaceable platform integrations rather than product-locked dependencies. The architecture should support a provider-agnostic map abstraction so MVP delivery can use a free or low-cost option and swap providers later without rewriting domain logic.
 
 ### Browser Support
 
-The MVP should explicitly support current versions of major modern mobile browsers, with desktop support for common modern browsers as a secondary requirement. Legacy browser compatibility is not required for the initial release.
+The MVP should support current versions of major modern mobile browsers and common modern desktop browsers. Legacy browser support is not required.
 
 ### Responsive Design
 
-The interface should be designed mobile-first, with layouts, controls, and content hierarchy optimized for one-handed use and quick comprehension on small screens. Desktop layouts should preserve the same flow clarity without introducing extra complexity or divergent interaction patterns.
+The interface should be optimized for one-handed mobile use, glanceable status comprehension, large touch targets, and short completion paths. Desktop layouts should preserve the same information architecture without requiring separate product logic.
 
 ### Performance Targets
 
-The core request flow should load quickly, remain responsive on average mobile connections, and avoid interruptions that could cause abandonment during urgent-use scenarios. Status refresh behavior should provide timely updates without making the experience feel stalled or overly technical.
+The core user flows should feel fast and direct:
+
+- login and request list loads should return promptly under normal network conditions
+- request creation should avoid long blocking states
+- job acceptance and status updates should feel immediate enough to preserve trust
+- map and tracking screens should update without jarring resets
 
 ### SEO Strategy
 
-Search engine optimization is a low priority for the MVP request flow because the initial product value is in the guided service experience rather than discoverable content pages. SEO should be considered later for marketing, landing, and location/category pages once go-to-market expansion becomes relevant.
+SEO is not a priority for the authenticated MVP product flows. Marketing and discoverability pages can be added later if category and geography expansion require them.
 
 ### Accessibility Level
 
-Accessibility is important for the MVP core flow because users may be stressed, distracted, or operating the product in physically inconvenient conditions. The product should prioritize clear language, strong visual hierarchy, touch-friendly controls, readable contrast, and predictable interaction patterns throughout the request and status-tracking experience.
+The customer and handyman experiences should meet WCAG 2.1 AA expectations in practice. Accessible labeling, readable contrast, keyboard support where relevant, clear focus states, and understandable status communication are required.
 
 ### Implementation Considerations
 
-Implementation should prioritize the integrity of the core confidence loop over secondary embellishments. The React SPA and NestJS API stack should first support issue triage, containment guidance, one-tap confirmation, request state management, dispatch visibility, and internal operator coordination. Additional marketing, SEO, or richer account features should not compromise the speed and clarity of the core urgent-use flow.
+Implementation should preserve reusable platform foundations from the existing codebase where they still apply:
+
+- React SPA + NestJS separation
+- shared contract discipline
+- durable persistence direction
+- observability and request correlation
+- security and rate limiting baselines
+- explicit lifecycle modeling
+
+Implementation should not preserve obsolete product assumptions such as anonymous tracking tokens, operations-first assignment workflows, or support-workspace dependency as MVP-critical functionality.
 
 ## Project Scoping & Phased Development
 
 ### MVP Strategy & Philosophy
 
-**MVP Approach:** Experience-first, problem-solving MVP. The goal is to prove that Handrix can reduce uncertainty during urgent minor plumbing incidents better than search or generic service marketplaces.
+**MVP Approach:** marketplace-first, speed-and-clarity MVP. The goal is to prove that Handrix can connect real customer requests to relevant handymen quickly enough that assignment, live tracking, and completion create a credible on-demand experience.
 
-**Resource Requirements:** A small cross-functional team is likely enough for the MVP if the category and geography stay narrow: 1 product/design lead, 2-3 full-stack engineers across React and NestJS, and operational support for provider coordination and customer handling. The main constraint is not feature count alone; it is operational credibility.
+The MVP should intentionally stay simple in a few ways:
+
+- limited launch geography
+- constrained launch categories
+- simple eligibility rules
+- simple estimate pricing
+- no in-app chat
+- no dedicated ops or support workspace as a primary operating requirement
 
 ### MVP Feature Set (Phase 1)
 
 **Core User Journeys Supported:**
-- Primary user success path for urgent small-plumbing intake through dispatch tracking.
-- Primary user recovery path when serviceability or timing is uncertain.
-- Internal operations journey for request assignment and status management.
-- Lightweight support journey for reassurance and trust recovery.
+
+- customer authentication and request management
+- handyman authentication and job acceptance
+- request creation with location and image support
+- automatic matching and first-accept assignment
+- live tracking and status progression through completion
 
 **Must-Have Capabilities:**
-- Narrow issue intake limited to small-plumbing cases.
-- Guided triage and immediate containment instructions.
-- Clear expectation setting on service flow and likely response timing.
-- One-tap request confirmation.
-- Request creation and status management via NestJS APIs.
-- Customer-facing dispatch/progress tracking using polling-based updates.
-- Internal operations dashboard for queue visibility, assignment, and status changes.
-- Support visibility into request history and current state.
-- Mobile-first React SPA optimized for speed, clarity, and accessibility.
+
+- customer signup/login
+- handyman signup/login
+- customer requests dashboard
+- handyman jobs dashboard
+- create request flow with category, title, description, image, and location
+- browser geolocation with manual map adjustment
+- estimate pricing before submission
+- request routing to eligible handymen
+- accept/decline actions
+- WebSocket-based status and live-location updates for assigned jobs
+- durable request, assignment, and status history
 
 ### Post-MVP Features
 
 **Phase 2 (Post-MVP):**
-- Photo upload and richer issue qualification.
-- Expanded provider trust signals such as reviews, credentials, and richer profiles.
-- Customer accounts, saved addresses, and repeat booking optimization.
-- Better pricing sophistication and improved serviceability logic.
-- Broader support tooling and more automated dispatch workflows.
+
+- in-app chat between customer and handyman
+- richer provider trust and profile surfaces
+- advanced pricing logic
+- saved payment or billing improvements if needed
+- better route/ETA sophistication
+- improved service-area and matching intelligence
 
 **Phase 3 (Expansion):**
-- Expansion into additional urgent repair categories beyond plumbing.
-- New geographies and broader supply-side operations.
-- Push-based real-time updates if justified by scale.
-- Marketing/SEO page system for category and location growth.
-- More complete marketplace or home-maintenance platform capabilities.
+
+- more service categories
+- broader geography
+- stronger marketplace quality tooling
+- optional internal operations tooling if scale or exception handling demands it
 
 ### Risk Mitigation Strategy
 
-**Technical Risks:** The biggest technical risk is overbuilding real-time systems, category breadth, or complex orchestration too early. Mitigation: keep the frontend flow narrow, use polling first, and constrain the backend to the minimum viable request-state model.
+**Technical Risks:** The biggest technical risks are matching correctness, duplicate acceptance protection, location reliability, and WebSocket stability. Mitigation: keep matching rules simple, use guarded assignment transactions, limit realtime scope to active jobs, and preserve durable fallback history.
 
-**Market Risks:** The biggest market risk is that users may not trust the service enough to choose it during a real repair event. Mitigation: focus the MVP on reassurance, expectation clarity, visible progress, and a narrow category where fulfillment quality can be controlled.
+**Market Risks:** The biggest market risk is weak supply-demand liquidity in the launch geography or categories. Mitigation: constrain launch categories and geography to where matching can work credibly.
 
-**Resource Risks:** The biggest resource risk is trying to launch with too many features, categories, or operator workflows for a small team. Mitigation: keep the launch to one repair wedge, one main geography, and one lean ops model with selective manual handling behind the scenes where needed.
+**Resource Risks:** The biggest resource risk is overbuilding pricing, chat, or support workflows before the marketplace loop is proven. Mitigation: keep pricing simple, defer chat, and avoid reintroducing full ops/support MVP structures prematurely.
 
 ## Functional Requirements
 
-### Customer Issue Intake & Guidance
+### Authentication and Role Flows
 
-- FR1: Customers can start a service request without creating an account first.
-- FR2: Customers can select from a constrained set of supported small-plumbing issue types.
-- FR3: Customers can answer issue-specific follow-up questions to clarify their problem.
-- FR4: Customers can provide service location details needed to evaluate and fulfill a request.
-- FR5: Customers can receive immediate containment or stabilization guidance relevant to their selected issue.
-- FR6: Customers can review a summary of their issue and request details before confirming submission.
-- FR7: Customers can submit a request for service once required information is complete.
-- FR8: Customers can see when their issue is outside current service scope or cannot be fulfilled as requested.
-- FR9: Customers can receive fallback guidance or next-step instructions when immediate fulfillment is not available.
+- FR1: Customers can register with email and password.
+- FR2: Customers can log in with email and password.
+- FR3: Handymen can register with email and password.
+- FR4: Handymen can log in with email and password.
+- FR5: The system can maintain separate customer and handyman role flows after authentication.
 
-### Expectation Setting & Customer Confidence
+### Customer Request Creation and Dashboard
 
-- FR10: Customers can see what happens next after submitting a request.
-- FR11: Customers can view a clear service status for their request throughout its lifecycle.
-- FR12: Customers can view estimated response expectations associated with their request.
-- FR13: Customers can view pricing information or pricing expectations before committing to service.
-- FR14: Customers can receive trust-building information that helps them feel confident using the service.
-- FR15: Customers can see confirmation that their request has been successfully received and is being processed.
-- FR16: Customers can understand when a request is delayed, pending clarification, or unavailable.
+- FR6: Customers can view a list of their current and previous service requests after login.
+- FR7: Customers can start a new service request from the customer home screen.
+- FR8: Customers can create a request with a title, description, category, and at least one optional image.
+- FR9: Customers can select from a configurable set of supported service categories.
+- FR10: Customers can allow browser geolocation to set a default job location when available.
+- FR11: Customers can manually adjust the job location on a map before submission.
+- FR12: The system can store the final selected job location as latitude and longitude.
+- FR13: The system can show a simple price estimate before the customer confirms request submission.
+- FR14: Customers can submit a request once required fields are complete.
 
-### Dispatch & Request Lifecycle Management
+### Matching and Assignment
 
-- FR17: The system can create and store a service request with all required customer-provided details.
-- FR18: The system can classify requests by issue type, status, and fulfillment state.
-- FR19: The system can update request status as the request moves through intake, review, assignment, dispatch, and completion.
-- FR20: The system can maintain a customer-visible lifecycle for each request.
-- FR21: The system can support manual or semi-manual dispatch decisions during the MVP.
-- FR22: The system can associate a request with an assigned provider or internal fulfillment owner.
-- FR23: The system can record when a request cannot be fulfilled and communicate that state appropriately.
-- FR24: The system can preserve a history of request-state changes for operational visibility and support.
+- FR15: The system can identify eligible handymen based on request category and configured service area rules.
+- FR16: The system can route newly created requests to multiple eligible handymen automatically.
+- FR17: Handymen can view available requests that match their supported categories and service area.
+- FR18: Handymen can accept or decline a matching request.
+- FR19: If a handyman declines a request, that request no longer appears in that handyman's available jobs list.
+- FR20: If a handyman accepts first, the system assigns the request to that handyman and prevents duplicate assignment.
+- FR21: If no handyman has accepted yet, the customer-visible status remains `pending`.
+- FR22: If a request cannot be fulfilled through the current matching flow, the system can expose a `rejected` outcome clearly.
 
-### Operations & Internal Coordination
+### Live Tracking and Fulfillment Lifecycle
 
-- FR25: Operations staff can view a queue of incoming service requests.
-- FR26: Operations staff can review request details needed to decide assignment and fulfillment.
-- FR27: Operations staff can assign requests to available providers or internal handlers.
-- FR28: Operations staff can update request status as fulfillment progresses.
-- FR29: Operations staff can identify requests requiring intervention, clarification, or escalation.
-- FR30: Operations staff can view what guidance and expectations have already been shown to the customer.
-- FR31: Operations staff can manage requests in a way that keeps internal actions aligned with customer-facing status updates.
+- FR23: Customers can view the current lifecycle state for each request.
+- FR24: The customer-visible request lifecycle includes `pending`, `assigned`, `on the way`, `arrived`, `working`, `complete`, and `rejected`.
+- FR25: Once assigned, customers can view the assigned handyman identity for the request.
+- FR26: Once assigned, customers can view both the job location and handyman location on a map.
+- FR27: Handymen can update assigned jobs to `on the way`, `arrived`, `working`, and `complete`.
+- FR28: Status changes made by the assigned handyman are reflected to the customer in real time.
+- FR29: The assigned handyman can send live location updates while a job is active.
+- FR30: The system can preserve a durable history of meaningful request and status changes.
 
-### Support & Trust Recovery
+### Service Categories, Pricing, and Platform Configuration
 
-- FR32: Support staff can search for and access an individual customer request.
-- FR33: Support staff can view request history, current status, and prior customer-facing guidance.
-- FR34: Support staff can identify why a request is delayed, blocked, or unfulfilled.
-- FR35: Support staff can provide consistent reassurance and next-step information based on the current request state.
-- FR36: Support staff can intervene in requests that require manual follow-up or clarification.
+- FR31: The system can manage supported service categories without requiring a redesign of the request flow.
+- FR32: The system can associate handymen with only the categories they support.
+- FR33: The system can support simple launch-market eligibility rules such as service radius or equivalent location filtering.
+- FR34: The system can calculate a simple estimate using a base service fee, category-based pricing, and optional distance and parts allowances.
+- FR35: The system can present the estimate as an estimate rather than a guaranteed final total.
 
-### Scope, Serviceability & Platform Administration
+### Platform Continuity and Future Growth
 
-- FR37: The system can enforce MVP scope by limiting requests to supported issue categories.
-- FR38: The system can determine whether a request is serviceable within the current operating area or fulfillment model.
-- FR39: The system can support management of supported issue types and service coverage rules.
-- FR40: The system can support internal control over request states, operational workflows, and fulfillment visibility needed to run the MVP.
-- FR41: The system can support expansion to additional categories, geographies, and richer customer features without redefining the core request lifecycle.
+- FR36: The system can preserve a stable request and assignment model that supports future category expansion.
+- FR37: The system can support future map-provider replacement without redefining customer or handyman workflows.
+- FR38: The system can preserve a clean future path for chat without including chat in MVP.
 
 ## Non-Functional Requirements
 
 ### Performance
 
-- The core customer request flow should allow a user to move from issue selection to request confirmation in a responsive, low-friction experience on modern mobile browsers.
-- Standard user-facing actions in the core flow should complete within 2 seconds under normal operating conditions, excluding external network limitations.
-- Customer-visible request status refreshes should occur frequently enough that the dispatch experience feels actively progressing rather than stalled.
-- Internal operations screens should surface active request information quickly enough to support timely assignment and intervention.
+- NFR1: Standard customer and handyman dashboard loads should complete within 2 seconds for typical requests under normal operating conditions, excluding third-party network variance.
+- NFR2: Request submission and handyman accept/decline actions should complete quickly enough that users do not perceive the action as stalled under normal operating conditions.
+- NFR3: WebSocket-delivered active-job status updates should reach connected clients with low enough latency to keep tracking credible during live fulfillment.
+- NFR4: Map-based tracking screens should update incrementally without full-screen resets during normal active-job usage.
 
 ### Reliability
 
-- The system should preserve request state consistently throughout intake, confirmation, dispatch tracking, and internal status management.
-- No confirmed customer request should be lost, duplicated, or left without a recoverable operational record.
-- Customer-facing status information and internal operational status should remain aligned closely enough to avoid contradictory communication.
-- If part of the flow fails or becomes temporarily unavailable, the system should present a recoverable state or fallback guidance rather than leaving the user in ambiguity.
+- NFR5: No submitted customer request should be lost, duplicated, or left without a recoverable persisted record.
+- NFR6: Assignment logic should prevent more than one handyman from being assigned to the same request.
+- NFR7: The system should preserve a durable history of request creation, assignment, major lifecycle transitions, and completion outcomes.
+- NFR8: If a realtime connection drops, the system should recover state gracefully through reconnect or fallback refresh behavior without corrupting lifecycle truth.
 
 ### Security
 
-- All customer and operational data should be encrypted in transit.
-- Stored request and user data should be protected with appropriate access controls and encryption at rest where applicable.
-- Operational and support access should be restricted according to role and business need.
-- The system should maintain an auditable record of meaningful request-state changes and internal actions relevant to fulfillment and support.
-- The MVP should avoid collecting sensitive data that is not necessary to fulfill the service request.
+- NFR9: All customer, handyman, and operational data should be encrypted in transit.
+- NFR10: Stored account, request, and location data should be protected by appropriate access controls and encryption at rest where applicable.
+- NFR11: Authentication and authorization should enforce separation between customer and handyman access surfaces.
+- NFR12: Uploaded images should be validated and stored through a secure media-handling path appropriate for MVP use.
+- NFR13: The system should avoid collecting sensitive data that is not required for request fulfillment and tracking.
 
 ### Accessibility
 
-- The core request flow should meet WCAG 2.1 AA standards for the customer-facing experience.
-- The interface should support readable contrast, clear focus states, keyboard accessibility for essential interactions, and understandable form labeling.
-- Content should be written in clear, low-cognitive-load language suitable for stressed users making quick decisions.
-- Touch targets and layout behavior should support reliable use on mobile devices in distracting or physically inconvenient situations.
+- NFR14: The core customer and handyman flows should meet WCAG 2.1 AA expectations for accessible interaction and readable status communication.
+- NFR15: Critical request states and job controls should never rely on color alone and should remain understandable through labels and structured layout.
+- NFR16: The interface should maintain large touch targets, clear form labeling, and low-cognitive-load copy suitable for mobile use in real-world contexts.
 
 ### Scalability
 
-- The MVP architecture should support growth beyond the initial launch geography and service volume without requiring a full redesign of the request lifecycle.
-- The system should support at least a 10x increase from initial MVP request volume with incremental operational and infrastructure scaling.
-- Polling-based status updates should remain manageable at MVP scale, with a clear path to more efficient real-time mechanisms if usage grows materially.
+- NFR17: The MVP architecture should support at least a 10x increase from initial request and active-job volume without requiring a full redesign of the request and assignment model.
+- NFR18: The platform should support adding new service categories and new launch geographies through configuration and bounded data-model extension rather than core workflow replacement.
+- NFR19: Map-provider integration should be isolated behind replaceable seams so vendor changes do not require product-flow rewrites.
+- NFR20: WebSocket-based live-job updates should remain scoped to assigned and active jobs so the realtime layer can scale incrementally with usage.
