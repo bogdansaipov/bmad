@@ -3,6 +3,15 @@
   "private": true,
   "version": "0.1.0",
   "packageManager": "pnpm@10.30.3",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@prisma/client",
+      "@prisma/engines",
+      "esbuild",
+      "prisma"
+    ]
+  },
   "scripts": {
     "bootstrap": "./scripts/bootstrap.sh",
     "ci:backend": "pnpm --filter handrix-api prisma:generate && pnpm --filter handrix-api prisma:validate && pnpm --filter handrix-api prisma:migrate:deploy && pnpm --filter handrix-api typecheck && pnpm --filter handrix-api lint && pnpm --filter handrix-api test:ci && pnpm --filter handrix-api test:e2e:ci && pnpm --filter handrix-api build",

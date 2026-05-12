@@ -1,0 +1,19 @@
+import { z } from 'zod';
+
+const envSchema = z.object({
+  DATABASE_URL: z.string().min(1),
+  JWT_SECRET: z.string().min(32),
+  PORT: z.coerce.number().int().positive().default(3000),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  CORS_ORIGIN: z.string().optional(),
+});
+
+export type AppEnv = z.infer<typeof envSchema>;
+
+export function validate(config: Record<string, unknown>): AppEnv {
+  const result = envSchema.safeParse(config);
+  if (!result.success) {
+    throw new Error(`Config validation error: ${result.error.message}`);
+  }
+  return result.data;
+}

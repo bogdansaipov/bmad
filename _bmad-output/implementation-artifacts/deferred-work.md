@@ -2,6 +2,11 @@
 
 Items deferred from reviews — real issues, not noise, but intentionally out of scope for the originating story. Use this to seed future hardening stories.
 
+## Deferred from: code review of 1-1-initialize-project-foundation (2026-05-12)
+
+- `password_hash` field present in Prisma schema with no hashing service or stub — Story 1.2 implements auth; ensure bcrypt/argon2 hashing is introduced before any user creation path is wired.
+- E2E test (`apps/backend/test/health.e2e-spec.ts`) does not mirror production bootstrap: missing `bufferLogs: true` and `app.useLogger(app.get(Logger))`. Log-dependent behaviours (including correlation ID propagation) are untested. Low-impact for a foundation story; address when adding integration tests in Epic 5.
+
 ## Deferred from: code review of 4-1-enable-support-staff-authentication-and-access (2026-04-21)
 
 - Bearer token persisted to `localStorage` — XSS exfiltration risk for internal staff tokens valid up to 480 min. Applies symmetrically to ops and support. Candidate for Epic 5 security hardening (HttpOnly cookie, short-lived in-memory token with silent refresh, or sessionStorage + rotation).
