@@ -22,12 +22,41 @@ enum AccountStatus {
 }
 
 model User {
-  id             String        @id @default(uuid())
-  email          String        @unique
+  id             String           @id @default(uuid())
+  email          String           @unique
   password_hash  String
   role           UserRole
-  account_status AccountStatus @default(ACTIVE)
-  created_at     DateTime      @default(now())
+  account_status AccountStatus    @default(ACTIVE)
+  created_at     DateTime         @default(now())
+
+  customerProfile CustomerProfile?
+  handymanProfile HandymanProfile?
 
   @@map("users")
+}
+
+model CustomerProfile {
+  id          String   @id @default(uuid())
+  userId      String   @unique @map("user_id")
+  displayName String   @map("display_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("customer_profiles")
+}
+
+model HandymanProfile {
+  id                  String   @id @default(uuid())
+  userId              String   @unique @map("user_id")
+  displayName         String   @map("display_name")
+  availabilityStatus  String   @default("offline") @map("availability_status")
+  serviceRadiusKm     Float?   @map("service_radius_km")
+  averageRatingCache  Float?   @map("average_rating_cache")
+  ratingsCountCache   Int?     @map("ratings_count_cache")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  user                User     @relation(fields: [userId], references: [id])
+
+  @@map("handyman_profiles")
 }

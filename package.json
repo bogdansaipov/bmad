@@ -10,6 +10,9 @@
       "@prisma/engines",
       "esbuild",
       "prisma"
+    ],
+    "ignoredBuiltDependencies": [
+      "bcrypt"
     ]
   },
   "scripts": {

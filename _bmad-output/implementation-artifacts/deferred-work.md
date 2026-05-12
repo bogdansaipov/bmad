@@ -2,6 +2,28 @@
 
 Items deferred from reviews — real issues, not noise, but intentionally out of scope for the originating story. Use this to seed future hardening stories.
 
+## Deferred from: code review of 1-3-login-and-role-based-dashboard-routing (2026-05-12)
+
+- `expiresIn: ... as never` typing workaround in `auth.module.ts:17` — carries over from Story 1.2. JwtModule factory uses `config.get` (not `getOrThrow`) for JWT_SECRET and casts `expiresIn` to `never`. Replace with `ms.StringValue` and switch to `getOrThrow` when cleaning up.
+- No rate limiting on `POST /auth/login` — open endpoint enables brute-force credential stuffing. Belongs in Story 5.2 (security baselines). The PLACEHOLDER_HASH defense addresses only timing-based email enumeration, not volume attacks.
+- JWT stored in `localStorage` — XSS exfiltration risk for 7-day tokens. Deferred from Story 1.2. Story 1.3 centralizes the key in `auth-storage.ts`; Epic 5 hardening will migrate to HttpOnly cookie.
+- `GET /auth/me` returns 200 for suspended/deleted users who have a valid unexpired JWT (`apps/backend/src/modules/auth/strategies/jwt.strategy.ts:18`). `JwtStrategy.validate()` reconstructs from JWT payload with no live DB lookup. Account status changes post-issuance are not reflected until token expiry. Fix: add DB lookup in validate() OR implement token revocation OR use very short-lived tokens + refresh — all belong in Epic 5.
+- Smoke endpoints `/auth/customer-only` and `/auth/handyman-only` exposed in production without an environment gate (`apps/backend/src/modules/auth/auth.controller.ts`). Per spec, these are temporary; remove or gate behind a dev/test env check in a cleanup story.
+- Race condition: `fetchSession()` in-flight during mount can resolve with `null` (stale-token 401) AFTER `login()` has already set `status='authenticated'`, silently logging the user out (`apps/frontend/src/features/customer-auth/context/AuthContext.tsx`). Epic 5 session management overhaul (AbortController or request sequencing) will address this.
+- `clearAccessToken()` swallows all errors (`apps/frontend/src/features/customer-auth/lib/auth-storage.ts:22-27`). On a storage-unavailable logout the stale token is not removed. Best-effort for now; resolved when migrating to HttpOnly cookies in Epic 5.
+
+## Deferred from: code review of 1-2-user-registration-with-role-selection (2026-05-12)
+
+- Transaction isolation level unspecified on `$transaction` (apps/backend/src/modules/auth/auth.service.ts:33). Defaults to `READ COMMITTED`; the unique constraint + P2002 catch closes the practical race but stricter isolation would prevent the pre-check race entirely.
+- Non-P2002 Prisma errors are rethrown raw from `auth.service.ts:58` — could leak Prisma error structure on FK violations / connection drops. NestJS default exception filter sanitizes most of this; defensive improvement, not blocker.
+- No rate-limit / throttling on `POST /auth/register`. Open endpoint enables enumeration via 409 timing and resource exhaustion via bcrypt cost. Belongs in Story 5.2 (security baselines).
+- `JWT_EXPIRES_IN` env value not regex-validated (apps/backend/src/config/env.validation.ts). Malformed `'7days'` would throw at sign time on first registration. Add regex check in next env-hardening pass.
+- `expiresIn: ... as never` typing workaround in `auth.module.ts:12` — `@nestjs/jwt` v11 typing mismatch documented in debug log. Replace with `ms.StringValue` import when cleaning up.
+- `ON DELETE RESTRICT` on `customer_profiles` / `handyman_profiles` FKs (migration 20260512111352). Blocks hard-delete of users; soft-delete via `account_status=DELETED` is the intent but undocumented. Architectural choice to revisit when account-deletion flow is designed.
+- Unit test mocks `$transaction` synchronously (auth.service.spec.ts:51-52, 87, 108). A regression removing the `$transaction` wrapper would still pass unit tests. E2E catches it indirectly. Test-quality improvement.
+- E2E cleanup uses `email contains 'e2e-register'` filter (auth.e2e-spec.ts:357-361). Will silently leak rows when future tests use different email patterns. Test-infra refactor.
+- `@ApiBody` / `@ApiResponse` decorators missing on `POST /auth/register` (auth.controller.ts:12-17). Swagger output incomplete for 201/400/409 responses. Spec mandated only `@ApiTags`/`@ApiOperation`/`@HttpCode`; add when OpenAPI consumer work begins.
+
 ## Deferred from: code review of 1-1-initialize-project-foundation (2026-05-12)
 
 - `password_hash` field present in Prisma schema with no hashing service or stub — Story 1.2 implements auth; ensure bcrypt/argon2 hashing is introduced before any user creation path is wired.

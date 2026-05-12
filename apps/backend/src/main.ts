@@ -25,6 +25,7 @@ async function bootstrap() {
     }),
   );
 
+  app.setGlobalPrefix('api');
   app.enableVersioning({ type: VersioningType.URI });
 
   if (configService.get<string>('NODE_ENV') !== 'production') {
