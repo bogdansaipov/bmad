@@ -11,531 +11,695 @@ stepsCompleted:
   - 9
   - 10
   - 11
+  - 12
+  - 13
+  - 14
 inputDocuments:
   - '/home/bogdansaipov/Projects/demos/demo1/_bmad-output/planning-artifacts/prd.md'
   - '/home/bogdansaipov/Projects/demos/demo1/_bmad-output/brainstorming/brainstorming-session-2026-04-07-142531.md'
+  - '/home/bogdansaipov/Projects/demos/demo1/_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-11-124054.md'
 workflowType: 'ux-design'
 projectName: 'Handrix'
+lastUpdated: '2026-05-12'
 ---
 
 # UX Design Specification Handrix
 
-**Author:** Bogdansaipov
-**Date:** 2026-04-07 16:39:13 +05
+**Author:** Bogdansaipov  
+**Date:** 2026-05-12 +05
 
 ---
 
 ## Initialization Context
 
-This UX design workflow is initialized using the PRD and brainstorming session as primary inputs.
+This UX design workflow is regenerated using the rewritten PRD and the approved sprint change proposal as the source of truth.
 
-Additional stakeholder context provided during initialization:
-- Product concept: rapid-response plumbing coordination service that reduces uncertainty in urgent repair situations.
-- Core flow: issue selection, immediate containment guidance, expectation setting (price + ETA), one-tap confirmation, and dispatch tracking.
-- Key UX goal: the user should feel "this is under control" within the first 2-3 minutes.
-- Constraints: mobile-first, React SPA, minimal friction, and no account required.
+Additional stakeholder context provided during regeneration:
+
+- Handrix is now a two-sided marketplace, not a guided plumbing coordination flow.
+- The UX should feel closer to Uber or Glovo execution than to a directory marketplace.
+- Customer experience should be dashboard-first after authentication.
+- Handyman experience should be jobs-first, live, and operationally lightweight.
+- Live tracking map, job cards, and bottom-sheet interactions are primary interaction patterns.
+- The MVP must stay lean:
+  - no chat
+  - no ops workspace
+  - no support workspace
+  - simple pricing
+  - fast request creation
+  - lightweight post-completion rating only
+- The product should preserve:
+  - mobile-first interaction design
+  - low cognitive load
+  - simple status communication
+  - fast action flows
+
+Attached references suggest:
+
+- soft warm-light customer surfaces
+- strong dark-mode handyman surfaces
+- map-led tracking views
+- bottom sheets for active task control
+- card-based request and job management
 
 ## Executive Summary
 
 ### Project Vision
 
-Handrix is a rapid-response plumbing coordination service designed to reduce uncertainty during urgent minor home repair situations. The product is intentionally focused on a narrow small-plumbing wedge for the MVP, allowing the experience to feel fast, credible, and emotionally reassuring rather than broad and marketplace-like.
+Handrix should feel like an on-demand home-services app that makes action immediate and understandable. The customer should move from login to request creation to active tracking with minimal friction. The handyman should move from login to available jobs to active fulfillment with minimal overhead.
 
-From a UX perspective, Handrix should help the user feel that the situation is under control within the first 2-3 minutes. The experience must create confidence before technician arrival through a guided flow that combines issue selection, immediate containment guidance, expectation setting, one-tap confirmation, and visible dispatch tracking.
+The revised UX is no longer about calming users through a guided emergency wizard. It is about creating fast marketplace confidence through clear job creation, fast matching, first-accept assignment, visible movement on a map, and simple status progression.
 
 ### Target Users
 
-The primary users are renters and homeowners facing a live but manageable plumbing problem such as a leaking faucet, minor pipe leak, or toilet issue. They are likely to be stressed, distracted, and looking for fast clarity rather than deep comparison shopping. Most usage will happen on mobile devices in real-world, inconvenient contexts where one-handed interaction and low cognitive load matter.
+The primary user groups are:
 
-Secondary users include internal operations coordinators and support staff. Operations users need a clear, efficient view of incoming requests, assignment needs, and status progression. Support users need fast visibility into request history, prior customer guidance, and current dispatch state so they can reinforce confidence instead of creating conflicting information.
+- customers who want a fast way to request home repair help and track service progress
+- handymen who want to receive relevant work, accept quickly, and execute jobs efficiently from mobile
+
+Customers are likely to be time-sensitive, impatient with long forms, and reassured by immediate system feedback. Handymen are likely to be task-oriented, mobile-first, and intolerant of clutter, friction, or ambiguous job states.
 
 ### Key Design Challenges
 
-The first design challenge is supporting stressed users who may be anxious, hurried, or unfamiliar with plumbing terminology. The interface must reduce decision fatigue, simplify language, and provide immediate orientation.
+The first challenge is making the marketplace feel fast before assignment. A `pending` request can easily feel like a failure if the system does not clearly communicate that matching is active.
 
-The second challenge is building trust without relying on a full marketplace model. Since the MVP is not winning through provider browsing, UX must communicate credibility through process clarity, expectation setting, and visible progress.
+The second challenge is keeping map and status experiences clear instead of overwhelming. Real-time tracking can become noisy if the interface competes with itself.
 
-The third challenge is handling imperfect fulfillment paths gracefully. Delays, serviceability limits, or clarification needs must still feel transparent, useful, and confidence-preserving rather than vague or broken.
+The third challenge is giving customers and handymen product surfaces that feel tailored to their jobs without turning the MVP into two bloated apps.
 
 ### Design Opportunities
 
-Handrix has an opportunity to differentiate by delivering value before booking through immediate containment guidance that helps the user stabilize the situation. This can make the product feel useful within seconds, not just after confirmation.
+Handrix can feel differentiated if it treats home repair like a modern dispatch product rather than a long-form booking site:
 
-The product also has an opportunity to use calm, human-centered status design to make dispatch tracking feel trustworthy and understandable. Clear state transitions, grounded language, and visible next steps can become a key part of the brand experience.
-
-Finally, Handrix can stand out through a mobile-first confidence loop that feels focused, modern, and low-friction. If the flow consistently replaces panic with clarity, the UX itself becomes a competitive advantage.
+- customer dashboard as the default home
+- a fast create-request sequence with map confirmation and estimate clarity
+- a live tracking screen where map and job state are the emotional center
+- a handyman jobs dashboard that prioritizes matching, acceptance, and active-job control
+- a lightweight completion-to-rating handoff that closes the loop without becoming a review workflow
 
 ## Core User Experience
 
 ### Defining Experience
 
-The core Handrix experience is a guided confidence loop for urgent minor plumbing issues. The primary user action is not browsing providers or managing a full account, but moving quickly from problem recognition to a confirmed request with clear next steps. The experience should feel like rapid coordination during a stressful event, not like a marketplace or a long-form service request.
+The defining Handrix experience is fast service coordination through a simple marketplace loop:
 
-The most important interaction to get right is the end-to-end request flow from issue selection through confirmation. If the user can identify their problem, understand what to do immediately, see a believable price and response expectation, and confirm in one tap, the product delivers its core value.
+1. sign in
+2. create or receive a job
+3. confirm assignment
+4. track movement and status
+5. complete the job
+
+The most important customer moment is not request submission by itself. It is the shift from `pending` to `assigned`, when the product proves that a real handyman is on the job and the map becomes meaningful.
+
+The most important handyman moment is not viewing a dashboard. It is receiving a relevant job, deciding quickly, and entering an active-job mode that supports execution with very little UI friction.
 
 ### Platform Strategy
 
-Handrix should be designed as a mobile-first React single-page application with touch-first interaction patterns and strong state continuity between steps. The interface should be optimized for modern mobile browsers, with desktop support preserved as a secondary layout rather than a separate experience.
+Handrix should remain a mobile-first React SPA, but its interaction model should now resemble an operational app rather than a wizard flow. That means:
 
-Because the product is used in live repair situations, the platform should avoid account creation, unnecessary branching, and any interruption that breaks user momentum. The SPA should preserve progress reliably, support quick transitions between steps, and make polling-based dispatch tracking feel simple and calm rather than technical.
+- short paths to primary actions
+- dashboard-led entry points
+- bottom-sheet driven task details on mobile
+- persistent status visibility
+- map-first tracking when a job becomes active
+
+Desktop layouts should expand the same system rather than inventing separate flows.
 
 ### Effortless Interactions
 
-Issue selection should feel immediate and understandable even for users who do not know plumbing terminology. Guidance should appear at the right time without forcing extra effort, and expectation setting should be digestible in seconds rather than paragraphs.
+Customers should create a request in 4 short stages:
 
-Address entry, request review, and confirmation should feel lightweight and sequential. The user should never feel like they are filling out a complicated service form. The ideal interaction pattern is that each step answers one urgent question at the right moment: what is this, what should I do now, what happens next, and how do I lock in help.
+1. category and title
+2. description and image
+3. location confirmation on map
+4. estimate and submit
 
-Dispatch tracking should also feel effortless. Users should be able to glance at the screen and understand the current state, what progress has happened, and whether they need to do anything else.
+Handymen should be able to:
+
+- preview job essentials quickly
+- accept or decline in one dominant action area
+- switch into active-job mode immediately after acceptance
+- update status from a persistent action rail or bottom sheet
 
 ### Critical Success Moments
 
-The first critical success moment is when the user identifies their issue and immediately receives containment guidance that feels relevant and useful. This is where Handrix proves value before any booking is completed.
+The most important customer UX moments are:
 
-The second critical success moment is expectation setting. If price and ETA feel believable and clearly explained, the user is much more likely to trust the service and continue.
+- first-load dashboard clarity
+- fast request creation with obvious progress
+- understandable `pending` state
+- strong assigned-state handoff
+- live tracking with no confusion about what happens next
+- a lightweight post-completion rating prompt that feels optional, fast, and satisfying
 
-The third and most decisive moment is post-confirmation reassurance. Once the request is submitted, the user should feel that searching is over and the situation is actively moving forward. If this moment feels vague, delayed, or untrustworthy, the entire experience weakens.
+The most important handyman UX moments are:
 
-### Experience Principles
-
-Handrix should reduce uncertainty before it asks for commitment.
-
-Handrix should feel calm, fast, and obvious on mobile.
-
-Every step should answer the user's next urgent question without adding cognitive load.
-
-Progress visibility should build trust as much as functionality does.
+- seeing only relevant jobs
+- trusting the preview enough to accept quickly
+- entering a focused active-job mode with map, route, and status controls
 
 ## Desired Emotional Response
 
-### Primary Emotional Goals
+### Customer Emotional Goals
 
-The primary emotional goal of Handrix is to make the user feel calm, supported, and back in control during a stressful plumbing issue. The product should reduce panic quickly and replace uncertainty with a sense of clear forward motion.
+Customers should feel:
 
-A secondary emotional goal is trust. Users should feel that Handrix is credible, honest, and actively helping rather than simply collecting a request. The product should also create relief by making the next steps feel obvious and manageable.
+- fast orientation after login
+- confidence during request creation
+- reassurance during `pending`
+- control and visibility after `assigned`
 
-### Emotional Journey Mapping
+The tone should be calm but not passive. This is not a guided-care product anymore; it is a fast-response product.
 
-When users first arrive, they are likely to feel stress, urgency, and uncertainty. The interface should immediately signal that the product understands their situation and can help them act quickly.
+### Handyman Emotional Goals
 
-During the core flow, the emotional shift should move from anxiety to clarity. Each step should reduce ambiguity, provide useful guidance, and increase the user's sense that the problem is becoming manageable.
+Handymen should feel:
 
-After confirmation, the dominant emotional state should become reassurance. Users should feel that they no longer need to keep searching or second-guessing their decision because the situation is now being handled.
+- efficient
+- informed
+- in control
+- not micromanaged
 
-If something goes wrong, the product should preserve honesty and support. A delay or recovery path should still make the user feel informed and looked after rather than abandoned or misled.
-
-On return usage, the product should feel dependable and familiar. The emotional memory should be that Handrix made a stressful situation easier, faster, and calmer.
-
-### Micro-Emotions
-
-The most important micro-emotions for Handrix are confidence over confusion, trust over skepticism, and reassurance over anxiety. These states are central to whether the experience feels valuable in an urgent moment.
-
-A smaller but still important emotional target is relief. The product should create repeated small moments where the user feels they have one less thing to worry about.
-
-The main emotions to avoid are doubt, overwhelm, ambiguity, and false urgency. If users feel rushed without understanding, or if the interface feels vague, trust will drop quickly.
-
-### Design Implications
-
-To create calm and control, the UX should use clear sequencing, plain language, and focused screens that present only the most relevant action at each step. Visual hierarchy should support fast scanning and quick comprehension under stress.
-
-To create trust, the experience should show believable ETA and pricing language, explicit status changes, and transparent explanations when something is pending or delayed. The system should avoid overpromising or using vague reassurance that cannot be backed up operationally.
-
-To create relief, the product should surface immediate containment guidance early, keep confirmation lightweight, and make dispatch tracking glanceable. The user should consistently feel that progress is visible and that they do not need to work harder for updates.
+The handyman experience should feel more like a compact work console than a consumer marketplace.
 
 ### Emotional Design Principles
 
-Design for emotional de-escalation, not excitement.
-
-Replace ambiguity with grounded clarity at every step.
-
-Use transparency to build trust, especially when fulfillment is imperfect.
-
-Make progress feel visible, credible, and calming.
+- Replace uncertainty with status clarity.
+- Let the map carry meaning, not decoration.
+- Give each screen one dominant job.
+- Reduce reading load by making cards and labels scan well.
+- Use motion to confirm progress, not to entertain.
 
 ## UX Pattern Analysis & Inspiration
 
-### Inspiring Products Analysis
+### Primary Pattern Direction
 
-Uber is a strong reference for Handrix because it makes waiting feel active rather than uncertain. Its live status model, visible progress states, and credible updates help users trust that something is happening even when they are not taking action. For Handrix, this is especially relevant after confirmation, when the user needs reassurance that help is actually moving.
+The strongest product references are Uber and Glovo-style operational interfaces:
 
-Airbnb is a useful reference for information design and emotional tone. Its interfaces often feel calm, structured, and reassuring even when users are making meaningful decisions. Clear summaries, good spacing, and confident hierarchy reduce cognitive load. For Handrix, this suggests a way to present issue details, pricing expectations, and booking summaries without making the experience feel dense or stressful.
+- dashboard-first home
+- live task tracking
+- bottom sheets over maps
+- strong current-state emphasis
+- large decisive actions
 
-Duolingo is a strong reference for low-friction progression. It consistently makes the next action obvious, keeps users moving forward with minimal hesitation, and avoids overloading the screen with competing choices. For Handrix, this pattern is highly transferable to the guided issue flow, where each step should feel simple, contained, and easy to complete under stress.
+Handrix should not behave like a directory or marketplace browsing app with heavy comparison patterns.
 
-### Transferable UX Patterns
+### Reference Translation for Handrix
 
-A key transferable pattern from Uber is progress visibility through clear state transitions. Handrix can adapt this into a customer-facing dispatch timeline that feels alive, trustworthy, and easy to scan at a glance.
+From the customer references:
 
-A key pattern from Airbnb is calm hierarchy through strong layout discipline, concise summaries, and reassuring presentation. Handrix can use this to make price, ETA, issue summary, and next steps feel clear without becoming visually heavy.
+- retain warm light surfaces for trust and readability
+- use cards with soft elevation and restrained accents
+- keep create-request flow compact and obviously sequenced
+- use history and dashboard layouts that make status scanning immediate
 
-A key pattern from Duolingo is obvious forward momentum. Handrix should make each step feel focused, lightweight, and immediately actionable, with a single primary next action and minimal branching.
+From the handyman references:
 
-Across all three products, an important shared pattern is confidence through clarity. None of them rely on users decoding complicated interfaces. They reduce hesitation by making the current state, next step, and likely outcome easy to understand.
+- use dark, high-contrast work surfaces
+- emphasize availability, next match, active job, and earnings context
+- make job preview and active work states feel dense but not cramped
 
 ### Anti-Patterns to Avoid
 
-Handrix should avoid marketplace-style clutter such as dense provider cards, too many choices, or comparison-heavy screens. These patterns increase cognitive load and conflict with the urgent confidence loop.
-
-The product should also avoid vague status messaging such as generic "processing" or "please wait" states without concrete meaning. In an urgent repair context, unclear waiting creates anxiety rather than trust.
-
-Another anti-pattern to avoid is long, form-heavy intake that feels like administrative work. If the user feels they are filling out a service application instead of getting help, the experience will lose momentum quickly.
-
-### Design Inspiration Strategy
-
-What to adopt: visible progress states from Uber, calm summaries and hierarchy from Airbnb, and low-friction step progression from Duolingo. These patterns directly support Handrix's goal of making the user feel in control quickly.
-
-What to adapt: Uber's live tracking should be simplified for a service-dispatch context rather than copied literally. Airbnb's calm presentation should be adapted to urgent-use scenarios with faster scanning and stronger action emphasis. Duolingo's progression model should be translated into a seriousness-appropriate tone without making the product feel playful.
-
-What to avoid: overly broad navigation, crowded service-browsing interfaces, vague waiting states, and long multi-field forms. These patterns conflict with Handrix's emotional goal of calm clarity under pressure.
+- directory-style provider browsing
+- multi-step guidance detours that slow request submission
+- support-oriented fallback UX in MVP
+- over-detailed pricing explanation screens
+- cluttered maps with too many overlays
+- navigation systems with too many tabs for the lean MVP
 
 ## Design System Foundation
 
-### 1.1 Design System Choice
+### Overall Design Direction
 
-Handrix should use a themeable design system approach rather than a fully custom system or a rigid out-of-the-box visual framework. The recommended direction is to build on a proven accessible component foundation while creating a custom brand layer, interaction style, and design tokens tailored to the product's urgent, trust-focused use case.
+Handrix should use a split-surface design language:
 
-This approach gives Handrix enough flexibility to feel distinct and emotionally appropriate while still moving quickly during MVP development.
+- **Customer Mode:** warm neutral backgrounds, deep navy actions, soft cards, restrained accent orange for highlights
+- **Handyman Mode:** dark navy or charcoal surfaces, teal-green action accents, strong contrast, utilitarian cards
 
-### Rationale for Selection
+This split makes the two roles feel meaningfully different while preserving one brand system.
 
-A fully custom design system would provide maximum visual uniqueness, but it would likely add unnecessary design and engineering overhead for an MVP that needs to prove operational clarity and speed first. An established visual system with strong default branding would be faster initially, but it risks making the product feel generic or mismatched to the calm, confidence-building emotional tone that Handrix needs.
+### Typography
 
-A themeable system offers the right balance. It supports rapid implementation with accessible, tested primitives while allowing Handrix to shape visual hierarchy, spacing, color usage, status treatments, and form patterns around its specific trust and urgency goals.
+The typography should feel modern, large, and fast-scanning.
 
-This is especially important because Handrix is not competing on broad feature depth. The product experience itself must feel focused, credible, and emotionally steady, which requires more customization than a default library theme alone would usually provide.
+- headings: bold, compact, high-contrast sans-serif
+- labels: compact uppercase or small caps when used as meta-text
+- body: readable and neutral, never overly small on mobile
 
-### Implementation Approach
+### Color Strategy
 
-The implementation should start with a strong component foundation for inputs, buttons, cards, alerts, sheets, progress indicators, and status elements. These primitives should then be composed into product-specific patterns for issue selection, containment guidance, expectation summaries, confirmation review, and dispatch tracking.
+Customer palette:
 
-The system should define a small but disciplined token set for color, typography, spacing, border radius, elevation, and interaction states. Priority should be given to mobile responsiveness, accessible contrast, large touch targets, and fast-scanning layouts.
+- warm ivory or bone background
+- deep ink or navy text
+- muted slate-blue primary action
+- restrained orange for emphasis
+- green only for positive status
 
-Custom patterns should be created only where they directly support the Handrix confidence loop. This keeps the system lean while ensuring the most important interactions feel purpose-built.
+Handyman palette:
 
-### Customization Strategy
+- deep charcoal or navy background
+- white or near-white text
+- teal-green for active action and online states
+- muted blue-gray for data cards
+- warm amber for cautionary signals
 
-Customization should focus on emotional clarity rather than decorative branding. The visual system should feel calm, direct, and reassuring, with clear status states, restrained color use, and strong content hierarchy.
+### Motion
 
-Brand expression should come through tone, layout discipline, iconography, and state design more than through flashy visual styling. Handrix should look modern and credible, but the interface should never distract from the user's urgent goal.
+Use motion sparingly but meaningfully:
 
-The system should especially customize the following areas: issue-selection cards, guidance panels, expectation summaries, confirmation modules, and dispatch-progress components. These are the moments where product trust is either built or lost, so they should feel intentionally designed rather than assembled from generic defaults.
+- map pin transition on assignment
+- bottom-sheet rise for job details
+- status pill transitions
+- job card entrance for newly matched work
 
-## 2. Core User Experience
+Avoid ornamental motion.
 
-### 2.1 Defining Experience
+## Visual Foundation
 
-The defining Handrix experience is guided emergency-style service coordination for a minor plumbing issue. The core interaction is that a stressed user can move from "something is wrong" to "help is on the way and I know what to do right now" in a few focused steps, without browsing, comparing, or creating an account.
+### Customer Visual Language
 
-If Handrix gets one thing perfectly right, it should be this: turning an uncertain repair moment into a clear, guided, confidence-building request flow. That is the interaction users are most likely to describe to others, and it is the moment where the product proves it is meaningfully better than search, directories, or generic service marketplaces.
+Customer screens should feel open, calm, and lightly premium. The request dashboard and create-request flow should use:
 
-### 2.2 User Mental Model
+- wide spacing
+- large headings
+- clear section breaks
+- card clusters for history and active requests
+- rounded panels with low visual noise
 
-Users do not think of their problem as "booking a home service marketplace task." Their mental model is closer to "I need to stop this from getting worse and get someone trustworthy here fast." They want fast orientation, simple guidance, and confidence that they are taking the right action.
+### Handyman Visual Language
 
-Today, users often solve this problem by searching online, calling a landlord, messaging a building contact, or trying local service providers one by one. What they dislike about current solutions is uncertainty: unclear seriousness, unclear pricing, unclear response times, and unclear trustworthiness. They are likely to get frustrated by jargon, excessive form filling, or any screen that feels like shopping instead of getting help.
+Handyman screens should feel tighter and more operational. The product should support:
 
-### 2.3 Success Criteria
+- high-signal summaries near the top
+- job match panels that feel urgent and actionable
+- settings/preferences presented as compact chips and rows
+- a clear separation between available jobs, active job, and job history
 
-The core experience succeeds when users feel immediate clarity after the first interaction, understand their issue well enough to keep moving, and reach confirmation without hesitation or confusion.
+## Design Directions
 
-Users should feel that the flow is fast, obvious, and relevant to their situation. They should receive useful feedback at each step, especially when guidance appears, when expectations are shown, and when confirmation is complete.
+### Direction 1: Customer Warm Dispatch
 
-The strongest indicators of success are:
-- The user can identify an issue type quickly without second-guessing.
-- The user understands what action to take now and what will happen next.
-- The user feels reassured enough after confirmation that they stop searching elsewhere.
+This direction governs customer-facing screens:
 
-### 2.4 Novel UX Patterns
+- warm neutral canvas
+- strong dark type
+- soft card borders
+- clear status pills
+- large bottom CTA bars
 
-Handrix should primarily rely on established UX patterns that users already understand, especially for mobile step flows, cards, summaries, confirmations, and status timelines. This is not a product that benefits from novel interaction mechanics for their own sake.
+It should preserve calm without feeling passive or clinical.
 
-Its differentiation should come from how familiar patterns are combined into a trust-building confidence loop. The unique twist is not a new gesture or control, but the sequencing of reassurance: identify the issue, stabilize the situation, set expectations, confirm quickly, and show credible progress.
+### Direction 2: Handyman Night Ops
 
-Because the pattern is emotionally specialized rather than mechanically novel, Handrix should prioritize clarity over invention. Any innovation should happen in the choreography of guidance and trust, not in interaction complexity.
+This direction governs handyman-facing screens:
 
-### 2.5 Experience Mechanics
+- dark dashboards
+- glowing action accents
+- compact analytics and preference surfaces
+- strong task focus
 
-Initiation begins with an immediate, focused entry point that asks the user what is happening in plain language. The starting screen should invite fast issue recognition and reassure the user that this experience is designed for urgent plumbing help.
+It should feel like a professional live-ops surface, not a lifestyle dashboard.
 
-Interaction proceeds through a tightly structured flow. The user selects an issue, answers a small number of clarifying questions, receives containment guidance, reviews price and ETA expectations, and confirms the request. Each screen should have one dominant action, minimal competing choices, and visible progress through the flow.
+### Direction 3: Map as Product Surface
 
-Feedback should be immediate and confidence-building. When the user selects an issue, the system should respond with relevant follow-up. When guidance is shown, it should feel specific and actionable. When expectations are presented, they should feel transparent and believable. If the user makes a mistake or the issue is out of scope, the system should recover with calm, direct guidance rather than generic errors.
+The map is not background decoration. Once a request is assigned, it becomes the main stage. The system should:
 
-Completion happens when the request is confirmed and the interface shifts from intake mode to reassurance mode. At that point, the user should clearly understand that the request has been received, what stage it is in, and whether they need to do anything else. The next step should feel like waiting with confidence, not waiting in uncertainty.
+- keep the map visible for active jobs
+- layer essential information in bottom sheets and chips
+- avoid heavy chrome around the map
+- emphasize the distance and movement relationship between handyman and job location
 
-## Visual Design Foundation
+## User Journeys
 
-### Color System
+### Journey 1: Customer Dashboard-First Entry
 
-Handrix should use a calm, trust-building color system centered on clear contrast, restrained saturation, and semantic consistency. The palette should avoid overly bright, playful, or decorative colors in favor of tones that feel stable, modern, and reassuring.
+After login, the customer lands on a dashboard that shows:
 
-The primary brand color should be a deep slate-blue or blue-teal family that communicates reliability and focus without feeling cold or corporate. Supporting neutrals should be warm off-whites, soft grays, and charcoal text tones to keep the interface clean and readable. Accent color use should be limited and functional rather than expressive.
+- active requests first
+- recent history below
+- one strong `New request` CTA
 
-Suggested semantic color approach:
-- Primary: deep slate-blue for primary actions and key progress states
-- Secondary: muted blue-gray for supporting UI surfaces and secondary actions
-- Success: softened green for confirmed progress or resolved states
-- Warning: amber-gold for caution or delayed attention states
-- Error: muted red for blocked, unavailable, or failed states
-- Neutral surfaces: off-white, cloud gray, and charcoal for strong readability and calm balance
+If there is an active assigned or in-progress request, that card should dominate the screen visually and open directly into the tracking view.
 
-Status color should always be paired with text labels and icons so meaning is never dependent on color alone. The system should maintain strong contrast and avoid overly aggressive red/yellow usage that could increase stress unnecessarily.
+### Journey 2: Customer Create-Request Flow
 
-### Typography System
+The create-request flow should be fast, visual, and progressive:
 
-The typography should feel modern, highly readable, and emotionally steady. A clean sans-serif typeface with strong screen legibility should be used throughout the product. The tone should feel competent and approachable rather than geometric, playful, or overly branded.
+1. pick category
+2. add title and short description
+3. attach image
+4. confirm location on map
+5. review estimate and submit
 
-The type hierarchy should support fast scanning on mobile:
-- Large, clear headings for orientation and state transitions
-- Medium-weight section titles for summaries and grouped content
-- Readable body text for guidance and reassurance
-- Small supporting text only where necessary, never for critical instructions
+This should feel more like a ride-request flow than a service application. Each step should have one main question and one main action.
 
-Typography should be optimized for short-form guidance, status updates, and summary modules rather than long reading sessions. Line lengths should stay compact on mobile, and line height should be generous enough to preserve clarity during stressful use.
+### Journey 3: Customer Pending State
 
-### Spacing & Layout Foundation
+After request creation, if no handyman has accepted yet, the customer enters a `pending` state. This should not feel like a dead end.
 
-The layout should feel open enough to reduce pressure, but not so sparse that users lose momentum. Handrix should use a disciplined spacing system based on an 8px scale, with strong vertical rhythm and clear separation between decision points.
+The pending screen should communicate:
 
-The interface should prioritize:
-- One primary action per screen
-- Clear grouping of related information
-- Generous touch targets
-- Short visual scans from top to action
-- Strong alignment and predictable spacing between modules
+- matching is active
+- what category/location was submitted
+- current estimate remains attached to the request
+- the user does not need to re-enter data
+- the next state is assignment or rejection
 
-Cards, guidance panels, summaries, and progress modules should have enough breathing room to feel trustworthy and understandable, but should remain compact enough for quick mobile progression. The layout should feel structured and calm, with limited simultaneous choices on screen.
+### Journey 4: Customer Assigned Tracking
 
-A single-column mobile-first grid should define the primary experience. Desktop layouts can widen content areas and introduce supporting side spacing, but should preserve the same clear linear flow.
+Once a handyman accepts, the experience transitions into a live tracking screen:
 
-### Accessibility Considerations
+- map fills most of the viewport
+- bottom sheet shows handyman name, status, estimate, and job details
+- two-pin model: customer/job location and handyman location
+- current status remains visible at all times
 
-Accessibility should be treated as part of the emotional design strategy, not a separate compliance layer. Users may be stressed, distracted, or physically uncomfortable while using Handrix, so readability and interaction clarity are essential.
+This screen should feel closest to Uber-style ride tracking, adapted for home service.
 
-The visual system should ensure:
-- WCAG 2.1 AA contrast compliance for all core text and actions
-- Large touch targets for all interactive controls
-- Clear focus states for keyboard and assistive navigation
-- Text labels paired with icons and color states
-- Readable font sizes with strong contrast on mobile
-- Avoidance of overly thin type, low-contrast placeholders, or visually ambiguous controls
+### Journey 5: Customer Post-Completion Rating
 
-The overall visual foundation should reduce interpretation effort. Users should never have to guess what is important, what is actionable, or what state their request is currently in.
+After the handyman marks the request `complete`, the customer should receive a lightweight rating prompt tied to that completed request.
 
-## Design Direction Decision
+The rating interaction should be:
 
-### Design Directions Explored
+- simple 1-5 star selection
+- optional short feedback
+- usable from mobile in a few seconds
+- clearly optional
+- available only once per completed request
 
-Four visual directions were explored for Handrix. Calm Clinical emphasized gentle de-escalation through soft surfaces and low-stress presentation. Warm Utility emphasized human reassurance, practical clarity, and approachable service tone. Precision Dispatch emphasized stronger status hierarchy and operational trust through visible progress states. Quiet Premium emphasized refined minimalism and modern credibility with restrained visual styling.
+This should feel like a quick closure moment, not a long-form review flow. The ideal pattern is a compact modal or bottom sheet that appears after completion and can also be reopened from the completed request card if the customer dismisses it initially.
 
-All four directions were aligned to the same product foundation: calm tone, clarity under stress, mobile-first usability, and trust-building interactions. The main differences were in warmth, density, and how strongly the interface emphasized dispatch-state visibility.
+### Journey 6: Handyman Dashboard
 
-### Chosen Direction
+After login, the handyman lands on a jobs dashboard with:
 
-The chosen direction is a hybrid approach that uses Warm Utility as the base visual language and incorporates selected status-display patterns from Precision Dispatch.
+- online/offline status
+- current shift or availability summary
+- job preferences and categories
+- current or next match module
+- recent jobs or earnings context
 
-Warm Utility provides the strongest match for the pre-confirmation experience because it feels helpful, grounded, and reassuring without becoming soft or decorative. It supports the product goal of making users feel that the situation is under control.
+The MVP should keep this focused. Rich analytics are secondary to getting the handyman to jobs quickly.
 
-Precision Dispatch contributes the stronger post-confirmation interaction model. Its more explicit progress treatment is especially effective for the dispatch-tracking phase, where users need visible, credible forward motion rather than passive waiting.
+### Journey 7: Handyman Available Job Preview
 
-### Design Rationale
+When a job matches, the handyman should see a clear preview containing:
 
-This hybrid direction works because Handrix has two distinct emotional jobs. Before confirmation, it must calm and guide. After confirmation, it must reassure and prove active progress. A single-direction approach risks over-optimizing for only one of those moments.
+- category
+- distance
+- rough area
+- estimate
+- short description
+- accept/decline actions
 
-Warm Utility is the better fit for issue selection, containment guidance, expectation setting, and confirmation because it feels human and service-oriented. Precision Dispatch strengthens the tracking experience by making state changes, assignment progress, and next steps more explicit.
+The preview should be usable as either:
 
-Together, they create a design system that feels supportive during intake and trustworthy during dispatch. This aligns closely with Handrix's confidence loop and the emotional goal of replacing uncertainty with calm control.
+- a list card in the jobs feed
+- a priority panel
+- a mobile bottom sheet over a map
 
-### Implementation Approach
+### Journey 8: Handyman Active Job Flow
 
-The implementation should use Warm Utility as the primary visual foundation across onboarding, issue intake, guidance, summaries, and confirmation. This means warmer neutrals, practical copy presentation, and a more reassuring hierarchy in the core flow.
+After acceptance, the handyman enters active-job mode:
 
-After confirmation, the interface should shift slightly toward the Precision Dispatch model. Status cards, progress timelines, and request-state modules should become more structured and explicit, with stronger hierarchy and clearer service progression.
+- map is visible
+- customer/job location is clear
+- current status is clear
+- next action is large and obvious
 
-This transition should feel cohesive rather than abrupt. The same typography, token system, and component foundation should remain in place, while the emphasis changes from reassurance-through-guidance to reassurance-through-visible-progress.
+Status progression should never require deep navigation. Controls should sit in a persistent bottom sheet or fixed action area.
 
-## User Journey Flows
+## Information Architecture
 
-### Customer Journey: Guided Request to Confirmed Dispatch
+### Customer Navigation
 
-This flow covers the primary Handrix value loop for a customer with a minor plumbing issue. The goal is to move from uncertainty to confirmed progress quickly, with guidance and expectations surfaced at the right moments.
+The customer MVP should use a lean navigation model:
 
-```mermaid
-flowchart TD
-    A[User notices plumbing issue] --> B[Open Handrix]
-    B --> C[Select issue type]
-    C --> D[Answer clarifying questions]
-    D --> E[Receive immediate containment guidance]
-    E --> F[Enter address and service details]
-    F --> G[Review ETA and price expectations]
-    G --> H{Ready to confirm?}
-    H -->|Yes| I[Confirm request]
-    H -->|Need edits| F
-    I --> J[Show confirmation state]
-    J --> K[Display dispatch progress timeline]
-    K --> L[User waits with visible status updates]
-```
+- `Home`
+- `New request`
+- `History`
+- `Profile` or compact account menu
 
-This journey should minimize hesitation by keeping each step focused and sequential. The user should always know what the next action is and why the information is being requested.
+`Track request` should usually be entered from active request cards rather than as a permanent heavy nav item.
+Rating should usually be entered from the completion prompt or the completed request detail, not from a dedicated navigation destination.
 
-### Customer Journey: Recovery Path for Delays or Unserviceable Requests
+### Handyman Navigation
 
-This flow handles the moments where Handrix cannot immediately fulfill the ideal path. The goal is to preserve trust through transparency, fallback guidance, and clear next steps.
+The handyman MVP should use:
 
-```mermaid
-flowchart TD
-    A[User starts request flow] --> B[Select issue and submit details]
-    B --> C[System evaluates scope and serviceability]
-    C --> D{Serviceable now?}
-    D -->|Yes| E[Proceed to ETA and confirmation]
-    D -->|Needs clarification| F[Ask one or two follow-up questions]
-    F --> G{Clarified successfully?}
-    G -->|Yes| E
-    G -->|No| H[Show revised expectations or fallback guidance]
-    D -->|Not serviceable| I[Explain limitation clearly]
-    H --> J[Offer next-best action]
-    I --> J
-    J --> K[User leaves informed rather than abandoned]
-```
+- `Dashboard`
+- `Jobs`
+- `Earnings` or `History`
+- `Settings`
 
-This journey is critical because a failed or delayed fulfillment moment can still be a successful UX moment if the system remains honest, calm, and useful.
-
-### Operations Journey: Intake to Assignment
-
-This flow covers the internal coordinator experience needed to make the customer-facing promise believable. The goal is to support fast assignment, aligned status updates, and low operational confusion.
-
-```mermaid
-flowchart TD
-    A[New request enters operations queue] --> B[Coordinator reviews issue details]
-    B --> C[Check scope, urgency, and location]
-    C --> D{Can assign now?}
-    D -->|Yes| E[Assign provider or internal handler]
-    E --> F[Update request status]
-    F --> G[Customer sees progress update]
-    D -->|Needs clarification| H[Mark request for follow-up]
-    H --> I[Support or ops gathers missing information]
-    I --> B
-    D -->|Cannot fulfill| J[Mark unavailable and trigger fallback messaging]
-    J --> K[Customer sees transparent resolution state]
-```
-
-This journey should mirror the customer-visible state model closely so internal operations and customer messaging never drift apart.
-
-### Journey Patterns
-
-Across these flows, Handrix should standardize a few recurring journey patterns:
-- Progressive disclosure: only show the next needed question or action
-- Visible progress: each stage should make forward motion explicit
-- Recovery with explanation: delays and failures should always include a reason and next step
-- State alignment: internal and customer-facing statuses should map clearly to one another
-
-### Flow Optimization Principles
-
-The core optimization principle is speed to confidence, not just speed to submission. Every flow should reduce uncertainty as early as possible.
-
-The second principle is one decision at a time. Users should not face dense branching or multi-part choices on a single screen.
-
-The third principle is trust-preserving recovery. If the happy path breaks, the product should still feel competent, transparent, and supportive.
+If this feels too heavy on mobile, `Earnings` can be reduced in priority and surfaced as a secondary screen rather than a main tab.
 
 ## Component Strategy
 
-### Design System Components
+### Customer Components
 
-The themeable design system foundation should provide the majority of Handrix's baseline interface elements. These should include buttons, text inputs, text areas, radio groups, checkboxes, cards, alerts, drawers or sheets, progress indicators, badges, dividers, and modal or dialog primitives.
+Core customer components:
 
-These foundation components are well suited to the Handrix MVP because they cover the majority of standard interaction needs across issue intake, clarifying questions, address entry, confirmation, and support messaging. They should be themed to match the Warm Utility plus Precision Dispatch visual direction, but should remain structurally consistent with the chosen component foundation.
+- request summary card
+- active request hero card
+- category selection tile
+- image upload tile
+- map location confirmation panel
+- estimate breakdown card
+- request history row
+- status pill set
+- tracking bottom sheet
+- rating prompt sheet or modal
+- star rating input
+- compact feedback field
 
-The main gaps are not basic controls, but product-specific orchestration components that support trust, guidance, and visible progress.
+### Handyman Components
 
-### Custom Components
+Core handyman components:
 
-### Issue Selection Card
+- online/offline toggle
+- match preview card
+- active job summary card
+- preference chip group
+- service radius control row
+- earnings summary card
+- job history row
+- active-job status action rail
 
-**Purpose:** Help users identify their plumbing problem quickly without needing technical vocabulary.  
-**Usage:** Used at the start of the customer request flow.  
-**Anatomy:** Issue label, short description, optional icon, urgency cue, selected state.  
-**States:** Default, hover, selected, disabled.  
-**Variants:** Standard issue card, high-urgency variant.  
-**Accessibility:** Fully keyboard selectable, clear focus ring, descriptive label text.  
-**Content Guidelines:** Use plain-language issue names and short clarifying copy.  
-**Interaction Behavior:** Single-tap selection advances the user toward the next step or reveals clarifying questions.
+### Shared Components
 
-### Containment Guidance Panel
+Shared components:
 
-**Purpose:** Deliver immediate stabilization instructions before request confirmation.  
-**Usage:** Appears after issue classification and during recovery flows.  
-**Anatomy:** Guidance title, short steps, optional caution note, secondary reassurance copy.  
-**States:** Informational, warning, recovery/fallback.  
-**Variants:** Inline panel, full-width emphasis panel.  
-**Accessibility:** Structured headings, readable list formatting, icon and text pairing.  
-**Content Guidelines:** Keep instructions brief, specific, and calm.  
-**Interaction Behavior:** May remain visible while the user continues, or collapse into a summary after acknowledgement.
+- map shell
+- bottom sheet
+- status chip
+- section header
+- primary CTA
+- empty-state module
+- loading skeletons for lists and tracking transitions
 
-### Expectation Summary Module
+## UX Patterns
 
-**Purpose:** Show ETA, pricing expectation, and what happens next in one high-trust summary.  
-**Usage:** Used before confirmation and in revised expectation states.  
-**Anatomy:** ETA row, pricing row, short explanation, primary confirmation action.  
-**States:** Standard, revised expectation, delayed.  
-**Variants:** Pre-confirmation summary, recovery summary.  
-**Accessibility:** Strong heading hierarchy, high contrast, clear labels for all values.  
-**Content Guidelines:** Use believable ranges and transparent qualifiers instead of overconfident promises.  
-**Interaction Behavior:** Users review, optionally edit prior information, or proceed to confirm.
+### Bottom-Sheet Behavior
 
-### Request Status Timeline
+Bottom sheets should be a first-class interaction pattern in both roles.
 
-**Purpose:** Make dispatch progress feel visible and trustworthy after confirmation.  
-**Usage:** Customer tracking screen and support context surfaces.  
-**Anatomy:** Timeline steps, current state highlight, supporting timestamps or notes, next-step message.  
-**States:** Submitted, in review, assigned, on the way, delayed, completed, unavailable.  
-**Variants:** Compact summary version, full tracking version.  
-**Accessibility:** Text labels for every state, semantic structure for screen readers, no color-only meaning.  
-**Content Guidelines:** Use grounded language that reflects real operational states.  
-**Interaction Behavior:** Updates automatically on refresh and clearly signals when the state changes.
+Customer tracking bottom sheet should hold:
 
-### Request Recovery State Card
+- current status
+- handyman identity
+- estimate summary
+- request details
+- next action if needed
 
-**Purpose:** Handle serviceability issues, delays, and blocked states without breaking trust.  
-**Usage:** Appears when clarification, fallback guidance, or revised expectations are needed.  
-**Anatomy:** Problem statement, explanation, next-best action, optional support path.  
-**States:** Clarification needed, delayed, unavailable, resolved.  
-**Variants:** Inline flow version, full-page interruption version.  
-**Accessibility:** Clear heading, concise explanation, strong action affordance.  
-**Content Guidelines:** Explain what changed, why it changed, and what the user can do next.  
-**Interaction Behavior:** Allows the user to continue, correct details, or exit with guidance.
+Customer completion sheet should support:
 
-### Operations Request Queue Item
+- completion confirmation
+- 1-5 star input
+- optional short feedback
+- dismiss or submit action
 
-**Purpose:** Help internal coordinators scan, prioritize, and act on requests quickly.  
-**Usage:** Operations dashboard queue and request list surfaces.  
-**Anatomy:** Issue type, urgency cue, address summary, current state, time received, assignment status.  
-**States:** New, needs clarification, assignable, assigned, blocked, unavailable.  
-**Variants:** Compact row, expanded detail card.  
-**Accessibility:** Readable density, strong contrast, keyboard focus for dashboard usage.  
-**Content Guidelines:** Surface only the information needed for triage first.  
-**Interaction Behavior:** Opens into full request detail and supports quick status change actions.
+This sheet should open lightly and avoid pushing the user into a long review task.
 
-### Component Implementation Strategy
+Handyman active-job bottom sheet should hold:
 
-Handrix should maximize reuse of foundation components for all standard interaction patterns and reserve custom work for moments that directly affect trust, comprehension, and progression. The custom components should be built from design-system tokens and primitive building blocks so they remain visually and behaviorally consistent.
+- customer/job summary
+- next required status update
+- address and route context
+- short issue summary
 
-The highest-priority custom components are the Issue Selection Card, Containment Guidance Panel, Expectation Summary Module, and Request Status Timeline because they define the confidence loop. Recovery and operations components should follow next, since they preserve trust when the happy path breaks and keep internal coordination aligned with the customer experience.
+Bottom sheets should support:
 
-All components should follow the same accessibility rules, spacing logic, status semantics, and tone guidelines so the product feels cohesive across both customer and internal interfaces.
+- collapsed glance state
+- half-open action state
+- full detail state
 
-### Implementation Roadmap
+### Card Patterns
 
-**Phase 1 - Core Confidence Loop**
-- Issue Selection Card
-- Containment Guidance Panel
-- Expectation Summary Module
-- Request Status Timeline
+Cards should be glanceable and strongly hierarchical.
 
-**Phase 2 - Recovery and Trust Preservation**
-- Request Recovery State Card
-- Clarification prompt patterns
-- Delayed-status messaging variants
+Customer request cards should prioritize:
 
-**Phase 3 - Internal Operations Support**
-- Operations Request Queue Item
-- Expanded request detail modules
-- Shared customer/support status views
+- issue title
+- status
+- assigned handyman or pending state
+- estimate or final price
+- open action
+- unrated-complete state when a rating is still available
+
+Handyman job cards should prioritize:
+
+- category
+- distance
+- area
+- estimate
+- urgency or freshness
+- accept/decline
+
+### Map Interaction Patterns
+
+Map interaction should differ by context:
+
+- **Create-request:** pin adjustment and location confirmation
+- **Tracking:** movement visibility, no complex editing
+- **Active handyman job:** route/context visibility and location sharing confidence
+
+The user should never have to fight the map. Key actions belong outside the map layer.
+
+## Responsive and Accessibility Strategy
+
+### Mobile-First Layout
+
+Mobile is the primary environment. The core screens should rely on:
+
+- large touch targets
+- vertically stacked cards
+- sticky bottom CTA zones
+- bottom sheets instead of heavy side panels
+- simplified top navigation
+
+### Desktop Adaptation
+
+Desktop can expand into split-pane layouts:
+
+- customer tracking with larger map + side detail panel
+- handyman dashboard with summary grids and side modules
+
+Desktop should feel richer, but not functionally different.
+
+### Accessibility
+
+The revised UX must maintain:
+
+- strong contrast in both light and dark modes
+- no color-only status meaning
+- readable status labels
+- keyboard support for key flows
+- clear focus states
+- map alternatives through textual state summaries
+
+## Pricing UX Strategy
+
+Pricing should remain simple and credible.
+
+The estimate module should communicate:
+
+- estimated total
+- what is included in the estimate
+- that final charges may vary if parts or job conditions change
+
+This explanation should stay compact. The product should avoid turning estimate review into a pricing education screen.
+
+## Rating UX Strategy
+
+Rating should be treated as lightweight completion feedback, not as a public review system.
+
+The rating interaction should communicate:
+
+- who completed the job
+- simple star-based satisfaction input
+- optional short feedback
+- that the step is fast and optional
+
+The UI should avoid:
+
+- large text areas
+- multi-question surveys
+- public-facing social framing
+- moderation or dispute language
+
+## Pending and Rejected State Strategy
+
+### Pending
+
+`Pending` should mean:
+
+- the request is valid
+- matching is still in progress
+- no handyman has accepted yet
+
+The UI should make this feel active, not broken. Use live wording such as:
+
+- matching nearby pros
+- waiting for first acceptance
+- request sent to eligible handymen
+
+### Rejected
+
+`Rejected` should mean:
+
+- the request was not accepted through the current marketplace flow
+
+The UI should keep the message short and direct. Do not introduce support-heavy recovery UI in MVP. The main next action can be:
+
+- create a new request later
+- adjust details and resubmit
+
+## MVP Boundaries
+
+The UX should explicitly exclude:
+
+- in-app chat
+- ops workspace
+- support workspace
+- manual dispatch-first flows
+- heavy provider comparison
+- complex pricing explanation
+- long-form reviews
+- public review feeds
+- moderation and dispute UX for ratings
+
+## UX Design Requirements
+
+- UX-DR1: The customer experience must begin from an authenticated dashboard, not an anonymous intake flow.
+- UX-DR2: The handyman experience must prioritize job receipt, acceptance, and active-job control over profile browsing or administrative depth.
+- UX-DR3: The create-request flow must be completable in a small number of focused steps with one dominant action per screen.
+- UX-DR4: Location confirmation must use browser geolocation when available and allow map-based manual adjustment before submission.
+- UX-DR5: The request tracking screen must make the map and current status the primary visual focus after assignment.
+- UX-DR6: Bottom sheets must be the primary pattern for layered job details and action controls on mobile tracking screens.
+- UX-DR7: Customer request cards must surface active state, estimate or final amount, and assigned handyman context without opening the full request.
+- UX-DR8: Handyman job cards must surface category, distance, estimate, and accept or decline controls in a fast-scanning format.
+- UX-DR9: Pending and rejected states must be explicit, understandable, and free from legacy support-workspace assumptions.
+- UX-DR10: Customer and handyman surfaces must share one brand system while maintaining clearly different visual modes.
+- UX-DR11: WebSocket-driven updates must feel immediate on active-job screens without causing full-screen refresh patterns.
+- UX-DR12: Pricing presentation must stay simple, compact, and estimate-based.
+- UX-DR13: Post-completion rating must use a lightweight 1-5 star interaction with optional short feedback and must not feel like a long review form.
+- UX-DR14: Each completed request should expose rating at most once through the customer experience and should indicate when rating has already been submitted.
+- UX-DR15: The UX must preserve low cognitive load and fast action flows across both user roles.
+
+## Final Recommendation
+
+Handrix UX should be rebuilt around a compact marketplace operating model:
+
+- dashboard first
+- request creation fast
+- assignment meaningful
+- map central after assignment
+- handyman work surfaces operational and dark
+- customer surfaces warm and clear
+- post-completion rating lightweight and optional
+
+The strongest version of the MVP will feel less like “guided repair education” and more like “modern service dispatch with human readability.”

@@ -32,16 +32,18 @@ classification:
   domain: 'general'
   complexity: 'medium'
   projectContext: 'greenfield'
-lastEdited: '2026-05-11'
+lastEdited: '2026-05-12'
 editHistory:
   - date: '2026-05-11'
     changes: 'Rewrote PRD from urgent plumbing coordination into a two-sided handyman marketplace MVP based on the approved sprint change proposal.'
+  - date: '2026-05-12'
+    changes: 'Added lightweight post-completion customer rating capability for assigned handymen.'
 ---
 
 # Product Requirements Document - demo1
 
 **Author:** Bogdansaipov  
-**Last Updated:** 2026-05-11
+**Last Updated:** 2026-05-12
 
 ## Executive Summary
 
@@ -154,6 +156,7 @@ The MVP should include:
 - map-based live tracking for assigned and in-progress jobs
 - handyman-controlled status updates for `on the way`, `arrived`, `working`, and `complete`
 - customer-visible request lifecycle states of `pending`, `assigned`, `on the way`, `arrived`, `working`, `complete`, and `rejected`
+- lightweight post-completion customer rating for the assigned handyman using a 1-5 star score and optional short feedback
 
 ### Growth Features (Post-MVP)
 
@@ -161,6 +164,7 @@ Post-MVP growth could include:
 
 - in-app chat between customer and handyman
 - richer handyman profiles, ratings, and trust signals
+- public reputation surfaces, moderation workflows, and more advanced reputation logic
 - advanced pricing logic
 - saved addresses and faster repeat booking flows
 - broader service-category coverage
@@ -184,7 +188,9 @@ She creates a request by selecting a service category, entering a short title an
 
 After submission, Nodira sees the new request in a `pending` state while matching handymen are notified. When a handyman accepts, the request immediately becomes `assigned`, and she can open a tracking view that shows the handyman identity, the job location, and live movement on a map. As the handyman updates status to `on the way`, `arrived`, `working`, and `complete`, Nodira sees those changes reflected in real time.
 
-This journey drives requirements for customer auth, request creation, image upload, geo capture, price estimation, matching, assignment, live map tracking, and visible lifecycle progression.
+After the request is marked `complete`, Nodira can submit a simple 1-5 star rating for the assigned handyman and optionally add short text feedback. This rating is lightweight, does not block completion, and can only be submitted once for that completed request.
+
+This journey drives requirements for customer auth, request creation, image upload, geo capture, price estimation, matching, assignment, live map tracking, visible lifecycle progression, and post-completion rating.
 
 ### Journey 2: Customer Sees No Accepted Match Yet
 
@@ -208,7 +214,9 @@ This journey drives requirements for handyman auth, category eligibility, job fe
 
 A returning customer signs in and lands on the requests dashboard. Instead of starting from a one-off intake flow each time, the customer can see previous and current requests, understand which ones are complete, and create a new request from the same home screen.
 
-This journey drives requirements for account-based continuity, request history visibility, and a dashboard-first customer experience.
+Completed requests should also show whether a rating has already been submitted. If the completed request is still unrated, the customer should be able to open it and leave the one-time rating without re-entering the fulfillment flow.
+
+This journey drives requirements for account-based continuity, request history visibility, dashboard-first customer experience, and lightweight rating follow-up.
 
 ### Journey Requirements Summary
 
@@ -222,6 +230,7 @@ These journeys point to a focused MVP capability set:
 - real-time status and map-based tracking
 - simple estimate pricing before submission
 - clear request history and lifecycle visibility
+- lightweight post-completion handyman rating
 
 ## Web App Specific Requirements
 
@@ -315,12 +324,14 @@ The MVP should intentionally stay simple in a few ways:
 - accept/decline actions
 - WebSocket-based status and live-location updates for assigned jobs
 - durable request, assignment, and status history
+- one-time 1-5 star customer rating after completion, with optional short feedback
 
 ### Post-MVP Features
 
 **Phase 2 (Post-MVP):**
 
 - in-app chat between customer and handyman
+- richer rating aggregation surfaces and stronger reputation tooling
 - richer provider trust and profile surfaces
 - advanced pricing logic
 - saved payment or billing improvements if needed
@@ -385,20 +396,26 @@ The MVP should intentionally stay simple in a few ways:
 - FR28: Status changes made by the assigned handyman are reflected to the customer in real time.
 - FR29: The assigned handyman can send live location updates while a job is active.
 - FR30: The system can preserve a durable history of meaningful request and status changes.
+- FR31: After a request is marked `complete`, the customer can submit a 1-5 star rating for the assigned handyman.
+- FR32: Customers can optionally include short text feedback with the rating.
+- FR33: Each completed request can be rated only once by the customer who created that request.
+- FR34: Submitting or skipping a rating does not block request completion.
 
 ### Service Categories, Pricing, and Platform Configuration
 
-- FR31: The system can manage supported service categories without requiring a redesign of the request flow.
-- FR32: The system can associate handymen with only the categories they support.
-- FR33: The system can support simple launch-market eligibility rules such as service radius or equivalent location filtering.
-- FR34: The system can calculate a simple estimate using a base service fee, category-based pricing, and optional distance and parts allowances.
-- FR35: The system can present the estimate as an estimate rather than a guaranteed final total.
+- FR35: The system can manage supported service categories without requiring a redesign of the request flow.
+- FR36: The system can associate handymen with only the categories they support.
+- FR37: The system can support simple launch-market eligibility rules such as service radius or equivalent location filtering.
+- FR38: The system can calculate a simple estimate using a base service fee, category-based pricing, and optional distance and parts allowances.
+- FR39: The system can present the estimate as an estimate rather than a guaranteed final total.
+- FR40: Handyman profiles can support future aggregation of ratings without requiring an MVP reputation system.
 
 ### Platform Continuity and Future Growth
 
-- FR36: The system can preserve a stable request and assignment model that supports future category expansion.
-- FR37: The system can support future map-provider replacement without redefining customer or handyman workflows.
-- FR38: The system can preserve a clean future path for chat without including chat in MVP.
+- FR41: The system can preserve a stable request and assignment model that supports future category expansion.
+- FR42: The system can support future map-provider replacement without redefining customer or handyman workflows.
+- FR43: The system can preserve a clean future path for chat without including chat in MVP.
+- FR44: The system can preserve a clean future path for richer rating aggregation and reputation features without including public reviews, moderation systems, or disputes in MVP.
 
 ## Non-Functional Requirements
 
@@ -415,24 +432,25 @@ The MVP should intentionally stay simple in a few ways:
 - NFR6: Assignment logic should prevent more than one handyman from being assigned to the same request.
 - NFR7: The system should preserve a durable history of request creation, assignment, major lifecycle transitions, and completion outcomes.
 - NFR8: If a realtime connection drops, the system should recover state gracefully through reconnect or fallback refresh behavior without corrupting lifecycle truth.
+- NFR9: Rating submission should be idempotent enough to prevent a completed request from being recorded with more than one customer rating.
 
 ### Security
 
-- NFR9: All customer, handyman, and operational data should be encrypted in transit.
-- NFR10: Stored account, request, and location data should be protected by appropriate access controls and encryption at rest where applicable.
-- NFR11: Authentication and authorization should enforce separation between customer and handyman access surfaces.
-- NFR12: Uploaded images should be validated and stored through a secure media-handling path appropriate for MVP use.
-- NFR13: The system should avoid collecting sensitive data that is not required for request fulfillment and tracking.
+- NFR10: All customer, handyman, and operational data should be encrypted in transit.
+- NFR11: Stored account, request, location, and rating data should be protected by appropriate access controls and encryption at rest where applicable.
+- NFR12: Authentication and authorization should enforce separation between customer and handyman access surfaces.
+- NFR13: Uploaded images should be validated and stored through a secure media-handling path appropriate for MVP use.
+- NFR14: The system should avoid collecting sensitive data that is not required for request fulfillment, tracking, and lightweight rating capture.
 
 ### Accessibility
 
-- NFR14: The core customer and handyman flows should meet WCAG 2.1 AA expectations for accessible interaction and readable status communication.
-- NFR15: Critical request states and job controls should never rely on color alone and should remain understandable through labels and structured layout.
-- NFR16: The interface should maintain large touch targets, clear form labeling, and low-cognitive-load copy suitable for mobile use in real-world contexts.
+- NFR15: The core customer and handyman flows should meet WCAG 2.1 AA expectations for accessible interaction and readable status communication.
+- NFR16: Critical request states, job controls, and rating inputs should never rely on color alone and should remain understandable through labels and structured layout.
+- NFR17: The interface should maintain large touch targets, clear form labeling, and low-cognitive-load copy suitable for mobile use in real-world contexts.
 
 ### Scalability
 
-- NFR17: The MVP architecture should support at least a 10x increase from initial request and active-job volume without requiring a full redesign of the request and assignment model.
-- NFR18: The platform should support adding new service categories and new launch geographies through configuration and bounded data-model extension rather than core workflow replacement.
-- NFR19: Map-provider integration should be isolated behind replaceable seams so vendor changes do not require product-flow rewrites.
-- NFR20: WebSocket-based live-job updates should remain scoped to assigned and active jobs so the realtime layer can scale incrementally with usage.
+- NFR18: The MVP architecture should support at least a 10x increase from initial request and active-job volume without requiring a full redesign of the request, assignment, and rating model.
+- NFR19: The platform should support adding new service categories and new launch geographies through configuration and bounded data-model extension rather than core workflow replacement.
+- NFR20: Map-provider integration should be isolated behind replaceable seams so vendor changes do not require product-flow rewrites.
+- NFR21: WebSocket-based live-job updates should remain scoped to assigned and active jobs so the realtime layer can scale incrementally with usage.
