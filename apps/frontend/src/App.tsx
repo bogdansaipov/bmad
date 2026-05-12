@@ -5,28 +5,40 @@ import { RegisterPage } from './features/customer-auth/pages/RegisterPage';
 import { LoginPage } from './features/customer-auth/pages/LoginPage';
 
 function CustomerDashboardStub() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   return (
-    <div>
-      <h1>Customer Dashboard</h1>
-      <button onClick={logout} style={{ minHeight: 44, minWidth: 44 }}>Log out</button>
+    <div className="dashboard">
+      <div className="dashboard-header">
+        <div>
+          <h1>Customer Dashboard</h1>
+          <p style={{ marginTop: 4 }}>Welcome back, {user?.email}</p>
+        </div>
+        <button className="btn-secondary" onClick={logout}>Log out</button>
+      </div>
+      <p>Your requests will appear here. (Coming in Story 2.1)</p>
     </div>
   );
 }
 
 function HandymanDashboardStub() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   return (
-    <div>
-      <h1>Handyman Dashboard</h1>
-      <button onClick={logout} style={{ minHeight: 44, minWidth: 44 }}>Log out</button>
+    <div className="dashboard">
+      <div className="dashboard-header">
+        <div>
+          <h1>Handyman Dashboard</h1>
+          <p style={{ marginTop: 4 }}>Welcome back, {user?.email}</p>
+        </div>
+        <button className="btn-secondary" onClick={logout}>Log out</button>
+      </div>
+      <p>Your jobs will appear here. (Coming in Story 2.2)</p>
     </div>
   );
 }
 
 function RootRedirect() {
   const { status, user } = useAuth();
-  if (status === 'loading') return <p>Loading…</p>;
+  if (status === 'loading') return <div className="loading">Loading…</div>;
   if (status === 'unauthenticated') return <Navigate to="/login" replace />;
   const to = user?.role === 'CUSTOMER' ? '/dashboard/customer' : '/dashboard/handyman';
   return <Navigate to={to} replace />;

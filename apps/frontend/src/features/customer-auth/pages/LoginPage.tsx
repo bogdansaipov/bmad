@@ -50,7 +50,6 @@ export function LoginPage() {
           setServerError(msg);
           return;
         }
-        // Navigation handled by AuthContext state change → Navigate above re-renders
       },
       onError(err: unknown) {
         const error = err as { status?: number; message?: string };
@@ -60,66 +59,66 @@ export function LoginPage() {
   }
 
   return (
-    <main style={{ maxWidth: 480, margin: '0 auto', padding: '2rem 1rem' }}>
-      <h1>Sign in to Handrix</h1>
-      <form onSubmit={handleSubmit} noValidate>
-        <div style={{ marginBottom: '1rem' }}>
-          <label htmlFor="email">Email address</label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            value={form.email}
-            onChange={handleChange}
-            aria-describedby={fieldErrors.email ? 'email-error' : undefined}
-            style={{ display: 'block', width: '100%', minHeight: 44 }}
-          />
-          {fieldErrors.email && (
-            <span id="email-error" role="alert" style={{ color: 'red', display: 'block' }}>
-              {fieldErrors.email}
-            </span>
-          )}
-        </div>
+    <div className="auth-page">
+      <div className="auth-card">
+        <h1>Welcome back</h1>
+        <p className="auth-subtitle">Sign in to your Handrix account</p>
 
-        <div style={{ marginBottom: '1rem' }}>
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            value={form.password}
-            onChange={handleChange}
-            aria-describedby={fieldErrors.password ? 'password-error' : undefined}
-            style={{ display: 'block', width: '100%', minHeight: 44 }}
-          />
-          {fieldErrors.password && (
-            <span id="password-error" role="alert" style={{ color: 'red', display: 'block' }}>
-              {fieldErrors.password}
-            </span>
-          )}
-        </div>
-
-        {serverError && (
-          <div aria-live="polite" style={{ color: 'red', marginBottom: '1rem' }}>
-            {serverError}
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="form-group">
+            <label htmlFor="email">Email address</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              value={form.email}
+              onChange={handleChange}
+              aria-describedby={fieldErrors.email ? 'email-error' : undefined}
+              placeholder="you@example.com"
+            />
+            {fieldErrors.email && (
+              <span id="email-error" role="alert" className="field-error">
+                {fieldErrors.email}
+              </span>
+            )}
           </div>
-        )}
 
-        <button
-          type="submit"
-          disabled={isPending}
-          style={{ width: '100%', minHeight: 44, background: '#1a237e', color: '#fff', border: 'none', cursor: 'pointer' }}
-        >
-          {isPending ? 'Logging in…' : 'Log in'}
-        </button>
-      </form>
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              value={form.password}
+              onChange={handleChange}
+              aria-describedby={fieldErrors.password ? 'password-error' : undefined}
+              placeholder="••••••••"
+            />
+            {fieldErrors.password && (
+              <span id="password-error" role="alert" className="field-error">
+                {fieldErrors.password}
+              </span>
+            )}
+          </div>
 
-      <p style={{ marginTop: '1rem' }}>
-        Don&apos;t have an account?{' '}
-        <Link to="/register">Register</Link>
-      </p>
-    </main>
+          {serverError && (
+            <div role="alert" aria-live="polite" className="server-error">
+              {serverError}
+            </div>
+          )}
+
+          <button type="submit" disabled={isPending}>
+            {isPending ? 'Signing in…' : 'Sign in'}
+          </button>
+        </form>
+
+        <p className="form-footer">
+          Don&apos;t have an account?{' '}
+          <Link to="/register">Create one</Link>
+        </p>
+      </div>
+    </div>
   );
 }
