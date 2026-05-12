@@ -373,7 +373,7 @@ Once a handyman accepts, the experience transitions into a live tracking screen:
 
 - map fills most of the viewport
 - bottom sheet shows handyman name, status, estimate, and job details
-- two-pin model: customer/job location and handyman location
+- two-pin static view: customer/job location pin and handyman location pin, fetched on view open or refresh — not live-streamed
 - current status remains visible at all times
 
 This screen should feel closest to Uber-style ride tracking, adapted for home service.

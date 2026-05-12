@@ -191,7 +191,7 @@ The NestJS backend should own:
 - matching and assignment decisions
 - concurrency protection for first acceptance
 - status transition validation
-- live location ingestion and publication
+- handyman location capture and REST retrieval for static two-pin map display
 - estimate pricing calculation
 - one-time rating eligibility and persistence
 - map integration abstractions at the service layer
@@ -230,9 +230,7 @@ The NestJS backend should own:
 
 **WebSockets are used only for:**
 
-- assigned/in-progress request status updates
-- handyman live location updates
-- customer live tracking updates
+- assigned/in-progress request status updates (status changes only)
 
 **Contract standard:**
 
@@ -337,6 +335,8 @@ Recommended primary entities:
 - lat
 - lng
 - recorded_at
+
+Stored via REST (handyman device posts current location). Customer fetches the latest record via REST when opening or refreshing the assigned job map view. Not streamed via WebSocket.
 
 **pricing_estimates**
 
@@ -455,9 +455,10 @@ This is sufficient for MVP and avoids distributed lock overengineering.
 **WebSockets are used only for:**
 
 - assigned job status updates
-- active-job location updates
-- customer tracking screens
-- assigned handyman active-job screens
+- customer tracking screen status updates
+- assigned handyman active-job status updates
+
+Handyman location is fetched via REST when the customer opens or refreshes the assigned job map view. No WebSocket streaming for location.
 
 ### WebSocket Channel Model
 
@@ -470,7 +471,6 @@ Suggested event types:
 
 - `request.status.updated`
 - `request.assignment.confirmed`
-- `request.location.updated`
 - `request.completed`
 
 ### Why Selective Realtime
