@@ -5,928 +5,872 @@ stepsCompleted:
   - 'step-03-create-stories'
   - 'step-04-final-validation'
 inputDocuments:
-  - '/home/bogdansaipov/Projects/demos/demo1/_bmad-output/planning-artifacts/prd.md'
-  - '/home/bogdansaipov/Projects/demos/demo1/_bmad-output/planning-artifacts/architecture.md'
-  - '/home/bogdansaipov/Projects/demos/demo1/_bmad-output/planning-artifacts/ux-design-specification.md'
+  - '/Users/spider/Documents/GitHub/bg-bmad/_bmad-output/planning-artifacts/prd.md'
+  - '/Users/spider/Documents/GitHub/bg-bmad/_bmad-output/planning-artifacts/architecture.md'
+  - '/Users/spider/Documents/GitHub/bg-bmad/_bmad-output/planning-artifacts/ux-design-specification.md'
 ---
 
-# demo1 - Epic Breakdown
+# Handrix - Epic Breakdown
 
 ## Overview
 
-This document provides the complete epic and story breakdown for demo1, decomposing the requirements from the PRD, UX Design if it exists, and Architecture requirements into implementable stories.
+This document provides the complete epic and story breakdown for Handrix, decomposing the requirements from the PRD, UX Design, and Architecture into implementable stories.
 
 ## Requirements Inventory
 
 ### Functional Requirements
 
-FR1: Customers can start a service request without creating an account first.
-FR2: Customers can select from a constrained set of supported small-plumbing issue types.
-FR3: Customers can answer issue-specific follow-up questions to clarify their problem.
-FR4: Customers can provide service location details needed to evaluate and fulfill a request.
-FR5: Customers can receive immediate containment or stabilization guidance relevant to their selected issue.
-FR6: Customers can review a summary of their issue and request details before confirming submission.
-FR7: Customers can submit a request for service once required information is complete.
-FR8: Customers can see when their issue is outside current service scope or cannot be fulfilled as requested.
-FR9: Customers can receive fallback guidance or next-step instructions when immediate fulfillment is not available.
-FR10: Customers can see what happens next after submitting a request.
-FR11: Customers can view a clear service status for their request throughout its lifecycle.
-FR12: Customers can view estimated response expectations associated with their request.
-FR13: Customers can view pricing information or pricing expectations before committing to service.
-FR14: Customers can receive trust-building information that helps them feel confident using the service.
-FR15: Customers can see confirmation that their request has been successfully received and is being processed.
-FR16: Customers can understand when a request is delayed, pending clarification, or unavailable.
-FR17: The system can create and store a service request with all required customer-provided details.
-FR18: The system can classify requests by issue type, status, and fulfillment state.
-FR19: The system can update request status as the request moves through intake, review, assignment, dispatch, and completion.
-FR20: The system can maintain a customer-visible lifecycle for each request.
-FR21: The system can support manual or semi-manual dispatch decisions during the MVP.
-FR22: The system can associate a request with an assigned provider or internal fulfillment owner.
-FR23: The system can record when a request cannot be fulfilled and communicate that state appropriately.
-FR24: The system can preserve a history of request-state changes for operational visibility and support.
-FR25: Operations staff can view a queue of incoming service requests.
-FR26: Operations staff can review request details needed to decide assignment and fulfillment.
-FR27: Operations staff can assign requests to available providers or internal handlers.
-FR28: Operations staff can update request status as fulfillment progresses.
-FR29: Operations staff can identify requests requiring intervention, clarification, or escalation.
-FR30: Operations staff can view what guidance and expectations have already been shown to the customer.
-FR31: Operations staff can manage requests in a way that keeps internal actions aligned with customer-facing status updates.
-FR32: Support staff can search for and access an individual customer request.
-FR33: Support staff can view request history, current status, and prior customer-facing guidance.
-FR34: Support staff can identify why a request is delayed, blocked, or unfulfilled.
-FR35: Support staff can provide consistent reassurance and next-step information based on the current request state.
-FR36: Support staff can intervene in requests that require manual follow-up or clarification.
-FR37: The system can enforce MVP scope by limiting requests to supported issue categories.
-FR38: The system can determine whether a request is serviceable within the current operating area or fulfillment model.
-FR39: The system can support management of supported issue types and service coverage rules.
-FR40: The system can support internal control over request states, operational workflows, and fulfillment visibility needed to run the MVP.
-FR41: The system can support expansion to additional categories, geographies, and richer customer features without redefining the core request lifecycle.
+**Authentication and Role Flows**
+FR1: Users can register a single account with email and password, choosing a role of customer or handyman at signup.
+FR2: Users can log in with email and password and are routed to the experience associated with their selected role.
+FR3: A user's role is set at signup and is not changeable through the MVP self-service flow.
+FR4: The system can prevent the same email from registering more than one account.
+FR5: The system can maintain separate customer and handyman role flows and authorization surfaces after authentication.
+
+**Customer Request Creation and Dashboard**
+FR6: Customers can view a list of their current and previous service requests after login.
+FR7: Customers can start a new service request from the customer home screen.
+FR8: Customers can create a request with a title, description, category, and at least one optional image.
+FR9: Customers can select from a configurable set of supported service categories.
+FR10: Customers can allow browser geolocation to set a default job location when available.
+FR11: Customers can manually adjust the job location on a map before submission.
+FR12: The system can store the final selected job location as latitude and longitude.
+FR13: The system can show a simple price estimate before the customer confirms request submission.
+FR14: Customers can submit a request once required fields are complete.
+
+**Matching, Assignment, and Handyman Jobs**
+FR15: The system can identify eligible handymen based on request category and configured service area rules.
+FR16: The system can route newly created requests to multiple eligible handymen automatically.
+FR17: Handymen can view available requests that match their supported categories and service area.
+FR18: Handymen can view a history of their past accepted, declined, and completed jobs from their dashboard.
+FR19: Handymen can accept or decline a matching request.
+FR20: If a handyman declines a request, that request no longer appears in that handyman's available jobs list.
+FR21: If a handyman accepts first, the system assigns the request to that handyman and prevents duplicate assignment.
+FR22: If no handyman has accepted yet, the customer-visible status remains `pending`.
+FR23: If a request cannot be fulfilled through the current matching flow, the system can expose a `rejected` outcome clearly.
+
+**Fulfillment Lifecycle and Rating**
+FR24: Customers can view the current lifecycle state for each request.
+FR25: The customer-visible request lifecycle includes `pending`, `assigned`, `on the way`, `arrived`, `working`, `complete`, and `rejected`.
+FR26: Once assigned, customers can view the assigned handyman identity for the request.
+FR27: Once assigned, customers can view a two-pin map showing the job location and the handyman's location at the time of view.
+FR28: Handymen can update assigned jobs to `on the way`, `arrived`, `working`, and `complete`.
+FR29: Status changes made by the assigned handyman are pushed in real time to the customer and to the handyman's own active job view via WebSocket.
+FR30: The system can preserve a durable history of meaningful request and status changes.
+FR31: After a request is marked `complete`, the customer can submit a 1-5 star rating for the assigned handyman.
+FR32: Customers can optionally include short text feedback with the rating.
+FR33: Each completed request can be rated only once by the customer who created that request.
+FR34: Submitting or skipping a rating does not block request completion.
+
+**Service Categories, Pricing, and Platform Configuration**
+FR35: The system can manage supported service categories without requiring a redesign of the request flow.
+FR36: The system can associate handymen with only the categories they support.
+FR37: The system can support simple launch-market eligibility rules such as service radius or equivalent location filtering.
+FR38: The system can calculate a simple estimate using a base service fee, category-based pricing, and optional distance and parts allowances.
+FR39: The system can present the estimate as an estimate rather than a guaranteed final total.
+FR40: Handyman profiles can support future aggregation of ratings without requiring an MVP reputation system.
+
+**Platform Continuity and Future Growth**
+FR41: The system can preserve a stable request and assignment model that supports future category expansion.
+FR42: The system can support future map-provider replacement without redefining customer or handyman workflows.
+FR43: The system can preserve a clean future path for chat without including chat in MVP.
+FR44: The system can preserve a clean future path for richer rating aggregation and reputation features without including public reviews, moderation systems, or disputes in MVP.
 
 ### NonFunctional Requirements
 
-NFR1: The core customer request flow should allow a user to move from issue selection to request confirmation in a responsive, low-friction experience on modern mobile browsers.
-NFR2: Standard user-facing actions in the core flow should complete within 2 seconds under normal operating conditions, excluding external network limitations.
-NFR3: Customer-visible request status refreshes should occur frequently enough that the dispatch experience feels actively progressing rather than stalled.
-NFR4: Internal operations screens should surface active request information quickly enough to support timely assignment and intervention.
-NFR5: The system should preserve request state consistently throughout intake, confirmation, dispatch tracking, and internal status management.
-NFR6: No confirmed customer request should be lost, duplicated, or left without a recoverable operational record.
-NFR7: Customer-facing status information and internal operational status should remain aligned closely enough to avoid contradictory communication.
-NFR8: If part of the flow fails or becomes temporarily unavailable, the system should present a recoverable state or fallback guidance rather than leaving the user in ambiguity.
-NFR9: All customer and operational data should be encrypted in transit.
-NFR10: Stored request and user data should be protected with appropriate access controls and encryption at rest where applicable.
-NFR11: Operational and support access should be restricted according to role and business need.
-NFR12: The system should maintain an auditable record of meaningful request-state changes and internal actions relevant to fulfillment and support.
-NFR13: The MVP should avoid collecting sensitive data that is not necessary to fulfill the service request.
-NFR14: The core request flow should meet WCAG 2.1 AA standards for the customer-facing experience.
-NFR15: The interface should support readable contrast, clear focus states, keyboard accessibility for essential interactions, and understandable form labeling.
-NFR16: Content should be written in clear, low-cognitive-load language suitable for stressed users making quick decisions.
-NFR17: Touch targets and layout behavior should support reliable use on mobile devices in distracting or physically inconvenient situations.
-NFR18: The MVP architecture should support growth beyond the initial launch geography and service volume without requiring a full redesign of the request lifecycle.
-NFR19: The system should support at least a 10x increase from initial MVP request volume with incremental operational and infrastructure scaling.
-NFR20: Polling-based status updates should remain manageable at MVP scale, with a clear path to more efficient real-time mechanisms if usage grows materially.
+**Performance**
+NFR1: Standard customer and handyman dashboard loads should complete within 2 seconds for typical requests under normal operating conditions, excluding third-party network variance.
+NFR2: Request submission and handyman accept/decline actions should complete quickly enough that users do not perceive the action as stalled under normal operating conditions.
+NFR3: WebSocket-pushed job status updates should reach connected clients within 1 second of the handyman submitting the status change under normal operating conditions.
+NFR4: The two-pin map view for an assigned job should render fully within 2 seconds of opening or refreshing the job view under normal operating conditions.
+
+**Reliability**
+NFR5: No submitted customer request should be lost, duplicated, or left without a recoverable persisted record.
+NFR6: Assignment logic should prevent more than one handyman from being assigned to the same request.
+NFR7: The system should preserve a durable history of request creation, assignment, major lifecycle transitions, and completion outcomes such that any dashboard refresh reflects the latest authoritative state.
+NFR8: If a WebSocket connection drops, the client should reconnect and restore the latest job status without corrupting lifecycle truth or requiring the user to manually refresh.
+NFR9: Rating submission should be idempotent enough to prevent a completed request from being recorded with more than one customer rating.
+
+**Security**
+NFR10: All customer, handyman, and operational data should be encrypted in transit.
+NFR11: Stored account, request, location, and rating data should be protected by appropriate access controls and encryption at rest where applicable.
+NFR12: Authentication and authorization should enforce separation between customer and handyman access surfaces and prevent role escalation after signup.
+NFR13: Uploaded images should be validated and stored through a secure media-handling path appropriate for MVP use.
+NFR14: The system should avoid collecting sensitive data that is not required for request fulfillment, location display, and lightweight rating capture.
+
+**Accessibility**
+NFR15: The core customer and handyman flows should meet WCAG 2.1 AA expectations for accessible interaction and readable status communication.
+NFR16: Critical request states, job controls, and rating inputs should never rely on color alone and should remain understandable through labels and structured layout.
+NFR17: The interface should maintain large touch targets, clear form labeling, and low-cognitive-load copy suitable for mobile use in real-world contexts.
+
+**Scalability**
+NFR18: The MVP architecture should support at least a 10x increase from initial request and active-job volume without requiring a full redesign of the request, assignment, and rating model.
+NFR19: The platform should support adding new service categories and new launch geographies through configuration and bounded data-model extension rather than core workflow replacement.
+NFR20: Map-provider integration should be isolated behind replaceable seams so vendor changes do not require product-flow rewrites.
+NFR21: WebSocket connections should be scoped to active job status updates only, so the realtime layer scales incrementally with job volume rather than total active users.
 
 ### Additional Requirements
 
-- Initialize the project as a paired foundation using a Vite React TypeScript SPA frontend and a NestJS CLI backend as the first implementation story.
-- Implement the MVP as a request-centric modular monolith with distinct frontend and backend apps plus a shared contract package.
-- Use PostgreSQL as the system of record and Prisma ORM with migrations for request, assignment, history, guidance, coverage, user, and support-note data.
-- Model the platform around an explicit request lifecycle state machine with guarded transitions and append-only status history.
-- Expose a REST-first JSON API in NestJS with OpenAPI documentation and consistent `{ data, meta? }` / `{ error: { ... } }` response wrappers.
-- Separate richer internal operational states from curated customer-visible public statuses and derive public status labels from backend mappings.
-- Support anonymous customer request creation with a signed request-tracking token for revisit and status lookup.
-- Restrict operations and support tooling behind authenticated JWT-based role-based access control.
-- Use polling for customer status tracking in the MVP, with backend contracts and lifecycle models that can evolve to push-based updates later.
-- Use React Router for SPA routing and TanStack Query for server-state synchronization and polling behavior.
-- Keep route-local flow state on the client and treat backend lifecycle rules as the only source of truth for business-critical state transitions.
-- Centralize structured config for issue types, containment guidance templates, coverage rules, and public status labels rather than scattering constants.
-- Add structured application logs, request correlation IDs, health endpoints, rate limiting, and error monitoring from the first release.
-- Enforce naming and contract consistency: `snake_case` in persistence, `camelCase` in JSON and TypeScript, ISO 8601 timestamps, and stable machine-readable error codes.
-- Maintain separate local, staging, and production environments with typed config validation, plus CI/CD gates for lint, tests, migrations, and deployment.
+**Starter Template / Foundation**
+- Selected foundation: Vite React TypeScript SPA frontend + NestJS backend + shared contracts package (existing repository foundations preserved)
+- Existing reusable foundations to carry forward: React SPA + NestJS split, shared contracts discipline, Prisma + PostgreSQL persistence direction, observability and structured logging, security and rate-limiting patterns, explicit lifecycle modeling
+
+**Technology Stack**
+- Frontend: React SPA with Vite and TypeScript
+- Backend: NestJS modular monolith
+- Database: PostgreSQL with Prisma ORM and migrations
+- Realtime: NestJS WebSocket gateway for active-job status push only (no live location streaming)
+- State management: TanStack Query for server state; route-local state for create-request progression and image selections; WebSocket session hooks for active assigned jobs
+- Shared contracts: Zod schemas in a shared package between frontend and backend
+- API documentation: OpenAPI for REST endpoints; consistent success/error response envelopes
+
+**Backend Module Architecture (NestJS)**
+- `auth` — login, registration, JWT issuance, role guards
+- `users` — customer and handyman profile reads and updates
+- `categories` — supported service categories and handyman category preferences
+- `requests` — request creation, detail, history, lifecycle state machine ownership
+- `matching` — eligible handyman selection and offer generation
+- `assignments` — accept/decline handling, concurrency control, assignment record ownership
+- `realtime` — WebSocket gateway, channel authorization, fanout for assigned-job status events
+- `ratings` — one-time post-completion rating submission and retrieval
+- `pricing` — estimate pricing calculation and snapshots
+- `maps` — geocoding and provider abstraction seams
+- `uploads` — image validation and storage orchestration
+- `observability` — structured logging, request correlation baselines
+
+**Infrastructure and Integration Seams**
+- Object storage for uploaded request images (backend-mediated, with signed or controlled URLs, metadata in PostgreSQL)
+- Map rendering: MapLibre GL JS + OpenStreetMap-backed tiles
+- Geocoding: Nominatim-compatible integration (provider-agnostic seam)
+- Email provider for auth flows
+- Frontend and backend map abstraction seams must be provider-agnostic (NFR20, FR42)
+
+**Domain Model (Core Entities)**
+- `users`, `customer_profiles`, `handyman_profiles`, `service_categories`, `handyman_category_preferences`
+- `service_requests`, `request_images`, `request_assignments`, `job_offer_visibilities`
+- `request_status_history` (append-only), `handyman_location_updates` (REST-fetched, not streamed)
+- `pricing_estimates`, `request_ratings`
+
+**Concurrency and Assignment Protection**
+- First-accept assignment via database transaction with row-level lock on request row
+- Unique constraint ensuring one live assignment per request
+- Re-check of request status inside transaction; fail fast for second acceptors
+
+**Frontend Feature Architecture**
+- Feature areas: `customer-auth`, `customer-dashboard`, `request-create`, `request-tracking`, `request-history`, `request-rating`, `handyman-auth`, `handyman-dashboard`, `handyman-jobs`, `handyman-active-job`
+- Shared features: `maps`, `ratings`, `status`, `ui-shell`
 
 ### UX Design Requirements
 
-UX-DR1: The customer experience must be a mobile-first React SPA optimized for one-handed use, strong state continuity, and no-account urgent request completion.
-UX-DR2: The intake flow must use progressive disclosure so each screen presents one dominant question or action at a time with minimal branching.
-UX-DR3: The opening issue-selection experience must use plain-language issue labels and descriptions so users do not need plumbing vocabulary to proceed.
-UX-DR4: Issue selection interactions must provide immediate relevant follow-up behavior, either advancing the flow or revealing clarifying questions without dead ends.
-UX-DR5: Immediate containment guidance must appear early in the flow and deliver brief, specific, calm stabilization instructions before booking.
-UX-DR6: Address entry, request details, review, and confirmation must feel lightweight and sequential rather than like a long administrative form.
-UX-DR7: Pre-confirmation screens must present believable ETA, pricing expectation, and what-happens-next information in a fast-scanning trust-building summary.
-UX-DR8: Post-confirmation screens must shift into a reassurance mode that makes it obvious the request was received, what stage it is in, and whether the user needs to do anything else.
-UX-DR9: Dispatch tracking must be glanceable and use visible progress states so waiting feels active rather than uncertain.
-UX-DR10: Delay, clarification-needed, out-of-scope, and unavailable states must use calm recovery UX with explanation, next-best action, and optional support path.
-UX-DR11: The visual system must use a calm trust-building palette centered on deep slate-blue or blue-teal primary tones, warm neutrals, and restrained semantic status colors.
-UX-DR12: Status presentation must never rely on color alone and must pair labels, icons, and clear state wording for every customer-visible state.
-UX-DR13: The typography system must prioritize mobile readability, fast scanning, clear hierarchy, and avoid small or low-emphasis text for critical guidance.
-UX-DR14: Layout must use an 8px spacing scale, a single-column mobile-first grid, generous touch targets, and clear grouping of related information.
-UX-DR15: The product must meet WCAG 2.1 AA expectations in practice through contrast compliance, focus states, keyboard support, understandable labels, and low-cognitive-load copy.
-UX-DR16: The chosen visual direction must use Warm Utility for intake and guidance experiences and Precision Dispatch patterns for post-confirmation tracking experiences.
-UX-DR17: Implement a reusable Issue Selection Card component with label, short description, optional icon, urgency cue, selectable states, and keyboard accessibility.
-UX-DR18: Implement a reusable Containment Guidance Panel component that supports informational, warning, and recovery variants with structured headings and calm step content.
-UX-DR19: Implement a reusable Expectation Summary Module component for ETA, pricing, explanation, and confirmation across standard and revised-expectation states.
-UX-DR20: Implement a reusable Request Status Timeline component with explicit state labels, timestamps or notes, automatic refresh behavior, and compact/full variants.
-UX-DR21: Implement a reusable Request Recovery State Card component for clarification, delay, unavailable, and resolved scenarios with strong next-step actions.
-UX-DR22: Implement a reusable Operations Request Queue Item component that supports rapid scanning of issue type, urgency, address summary, state, and assignment status.
-UX-DR23: Loading behavior must use reserved layouts or skeletons for initial loads and calm inline refresh indicators for polling instead of resetting the full screen.
-UX-DR24: The copy and interaction design must prioritize emotional de-escalation, grounded transparency, and visible progress over excitement, marketplace browsing, or novelty.
+UX-DR1: The customer experience must begin from an authenticated dashboard, not an anonymous intake flow.
+UX-DR2: The handyman experience must prioritize job receipt, acceptance, and active-job control over profile browsing or administrative depth.
+UX-DR3: The create-request flow must be completable in a small number of focused steps with one dominant action per screen (category/title → description/image → location confirmation → estimate/submit).
+UX-DR4: Location confirmation must use browser geolocation when available and allow map-based manual adjustment before submission.
+UX-DR5: The request tracking screen must make the map and current status the primary visual focus after assignment.
+UX-DR6: Bottom sheets must be the primary pattern for layered job details and action controls on mobile tracking screens.
+UX-DR7: Customer request cards must surface active state, estimate or final amount, and assigned handyman context without opening the full request.
+UX-DR8: Handyman job cards must surface category, distance, estimate, and accept or decline controls in a fast-scanning format.
+UX-DR9: Pending and rejected states must be explicit, understandable, and free from legacy support-workspace assumptions.
+UX-DR10: Customer and handyman surfaces must share one brand system while maintaining clearly different visual modes (warm neutral + navy for customer; dark navy/charcoal + teal-green for handyman).
+UX-DR11: WebSocket-driven updates must feel immediate on active-job screens without causing full-screen refresh patterns.
+UX-DR12: Pricing presentation must stay simple, compact, and estimate-based.
+UX-DR13: Post-completion rating must use a lightweight 1-5 star interaction with optional short feedback and must not feel like a long review form.
+UX-DR14: Each completed request should expose rating at most once through the customer experience and should indicate when rating has already been submitted.
+UX-DR15: The UX must preserve low cognitive load and fast action flows across both user roles.
+UX-DR16: Customer MVP navigation must include Home, New Request, History, and Profile — no more than 4 top-level items.
+UX-DR17: Handyman MVP navigation must include Dashboard, Jobs, Earnings/History, and Settings — no more than 4 top-level items.
+UX-DR18: The design system must implement a split-surface visual language with shared brand tokens (warm neutral for customer mode; dark navy/charcoal for handyman mode).
+UX-DR19: Core shared components must be implemented: map shell, bottom sheet, status chip, section header, primary CTA, empty-state module, loading skeletons.
+UX-DR20: Customer-specific components must be implemented: request summary card, active request hero card, category selection tile, image upload tile, map location confirmation panel, estimate breakdown card, request history row, status pill set, tracking bottom sheet, rating prompt sheet/modal, star rating input, compact feedback field.
+UX-DR21: Handyman-specific components must be implemented: online/offline toggle, match preview card, active job summary card, preference chip group, service radius control row, earnings summary card, job history row, active-job status action rail.
+UX-DR22: Bottom sheets must support three states: collapsed glance, half-open action, and full detail.
+UX-DR23: Map interaction must differ by context: create-request (pin adjustment and location confirmation), tracking (movement visibility, no editing), handyman active job (route/context visibility).
+UX-DR24: Desktop adaptation must expand to split-pane layouts without functionally diverging from mobile flows.
+UX-DR25: Motion must be used sparingly and meaningfully: map pin transition on assignment, bottom-sheet rise for job details, status pill transitions, job card entrance for newly matched work.
 
 ### FR Coverage Map
 
-FR1: Epic 1 - Anonymous request start
-FR2: Epic 1 - Supported plumbing issue selection
-FR3: Epic 1 - Clarifying questions during intake
-FR4: Epic 1 - Service location capture
-FR5: Epic 1 - Immediate containment guidance
-FR6: Epic 1 - Request review before submission
-FR7: Epic 1 - Request submission
-FR8: Epic 2 - Out-of-scope or unfulfillable visibility
-FR9: Epic 2 - Fallback guidance and next steps
-FR10: Epic 2 - What-happens-next explanation
-FR11: Epic 2 - Customer lifecycle visibility
-FR12: Epic 1 - Response expectation display
-FR13: Epic 1 - Pricing expectation display
-FR14: Epic 1 - Trust-building information in the flow
-FR15: Epic 2 - Confirmation state after submission
-FR16: Epic 2 - Delay, clarification, or unavailable states
-FR17: Epic 1 - Service request creation and storage
-FR18: Epic 1 - Request classification at intake
-FR19: Epic 2 - Lifecycle status updates
-FR20: Epic 2 - Customer-visible lifecycle model
-FR21: Epic 3 - Manual or semi-manual dispatch support
-FR22: Epic 3 - Assignment to provider or internal owner
-FR23: Epic 2 - Unfulfilled request handling
-FR24: Epic 2 - Request-state history preservation
-FR25: Epic 3 - Operations queue view
-FR26: Epic 3 - Operations request review
-FR27: Epic 3 - Assignment actions
-FR28: Epic 3 - Fulfillment status updates
-FR29: Epic 3 - Intervention and escalation identification
-FR30: Epic 3 - Visibility into prior customer guidance
-FR31: Epic 3 - Internal/customer status alignment
-FR32: Epic 4 - Support request search and access
-FR33: Epic 4 - Support visibility into history and guidance
-FR34: Epic 4 - Support diagnosis of blocked or delayed requests
-FR35: Epic 4 - Consistent reassurance and next-step support
-FR36: Epic 4 - Manual support intervention
-FR37: Epic 1 - MVP scope enforcement in intake
-FR38: Epic 1 - Serviceability decisioning
-FR39: Epic 3 - Manage issue types and coverage rules
-FR40: Epic 3 - Internal control over request states and workflows
-FR41: Epic 5 - Expansion-ready lifecycle foundation
+FR1: Epic 1 — Registration with role selection (customer or handyman)
+FR2: Epic 1 — Login and role-based routing to respective experience
+FR3: Epic 1 — Role fixed at signup, not changeable in MVP self-service
+FR4: Epic 1 — Prevent duplicate account registration for same email
+FR5: Epic 1 — Maintain separate customer and handyman authorization surfaces
+FR6: Epic 2 — Customer dashboard listing current and previous requests
+FR7: Epic 2 — Start new service request from customer home screen
+FR8: Epic 2 — Request creation with title, description, category, optional image
+FR9: Epic 2 — Select from configurable supported service categories
+FR10: Epic 2 — Browser geolocation for default job location
+FR11: Epic 2 — Manual map pin adjustment before submission
+FR12: Epic 2 — Store final job location as lat/lng
+FR13: Epic 2 — Show simple price estimate before submission
+FR14: Epic 2 — Submit request once required fields are complete
+FR15: Epic 3 — Identify eligible handymen by category and service area
+FR16: Epic 3 — Auto-route new requests to multiple eligible handymen
+FR17: Epic 3 — Handyman job feed filtered by categories and service area
+FR18: Epic 3 — Handyman job history (accepted, declined, completed)
+FR19: Epic 3 — Handyman accept or decline a matching request
+FR20: Epic 3 — Declined request removed from that handyman's feed
+FR21: Epic 3 — First-accept assignment with duplicate protection
+FR22: Epic 3 — Customer status remains `pending` until assignment
+FR23: Epic 3 — Expose `rejected` outcome when request cannot be matched
+FR24: Epic 4 — Customer can view current lifecycle state per request
+FR25: Epic 4 — Full customer-visible lifecycle: pending, assigned, on the way, arrived, working, complete, rejected
+FR26: Epic 4 — Customer sees assigned handyman identity after assignment
+FR27: Epic 4 — Customer sees two-pin map (job + handyman location) for assigned jobs
+FR28: Epic 4 — Handyman updates status: on the way, arrived, working, complete
+FR29: Epic 4 — WebSocket push of status changes to customer and handyman active view
+FR30: Epic 4 — Durable history of meaningful request and status changes
+FR31: Epic 4 — Customer submits 1-5 star rating after completion
+FR32: Epic 4 — Optional short text feedback with rating
+FR33: Epic 4 — One-time rating per completed request
+FR34: Epic 4 — Rating submission (or skip) does not block completion
+FR35: Epic 2 — Service category management without request flow redesign
+FR36: Epic 3 — Associate handymen with only their supported categories
+FR37: Epic 3 — Simple service radius eligibility rules for matching
+FR38: Epic 2 — Calculate estimate: base fee + category + optional distance/parts
+FR39: Epic 2 — Present estimate as estimate, not guaranteed total
+FR40: Epic 3 — Handyman profile supports future rating aggregation (cache fields)
+FR41: Epic 5 — Stable request/assignment model for future category expansion
+FR42: Epic 5 — Map-provider replacement without redefining workflows
+FR43: Epic 5 — Clean future path for chat without including it in MVP
+FR44: Epic 5 — Clean future path for richer ratings/reputation without MVP public reviews
 
 ## Epic List
 
-### Epic 1: Launch the Handrix Request Flow Foundation
-Users can start a plumbing request, move through a calm mobile-first intake flow, receive immediate containment guidance, review expectations, and confirm a request without creating an account.
-**FRs covered:** FR1, FR2, FR3, FR4, FR5, FR6, FR7, FR12, FR13, FR14, FR17, FR18, FR37, FR38
+### Epic 1: Foundation — Project Setup & Unified Authentication
+Both customers and handymen can register with role selection and log in to their respective experiences. The project is scaffolded with the React SPA + NestJS + shared contracts foundation that all subsequent epics build upon.
+**FRs covered:** FR1, FR2, FR3, FR4, FR5
 
-### Epic 2: Deliver Confirmation, Tracking, and Recovery
-Users can see that their request was received, understand what happens next, track progress through clear public statuses, and stay informed when delays, clarification needs, or unavailability occur.
-**FRs covered:** FR8, FR9, FR10, FR11, FR15, FR16, FR19, FR20, FR23, FR24
+### Epic 2: Customer Request Creation & Dashboard
+Customers can log in, view their request dashboard, create a service request with category, description, image, and location, receive a price estimate, and submit — completing the core customer side of the marketplace.
+**FRs covered:** FR6, FR7, FR8, FR9, FR10, FR11, FR12, FR13, FR14, FR35, FR38, FR39
 
-### Epic 3: Enable Operations Dispatch and Lifecycle Control
-Operations staff can review incoming requests, assign fulfillment owners, update lifecycle states, and keep internal actions aligned with the customer-facing experience.
-**FRs covered:** FR21, FR22, FR25, FR26, FR27, FR28, FR29, FR30, FR31, FR39, FR40
+### Epic 3: Handyman Job Marketplace & Matching
+Handymen can view available jobs matched to their categories and service area, accept or decline, and view their job history. The system automatically routes requests to eligible handymen and assigns the first to accept with duplicate protection.
+**FRs covered:** FR15, FR16, FR17, FR18, FR19, FR20, FR21, FR22, FR23, FR36, FR37, FR40
 
-### Epic 4: Equip Support for Trust Recovery and Request Intervention
-Support staff can locate requests, understand full request history and customer-facing context, explain blockers or delays, and intervene when human follow-up is needed.
-**FRs covered:** FR32, FR33, FR34, FR35, FR36
+### Epic 4: Fulfillment Lifecycle, Live Tracking & Rating
+Both customers and handymen follow the full job lifecycle from `assigned` through `complete`. Customers see a two-pin map of assigned jobs and receive real-time WebSocket status updates. Customers can submit a lightweight post-completion rating.
+**FRs covered:** FR24, FR25, FR26, FR27, FR28, FR29, FR30, FR31, FR32, FR33, FR34
 
-### Epic 5: Harden the Platform for Reliable MVP Operations
-The team can run Handrix on a durable, secure, observable architecture that preserves lifecycle integrity now and supports future category and geography expansion later.
-**FRs covered:** FR41 plus the architecture-driven cross-cutting requirements needed to make Epics 1-4 production-credible
+### Epic 5: Platform Hardening & Production Readiness
+The platform runs on a durable, secure, and observable architecture. Lifecycle models, map abstraction seams, and data structures preserve clean paths for future categories, map provider replacement, chat, and richer ratings.
+**FRs covered:** FR41, FR42, FR43, FR44 (plus NFR cross-cutting coverage across all epics)
 
-## Epic 1: Launch the Handrix Request Flow Foundation
+---
 
-Users can start a plumbing request, move through a calm mobile-first intake flow, receive immediate containment guidance, review expectations, and confirm a request without creating an account.
+## Epic 1: Foundation — Project Setup & Unified Authentication
 
-### Story 1.1: Set Up Initial Project from Starter Template
+Both customers and handymen can register with role selection and log in to their respective experiences. The project is scaffolded with the React SPA + NestJS + shared contracts foundation that all subsequent epics build upon.
 
-As a product team,
-I want the Vite React SPA, NestJS API, and shared contract foundation initialized,
-So that all later customer-request stories can be built on a consistent MVP architecture.
+### Story 1.1: Initialize Project Foundation
+
+As a development team,
+I want the Vite React TypeScript SPA, NestJS backend, and shared contracts package initialized with Prisma + PostgreSQL connectivity,
+So that all subsequent stories have a consistent technical foundation to build upon.
 
 **Acceptance Criteria:**
 
 **Given** the repository is ready for MVP implementation
-**When** the project foundation is created
-**Then** the codebase includes a Vite React TypeScript frontend, a NestJS backend, and a shared package for cross-app contracts
-**And** the workspace structure follows the architecture direction for separated apps and shared code
+**When** the foundation is set up
+**Then** the workspace includes a Vite React TypeScript SPA, a NestJS backend, and a shared contracts package
+**And** both apps start successfully in development mode
 
-**Given** the frontend and backend foundations exist
-**When** a developer runs the local setup commands
-**Then** both applications start successfully in development mode
-**And** the shared package can be imported by both apps without manual copying of types
+**Given** the foundation is in place
+**When** a developer runs local setup commands
+**Then** Prisma connects to PostgreSQL and migrations apply cleanly
+**And** the shared contracts package can be imported by both apps without manual file copying
 
-**Given** the initial workspace is in place
-**When** the baseline tooling is configured
-**Then** the repo includes TypeScript configuration, package management, and environment examples for local development
-**And** the foundation does not introduce unused features beyond MVP scope
+**Given** both apps are running
+**When** the frontend makes a request to the backend health endpoint
+**Then** a successful response is returned confirming connectivity
 
-**Given** the frontend, backend, and shared package foundations exist
-**When** baseline integration contracts are established
-**Then** the backend can expose OpenAPI documentation for the MVP API surface
-**And** the shared foundation supports the agreed response envelope and schema conventions used across apps
+**Given** the project is bootstrapped
+**When** baseline tooling is verified
+**Then** TypeScript config, ESLint, environment examples, OpenAPI scaffold, structured logging, request correlation IDs, and a health endpoint are in place
 
-### Story 1.2: Let Customers Identify a Supported Plumbing Issue
+### Story 1.2: User Registration with Role Selection
 
-As a customer with an urgent plumbing problem,
-I want to choose my issue from clear supported options,
-So that I can start the request flow without knowing plumbing terms.
+As a new user,
+I want to register an account with my email, password, and chosen role (customer or handyman),
+So that I can access the Handrix experience built for my role.
 
 **Acceptance Criteria:**
 
-**Given** a customer opens the Handrix request flow on mobile or desktop
-**When** the issue selection screen loads
-**Then** the customer sees only the supported small-plumbing issue categories for the MVP
-**And** each option uses plain-language labels and short explanatory copy
+**Given** a user visits the registration screen
+**When** they submit a valid email, password, and role selection
+**Then** a new account is created with the chosen role stored durably in the database
+**And** the user is routed to the dashboard appropriate for their selected role
 
-**Given** the issue selection screen is visible
-**When** the customer selects an issue card
-**Then** the selection state is visually clear and accessible
-**And** the flow advances or reveals the next relevant step without presenting unrelated options
+**Given** a user attempts to register with an already-registered email
+**When** they submit the form
+**Then** the system rejects the registration with a clear error
+**And** no duplicate account is created
 
-**Given** a requested issue is outside the current MVP scope
-**When** the customer looks for unsupported categories
-**Then** the interface does not imply unsupported services are available
-**And** the scope remains limited to supported plumbing scenarios only
+**Given** required fields are missing or invalid
+**When** the user submits the form
+**Then** accessible inline validation feedback is shown for each invalid field
+**And** the form does not submit until all required fields pass validation
 
-### Story 1.3: Capture Clarifying Answers and Service Location
+**Given** a user has registered
+**When** they review their account
+**Then** their role is fixed and cannot be changed through any self-service flow
+**And** role is enforced at the API authorization layer, not only on the frontend
 
-As a customer,
-I want to answer only the follow-up questions needed for my issue and provide my service address,
-So that Handrix can determine whether my request is in scope and fulfillable.
+### Story 1.3: Login and Role-Based Dashboard Routing
 
-**Acceptance Criteria:**
-
-**Given** a customer has selected a supported issue type
-**When** the flow requests additional details
-**Then** the customer is shown only the clarifying questions relevant to that issue type
-**And** the interaction follows a progressive-disclosure pattern with one dominant action per step
-
-**Given** the customer continues through the intake flow
-**When** service location details are requested
-**Then** the customer can enter the address and required service details needed for fulfillment review
-**And** required fields are clearly labeled with accessible validation feedback
-
-**Given** the customer has entered issue details and location
-**When** the system evaluates the request
-**Then** the request is classified by issue type and serviceability status
-**And** unsupported or out-of-area requests are flagged for the correct downstream recovery path
-
-### Story 1.4: Show Immediate Containment Guidance
-
-As a customer dealing with a plumbing issue,
-I want to receive calm, actionable containment guidance based on my issue,
-So that I can reduce damage and feel more in control before booking.
+As a registered user,
+I want to log in with my email and password and be taken directly to my role's home screen,
+So that I land on the right experience without extra navigation steps.
 
 **Acceptance Criteria:**
 
-**Given** a customer has provided enough issue detail for guidance selection
-**When** the containment step is reached
-**Then** the system displays issue-specific stabilization guidance tied to the selected plumbing problem
-**And** the guidance uses short, calm, low-cognitive-load language
+**Given** a registered customer logs in with valid credentials
+**When** login completes
+**Then** they are routed to the customer dashboard
+**And** the session is authenticated with a JWT containing the correct role claim
 
-**Given** containment guidance is displayed
-**When** the customer reviews the panel
-**Then** the screen presents structured steps, warnings where needed, and reassurance copy without overwhelming the user
-**And** the content remains readable and accessible on mobile
+**Given** a registered handyman logs in with valid credentials
+**When** login completes
+**Then** they are routed to the handyman dashboard
+**And** the session is authenticated with a JWT containing the correct role claim
 
-**Given** a request is trending toward a fallback or recovery state
-**When** guidance is shown in that context
-**Then** the containment guidance can support warning or recovery variants
-**And** the next step remains clear to the customer
+**Given** a user submits incorrect credentials
+**When** the login form is submitted
+**Then** a non-specific error is shown (no hint as to which field is wrong)
+**And** no session is created
 
-### Story 1.5: Review ETA, Pricing Expectations, and Request Summary
+**Given** a logged-in user attempts to access a route protected for the other role
+**When** the route is requested
+**Then** access is denied at the API layer regardless of frontend routing
+**And** no cross-role data is exposed
 
-As a customer,
-I want to review my issue details, price expectations, response window, and next steps,
-So that I can make an informed decision before confirming service.
+**Given** a session expires or becomes invalid
+**When** the user attempts to access a protected route
+**Then** they are redirected to login without data corruption
 
-**Acceptance Criteria:**
+---
 
-**Given** a customer has completed issue selection, clarifying answers, and location entry
-**When** the review step is displayed
-**Then** the screen presents a concise summary of the request details for verification
-**And** the customer can understand what information will be submitted
+## Epic 2: Customer Request Creation & Dashboard
 
-**Given** the customer is on the pre-confirmation summary screen
-**When** expectations are shown
-**Then** the interface displays believable ETA guidance, pricing information or pricing ranges, and what-happens-next messaging
-**And** the presentation is optimized for quick scanning and trust-building clarity
+Customers can log in, view their request dashboard, create a service request with category, description, image, and location, receive a price estimate, and submit — completing the core customer side of the marketplace.
 
-**Given** the customer notices incorrect information before submission
-**When** they choose to revise earlier inputs
-**Then** they can return to the relevant prior step without losing unrelated progress
-**And** the updated summary reflects their changes before confirmation
+### Story 2.1: Customer Dashboard with Request List
 
-### Story 1.6: Submit an Anonymous Service Request
-
-As a customer,
-I want to confirm my request without creating an account,
-So that I can lock in help quickly and have my request stored with a trackable identity.
+As a logged-in customer,
+I want to land on a dashboard that shows my current and past service requests with their status,
+So that I always have a clear home screen and can start a new request from one place.
 
 **Acceptance Criteria:**
 
-**Given** the customer has completed the review step with all required information
-**When** they tap the primary confirmation action
-**Then** the system creates and stores a service request with the captured intake details
-**And** the request is assigned an internal lifecycle state and customer-safe tracking identity
+**Given** a customer logs in successfully
+**When** the customer dashboard loads
+**Then** it displays their current and previous service requests with status, title, and estimate
+**And** the page loads within 2 seconds under normal conditions
 
-**Given** a request is successfully created
-**When** the confirmation response is returned
-**Then** the customer does not need to create an account to complete the booking
-**And** the response includes the information needed for later request tracking
+**Given** the customer has no requests yet
+**When** the dashboard loads
+**Then** an empty-state module is shown with a clear prompt to create a first request
+**And** the `New Request` action is prominently accessible
 
-**Given** anonymous request tracking is required for the MVP
-**When** the request is created successfully
-**Then** the system returns a signed tracking token or equivalent signed tracking credential tied only to that request
-**And** the token strategy is defined clearly enough to support secure later status lookup without exposing unrelated requests
+**Given** the dashboard is displayed on mobile
+**When** the customer scans the screen
+**Then** request cards are glanceable with status, assigned handyman (if any), and estimate visible without opening the full request
+**And** touch targets meet minimum accessible size requirements
 
-**Given** the request submission fails due to a validation or temporary system problem
-**When** the customer submits the request
-**Then** the interface presents a calm recoverable error state rather than losing progress
-**And** duplicate confirmed requests are prevented
+**Given** the customer navigation is rendered
+**When** the nav is visible
+**Then** it contains no more than 4 top-level items: Home, New Request, History, and Profile
 
-## Epic 2: Deliver Confirmation, Tracking, and Recovery
+### Story 2.2: Service Category Selection and Request Details
 
-Users can see that their request was received, understand what happens next, track progress through clear public statuses, and stay informed when delays, clarification needs, or unavailability occur.
-
-### Story 2.1: Show a Clear Request Confirmation State
-
-As a customer,
-I want to see immediate confirmation that my request was received,
-So that I know Handrix is actively handling my issue.
+As a customer creating a new request,
+I want to pick a service category and fill in a title, description, and optional image in focused steps,
+So that I can describe my problem quickly without being overwhelmed.
 
 **Acceptance Criteria:**
 
-**Given** a customer successfully submits a service request
-**When** the confirmation view loads
-**Then** the interface clearly states that the request has been received and is being processed
-**And** the customer can immediately understand the next expected step
+**Given** a customer taps `New Request`
+**When** the create-request flow opens
+**Then** the first step presents only supported service categories as selectable tiles
+**And** each category tile shows a clear label with no technical jargon required
 
-**Given** the confirmation state is displayed
-**When** the customer reviews the page
-**Then** the screen shows a customer-safe summary of the request and the current public status
-**And** the content uses calm, trust-building language rather than technical system messages
+**Given** a customer selects a category
+**When** they advance to the next step
+**Then** they can enter a short title and description for the request
+**And** the step has one dominant action and minimal surrounding noise
 
-**Given** the confirmation state appears on mobile
-**When** the customer scans the page under stress
-**Then** the design emphasizes reassurance, readability, and one dominant next action
-**And** the layout remains accessible and touch-friendly
+**Given** the customer is on the description step
+**When** they optionally attach an image
+**Then** the image is validated for file type and size before upload
+**And** the image is stored via the secure object storage path with metadata persisted in the database
 
-### Story 2.2: Define and Expose Customer-Safe Request Statuses
+**Given** required fields (category, title) are incomplete
+**When** the customer attempts to advance
+**Then** clear, accessible validation feedback is shown inline
+**And** the flow does not advance until required fields are filled
 
-As a product system,
-I want internal lifecycle updates mapped to clear public statuses,
-So that customers always see trustworthy progress language instead of operational noise.
+**Given** service categories are managed in the backend
+**When** the category list is requested
+**Then** categories are served from structured backend configuration, not hardcoded on the frontend
+**And** adding or disabling a category does not require a frontend code change
 
-**Acceptance Criteria:**
+### Story 2.3: Location Capture with Geolocation and Map Pin
 
-**Given** the backend tracks richer internal lifecycle states
-**When** customer-facing status data is returned
-**Then** the API exposes curated public statuses that are safe and understandable for customers
-**And** each public status is derived from a single authoritative backend mapping
-
-**Given** a request changes state internally
-**When** the public status is resolved
-**Then** the customer-visible status remains aligned with the true lifecycle state
-**And** unsupported or contradictory status combinations are prevented
-
-**Given** public statuses are defined
-**When** frontend experiences render them
-**Then** the copy, labels, and status treatments come from the shared status model rather than duplicated hardcoded strings
-**And** the response format follows the agreed API contract conventions
-
-### Story 2.3: Let Customers Revisit and Track Their Request
-
-As a customer,
-I want to open my request status view using my tracking identity,
-So that I can check progress without creating an account.
+As a customer creating a request,
+I want my location set automatically from my device and adjustable on a map,
+So that the handyman knows exactly where to come without me typing an address.
 
 **Acceptance Criteria:**
 
-**Given** a customer has a successfully created request
-**When** they use the tracking identity returned at confirmation
-**Then** they can retrieve the current customer-facing request status without authenticating as a registered account
-**And** access is limited to the intended request only
+**Given** the customer reaches the location step
+**When** the browser grants geolocation permission
+**Then** the map centers on the customer's detected location with a pin placed automatically
+**And** the customer can see and adjust the pin before confirming
 
-**Given** public request lookup depends on an anonymous tracking credential
-**When** the backend validates the supplied tracking token
-**Then** the lookup succeeds only for a valid signed token that matches the intended request
-**And** expired, tampered, or mismatched credentials are rejected without leaking request existence details
+**Given** geolocation is denied or unavailable
+**When** the location step loads
+**Then** the map loads in a default state and the customer can place the pin manually
+**And** the flow does not stall or error because geolocation was unavailable
 
-**Given** a customer opens the tracking view later
-**When** the request is fetched
-**Then** the system returns the current public status, key timestamps or progress context, and the next-step message
-**And** the tracking experience works on modern mobile browsers
+**Given** the customer wants to adjust their location
+**When** they drag or tap the map to reposition the pin
+**Then** the pin moves to the selected position
+**And** the final confirmed lat/lng is stored as the authoritative job location
 
-**Given** the tracking identity is invalid, expired, or malformed
-**When** a status lookup is attempted
-**Then** the customer sees a calm recoverable error state
-**And** the system does not expose internal request details or sensitive information
+**Given** the location step map renders
+**When** it opens
+**Then** the map renders fully within 2 seconds under normal conditions
+**And** map rendering uses the provider-agnostic abstraction layer, not vendor-locked logic
 
-### Story 2.4: Present a Live Request Status Timeline
+### Story 2.4: Pricing Estimate and Request Submission
 
-As a customer,
-I want to see a glanceable timeline of request progress and next steps,
-So that waiting feels active and understandable.
-
-**Acceptance Criteria:**
-
-**Given** a customer is viewing the request status screen
-**When** the tracking interface loads
-**Then** the page displays a timeline or progress module showing the current public status and prior meaningful progress states
-**And** each state includes clear labels with no color-only meaning
-
-**Given** the customer remains on the status screen
-**When** the application refreshes status updates using polling
-**Then** the timeline updates without resetting the whole screen or causing visual instability
-**And** background refresh behavior feels calm and non-technical
-
-**Given** a new status becomes available
-**When** the tracking screen refreshes
-**Then** the customer can see what changed and what happens next
-**And** the presentation remains optimized for fast scanning on mobile
-
-### Story 2.5: Handle Clarification, Delay, and Unavailable Recovery States
-
-As a customer,
-I want honest recovery states when fulfillment changes,
-So that I stay informed and know the next best action instead of feeling abandoned.
+As a customer ready to submit,
+I want to review a simple price estimate and confirm my request in one final step,
+So that I know roughly what to expect before committing.
 
 **Acceptance Criteria:**
 
-**Given** a request needs clarification, is delayed, or cannot be fulfilled
-**When** the customer views the request flow or tracking screen
-**Then** the interface shows a dedicated recovery state with a clear explanation of what changed
-**And** the message includes a next-best action or expectation update
+**Given** a customer has completed category, details, and location steps
+**When** they reach the estimate and review step
+**Then** the system calculates and displays an estimate using base fee + category fee + optional distance/parts allowance
+**And** the estimate is presented clearly as an estimate, not a guaranteed total
 
-**Given** the request falls outside current service scope or operating availability
-**When** the customer reaches a recovery state
-**Then** the product provides fallback guidance or alternative next steps rather than a dead-end failure
-**And** the tone remains honest, calm, and trust-preserving
+**Given** the estimate is displayed
+**When** the customer reviews the screen
+**Then** the pricing breakdown is compact and scannable — not a multi-screen pricing explanation
+**And** the customer can see a summary of what they are submitting before confirming
 
-**Given** recovery messaging is shown
-**When** the state is rendered across customer-facing surfaces
-**Then** the copy stays consistent with the backend public status model and prior expectation-setting
-**And** the customer can distinguish between clarification-needed, delayed, and unavailable outcomes
+**Given** the customer confirms submission
+**When** the request is submitted
+**Then** a service request is created and persisted durably with status `pending`
+**And** a pricing estimate snapshot is saved alongside the request record
 
-### Story 2.6: Preserve Customer-Visible Request History
+**Given** the submission fails due to a temporary error
+**When** the customer taps confirm
+**Then** a recoverable error state is shown without losing the entered data
+**And** duplicate confirmed requests are prevented on retry
 
-As an operations-ready platform,
-I want meaningful request-state changes recorded with customer-facing context,
-So that later support and ops workflows can stay aligned with what the customer saw.
+**Given** the request is created successfully
+**When** the customer is returned to the dashboard
+**Then** the new request appears in the list with `pending` status
+**And** the full request history remains durable and recoverable
 
-**Acceptance Criteria:**
+---
 
-**Given** a request is created and progresses through lifecycle states
-**When** a meaningful public or internal-to-public status transition occurs
-**Then** the system records the transition in durable request history
-**And** the history includes the previous state, next state, timestamp, and relevant actor or system context when available
+## Epic 3: Handyman Job Marketplace & Matching
 
-**Given** customer-facing messages accompany a lifecycle transition
-**When** the request history entry is stored
-**Then** the record preserves the public status context needed to reconstruct what the customer saw
-**And** the history supports later support and operational visibility requirements
+Handymen can view available jobs matched to their categories and service area, accept or decline, and the system correctly assigns the first-accepting handyman with duplicate protection. Handymen can also view their full job history.
 
-**Given** request history is used by tracking or later internal tools
-**When** historical lifecycle data is queried
-**Then** the system can return ordered state transitions without losing recoverability or consistency
-**And** confirmed requests are not left without an auditable operational record
+### Story 3.1: Handyman Profile Setup with Categories and Service Radius
 
-## Epic 3: Enable Operations Dispatch and Lifecycle Control
-
-Operations staff can review incoming requests, assign fulfillment owners, update lifecycle states, and keep internal actions aligned with the customer-facing experience.
-
-### Story 3.1: Enable Operations Staff Authentication and Access
-
-As an operations staff member,
-I want secure access to the internal operations area,
-So that only authorized users can review and manage customer requests.
+As a registered handyman,
+I want to set my supported service categories and service area after registering,
+So that the platform knows which jobs to show me and I only receive relevant work.
 
 **Acceptance Criteria:**
 
-**Given** an internal user has an operations role
-**When** they access the operations login flow with valid credentials
-**Then** they can authenticate successfully and enter the operations area
-**And** their session is authorized according to the defined internal access model
+**Given** a handyman logs in for the first time
+**When** they land on the handyman dashboard
+**Then** they are prompted to complete their profile by selecting supported categories and service radius
+**And** they cannot receive matching jobs until at least one category and a service radius are set
 
-**Given** a user is not authenticated or does not have the required role
-**When** they attempt to access operations routes or APIs
-**Then** access is denied
-**And** no protected request-management data is exposed
+**Given** a handyman is on the profile setup screen
+**When** they select their supported categories
+**Then** only the platform's configured service categories are available for selection
+**And** their category preferences are persisted as `handyman_category_preferences` records
 
-**Given** operations authentication is enabled
-**When** the backend enforces access control
-**Then** operations access is protected through role-based authorization rather than frontend-only gating
-**And** the implementation supports future separation of ops and support privileges
+**Given** a handyman sets their service radius
+**When** the value is saved
+**Then** the radius is stored on the handyman profile and used as the matching boundary for incoming requests
+**And** the handyman can update their categories and radius from their profile settings later
 
-### Story 3.2: Show an Operations Request Queue
+**Given** a handyman profile is saved
+**When** the backend evaluates future rating submissions
+**Then** the handyman profile includes `average_rating_cache` and `ratings_count_cache` fields (nullable) to support future rating aggregation without requiring a schema change
 
-As an operations coordinator,
-I want to see a queue of incoming service requests,
-So that I can quickly understand what needs attention and act in priority order.
+### Story 3.2: Handyman Jobs Dashboard and Available Job Feed
 
-**Acceptance Criteria:**
-
-**Given** authenticated operations staff enter the internal dashboard
-**When** the request queue loads
-**Then** they can see active incoming requests in a fast-scanning queue view
-**And** each queue item shows issue type, address summary, current state, received time, and assignment status
-
-**Given** the operations queue contains requests in different conditions
-**When** the coordinator scans the list
-**Then** requests needing prompt action are distinguishable from already-assigned or blocked requests
-**And** the presentation supports quick triage without opening every record first
-
-**Given** the queue is accessed during ongoing request activity
-**When** new data is fetched
-**Then** the queue updates reliably without losing clarity or creating contradictory lifecycle visibility
-**And** performance is sufficient for timely operational intervention
-
-### Story 3.3: Let Operations Review Full Request Details
-
-As an operations coordinator,
-I want to open a request and inspect issue details, serviceability context, and customer-facing guidance,
-So that I can make a confident assignment decision without guessing.
+As a logged-in handyman,
+I want to see a feed of available jobs that match my categories and service area,
+So that I can quickly identify relevant work without wading through irrelevant requests.
 
 **Acceptance Criteria:**
 
-**Given** an operations coordinator selects a request from the queue
-**When** the request detail view loads
-**Then** they can see the full intake details needed for fulfillment review
-**And** the detail view includes issue classification, service location, current lifecycle state, and request history context
+**Given** a handyman is logged in with categories and service radius set
+**When** the jobs dashboard loads
+**Then** only requests matching their supported categories and within their service radius are shown
+**And** the dashboard loads within 2 seconds under normal conditions
 
-**Given** a request has already shown guidance or expectation-setting to the customer
-**When** operations reviews the record
-**Then** the coordinator can see what containment guidance, status, and expectations the customer has already received
-**And** this context is presented clearly enough to avoid conflicting follow-up actions
+**Given** a matching request exists
+**When** the handyman views the job card
+**Then** the card shows category, distance, rough area, estimate, and short description
+**And** accept and decline actions are accessible directly from the card without opening a detail screen
 
-**Given** a request may be in or out of scope
-**When** the coordinator reviews serviceability information
-**Then** they can understand the factors affecting dispatch readiness
-**And** they can distinguish between serviceable, clarification-needed, and unavailable scenarios
+**Given** the handyman navigation is rendered
+**When** the nav is visible
+**Then** it contains no more than 4 top-level items: Dashboard, Jobs, History, and Settings
 
-### Story 3.4: Assign Requests to a Provider or Internal Fulfillment Owner
+**Given** no matching jobs are currently available
+**When** the jobs feed loads
+**Then** a clear empty-state is shown
+**And** the handyman's online/offline status toggle is visible and actionable
 
-As an operations coordinator,
-I want to assign each request to the right fulfillment owner,
-So that active requests move into dispatch instead of stalling in review.
+**Given** a new request is routed to eligible handymen
+**When** the backend identifies matching handymen by category and service radius
+**Then** a `job_offer_visibility` record is created for each eligible handyman
+**And** the offer appears in their feed without requiring a manual refresh
 
-**Acceptance Criteria:**
+### Story 3.3: Accept or Decline a Job with First-Accept Assignment Protection
 
-**Given** a request is eligible for assignment
-**When** the coordinator chooses a provider or internal fulfillment owner
-**Then** the system records the assignment against the request
-**And** the request can move into the next appropriate lifecycle state
-
-**Given** an assignment is made
-**When** the operation succeeds
-**Then** the queue and request detail views reflect the assigned owner consistently
-**And** the assignment is captured in request history for later ops and support visibility
-
-**Given** a request is not ready for assignment
-**When** the coordinator attempts to assign it in an invalid condition
-**Then** the system prevents the invalid action
-**And** the response guides the operator toward the correct next step
-
-### Story 3.5: Manage Lifecycle Status Updates with Guardrails
-
-As an operations coordinator,
-I want to update request statuses through valid transitions only,
-So that internal actions remain consistent with the customer-facing timeline.
+As a handyman reviewing a job,
+I want to accept or decline it, knowing that if I accept first I get the job and no one else can,
+So that the system is fair and I can act quickly with confidence.
 
 **Acceptance Criteria:**
 
-**Given** a request is in a known lifecycle state
-**When** operations attempts to change its status
-**Then** only valid next transitions are permitted according to the request state machine
-**And** invalid transitions are rejected before they create inconsistent request history
+**Given** a handyman taps accept on a matching job
+**When** the accept request reaches the backend
+**Then** the backend opens a database transaction, applies a row-level lock on the request, re-checks the request status, and creates the assignment record
+**And** the request status transitions to `assigned` and is visible to the customer
 
-**Given** a valid lifecycle transition occurs
-**When** the new status is saved
-**Then** the system updates the internal state, resolves the corresponding public status, and records the transition durably
-**And** customer-facing progress remains aligned with operational truth
+**Given** two handymen attempt to accept the same request simultaneously
+**When** both accept requests are processed
+**Then** only the first to complete the transaction receives the assignment
+**And** the second receives a clear "already assigned" error without a confusing failure state
 
-**Given** a lifecycle change impacts the customer experience
-**When** the transition is completed
-**Then** the customer-safe status view can reflect the change through the existing tracking model
-**And** the transition remains auditable by internal teams
+**Given** a handyman declines a job
+**When** the decline action is submitted
+**Then** the offer record for that handyman is marked declined
+**And** the job no longer appears in that handyman's feed while remaining visible to other eligible handymen
 
-### Story 3.6: Flag Requests That Need Intervention or Clarification
+**Given** a request has been routed to eligible handymen but none has accepted
+**When** the customer views the request
+**Then** the customer-visible status remains `pending`
+**And** no partial or misleading assignment information is shown
 
-As an operations coordinator,
-I want to identify requests that are blocked, unclear, or at risk,
-So that I can intervene before customer trust breaks down.
+**Given** a request exhausts available matching opportunities without acceptance
+**When** the system determines the request cannot be fulfilled
+**Then** the request status transitions to `rejected`
+**And** the customer sees a clear `rejected` state with no ambiguity
 
-**Acceptance Criteria:**
+### Story 3.4: Handyman Job History
 
-**Given** a request cannot move cleanly through the standard dispatch path
-**When** its state indicates missing details, delay risk, or operational blockage
-**Then** the request is visibly identifiable as needing intervention or clarification
-**And** the ops queue supports recognizing these requests quickly
-
-**Given** a request needs clarification or escalation
-**When** operations reviews the record
-**Then** the coordinator can understand why the intervention is needed
-**And** the request can be managed without losing lifecycle continuity or history
-
-**Given** an at-risk request is updated by operations
-**When** the intervention status changes
-**Then** the internal and public lifecycle states remain consistent with the approved recovery behavior
-**And** later support users can understand what happened from the stored record
-
-### Story 3.7: Maintain Scope Rules and Supported Service Configuration
-
-As an operations-ready platform,
-I want supported issue types and coverage rules managed in a structured way,
-So that intake and dispatch behavior stay aligned with the MVP operating model.
+As a handyman,
+I want to view a history of all my past accepted, declined, and completed jobs,
+So that I have continuity across sessions and can review past work.
 
 **Acceptance Criteria:**
 
-**Given** the MVP supports only a constrained set of plumbing scenarios and service areas
-**When** the system evaluates intake and dispatch behavior
-**Then** supported issue types and service coverage rules come from structured configuration or managed reference data
-**And** the same source can be used consistently across intake, ops review, and assignment decisions
+**Given** a handyman navigates to their job history
+**When** the history screen loads
+**Then** all past jobs are listed with their final status (accepted, declined, completed) and basic details
+**And** the list is ordered with the most recent jobs first
 
-**Given** scope or coverage definitions need adjustment
-**When** the configuration is updated through the supported implementation path
-**Then** future requests follow the revised rules without requiring a redesign of the request lifecycle
-**And** unsupported categories are still prevented from entering the active fulfillment flow
+**Given** the handyman opens a past job from history
+**When** the job detail loads
+**Then** they can see the full request details without affecting any live workflow
+**And** viewing a past job does not change its status or create any side effects
 
-**Given** operations relies on issue and coverage rules
-**When** a request is reviewed for assignment
-**Then** the platform can explain or expose the relevant scope decision context
-**And** lifecycle control remains aligned with the configured MVP service model
+**Given** the handyman has no job history yet
+**When** the history screen loads
+**Then** a clear empty-state is shown
+**And** the handyman is not shown any other handyman's job data
 
-## Epic 4: Equip Support for Trust Recovery and Request Intervention
+**Given** a newly completed or declined job exists
+**When** the handyman views history
+**Then** the record appears in history and remains durable across sessions and logins
 
-Support staff can locate requests, understand full request history and customer-facing context, explain blockers or delays, and intervene when human follow-up is needed.
+---
 
-### Story 4.1: Enable Support Staff Authentication and Access
+## Epic 4: Fulfillment Lifecycle, Live Tracking & Rating
 
-As a support staff member,
-I want secure access to the support workspace,
-So that only authorized users can view and assist customer requests.
+Both customers and handymen follow the full job lifecycle from `assigned` through `complete`. Customers see a two-pin map of assigned jobs and receive real-time WebSocket status updates. Customers can submit a lightweight post-completion rating.
 
-**Acceptance Criteria:**
+### Story 4.1: Customer Request Tracking View with Two-Pin Map
 
-**Given** an internal user has a support role
-**When** they authenticate through the support login flow with valid credentials
-**Then** they can enter the support workspace successfully
-**And** their access is limited to the permissions granted for support users
-
-**Given** a user is unauthenticated or lacks the support role
-**When** they attempt to access support routes or APIs
-**Then** the system blocks access
-**And** protected request data remains unavailable
-
-**Given** support access exists alongside operations access
-**When** authorization is enforced
-**Then** role checks occur at the backend layer
-**And** the permission model supports different capabilities for support and operations users
-
-### Story 4.2: Let Support Search and Open Individual Requests
-
-As a support agent,
-I want to find a customer request quickly,
-So that I can respond without wasting time or asking the customer to repeat everything.
+As a customer with an assigned request,
+I want to see the handyman's identity and a map showing both our locations when I open my job,
+So that I know who is coming and where they are right now.
 
 **Acceptance Criteria:**
 
-**Given** a support agent is authenticated in the support workspace
-**When** they search for a request using available identifying information
-**Then** they can retrieve matching individual requests efficiently
-**And** they can open the correct request record for further review
+**Given** a customer opens a request that has been assigned
+**When** the tracking view loads
+**Then** the assigned handyman's display name is shown
+**And** a two-pin map renders with one pin at the job location and one at the handyman's most recently recorded location
 
-**Given** multiple requests may exist in different lifecycle states
-**When** search results are shown
-**Then** the results provide enough summary context to distinguish the correct request
-**And** the search experience remains useful for real support workflows
+**Given** the tracking view map loads
+**When** it opens or the customer refreshes
+**Then** the map renders fully within 2 seconds under normal conditions
+**And** the handyman location pin is fetched via REST from the latest `handyman_location_updates` record — not streamed via WebSocket
 
-**Given** no request matches the search input
-**When** the lookup completes
-**Then** the system returns a clear no-results state
-**And** no unrelated customer data is exposed
+**Given** the customer is on the tracking view
+**When** the current lifecycle state is displayed
+**Then** the full customer-visible lifecycle is supported: `pending`, `assigned`, `on the way`, `arrived`, `working`, `complete`, `rejected`
+**And** the current status is always visible without requiring the customer to scroll or open a detail panel
 
-### Story 4.3: Show Support the Full Request Context
+**Given** the assigned job view is open on mobile
+**When** the layout renders
+**Then** the map fills most of the viewport and a bottom sheet holds the handyman identity, status, estimate, and job details
+**And** the bottom sheet supports collapsed, half-open, and full-detail states
 
-As a support agent,
-I want to see request history, current status, prior customer guidance, and operational notes,
-So that I can understand the situation before replying.
+### Story 4.2: Handyman Active Job Mode with Status Updates and Location Posting
 
-**Acceptance Criteria:**
-
-**Given** a support agent opens a request
-**When** the request detail view loads
-**Then** the workspace shows the current public and internal status context, request history, and fulfillment details relevant to support
-**And** the information is organized for fast situational understanding
-
-**Given** the customer has already received guidance, expectation-setting, or recovery messaging
-**When** support reviews the request
-**Then** the agent can see what the customer has already been told
-**And** the context is sufficient to avoid contradictory reassurance
-
-**Given** support context depends on operations and lifecycle history
-**When** the request detail is displayed
-**Then** prior meaningful transitions and notes are visible in ordered form
-**And** the data remains consistent with the single request source of truth
-
-### Story 4.4: Explain Delays, Blocks, and Unavailable Outcomes Clearly
-
-As a support agent,
-I want the system to surface why a request is delayed, blocked, or unfulfilled,
-So that I can give the customer a consistent and credible explanation.
+As an assigned handyman,
+I want to enter a focused active-job view where I can update my status and share my location,
+So that the customer always knows where I am and what stage the job is at.
 
 **Acceptance Criteria:**
 
-**Given** a request is in a delayed, clarification-needed, blocked, or unavailable state
-**When** support opens the request
-**Then** the workspace surfaces the reason or recovery context behind that state
-**And** the explanation is understandable enough for support to translate into customer-facing reassurance
+**Given** a handyman accepts a job
+**When** they enter the active-job view
+**Then** the map shows the customer/job location pin
+**And** the current job status and next required status action are clearly visible
 
-**Given** the request has a customer-visible recovery status
-**When** support references the current situation
-**Then** the support context aligns with the same public-status model used in the customer experience
-**And** the agent can distinguish between different failure or delay scenarios
+**Given** the handyman is in active-job mode
+**When** they update their status (on the way → arrived → working → complete)
+**Then** only the valid next transition is available as the dominant action
+**And** the status is persisted and the transition recorded in `request_status_history`
 
-**Given** a request cannot be fulfilled as originally expected
-**When** support responds to the customer
-**Then** the platform provides the context needed to communicate the next best action
-**And** support does not need to infer or invent explanations from incomplete system data
+**Given** the handyman is navigating to the job
+**When** their device location is available
+**Then** the handyman app posts the current location to the backend via REST
+**And** the location is stored as a `handyman_location_updates` record tied to the request and handyman
 
-### Story 4.5: Support Manual Intervention and Follow-Up
+**Given** the active job bottom sheet is visible on mobile
+**When** the handyman interacts with it
+**Then** status controls sit in a persistent bottom sheet or fixed action area — never buried in deep navigation
+**And** the bottom sheet supports collapsed, half-open, and full-detail states
 
-As a support agent,
-I want to record or trigger manual follow-up when a request needs human help,
-So that recovery actions are visible and aligned with the request lifecycle.
+**Given** the handyman marks the job `complete`
+**When** the final status transition is saved
+**Then** the request is durably marked complete with a `completed_at` timestamp
+**And** the handyman is returned to their jobs dashboard
+
+### Story 4.3: Real-Time Status Push via WebSocket
+
+As a customer or handyman on an active job screen,
+I want status changes to appear instantly without refreshing the page,
+So that I always see the current state of the job without manual polling.
 
 **Acceptance Criteria:**
 
-**Given** a request requires human follow-up or clarification outside the normal self-serve flow
-**When** a support agent records an intervention
-**Then** the action is saved against the request in a structured and auditable way
-**And** later support or operations users can see that the intervention occurred
+**Given** an assigned handyman updates the job status
+**When** the status change is saved by the backend
+**Then** the updated status is pushed via WebSocket to the customer's tracking view within 1 second under normal conditions
+**And** the same update is pushed to the handyman's active-job view
 
-**Given** a support intervention affects the current request handling state
-**When** the intervention is completed
-**Then** the request lifecycle and related history remain consistent with the approved status model
-**And** customer-facing progress is not contradicted by undocumented manual actions
+**Given** a WebSocket event is received on the customer tracking screen
+**When** the status update arrives
+**Then** the status display updates in place without triggering a full-screen refresh or visual reset
+**And** the update feels immediate and does not disrupt the map or bottom sheet state
 
-**Given** a support agent adds follow-up context to a request
-**When** the request is reviewed later by another internal user
-**Then** the stored intervention detail helps preserve continuity across support and operations
-**And** the request remains recoverable and auditable end to end
+**Given** a client's WebSocket connection drops
+**When** the connection is restored
+**Then** the client reconnects automatically and the latest job status is restored from the backend
+**And** no lifecycle corruption or duplicate state is introduced by the reconnection
 
-## Epic 5: Harden the Platform for Reliable MVP Operations
+**Given** a user is not on an active assigned job screen
+**When** WebSocket connections are evaluated
+**Then** no WebSocket connection is maintained — dashboards, history, and other screens use standard REST polling
+**And** the realtime layer scales with active job volume, not total active users
 
-The team can run Handrix on a durable, secure, observable architecture that preserves lifecycle integrity now and supports future category and geography expansion later.
+### Story 4.4: Post-Completion Customer Rating
 
-### Story 5.1: Establish Durable Persistence and Schema Management
+As a customer whose job has been completed,
+I want to leave a quick 1-5 star rating for the handyman with optional feedback,
+So that I can close the loop on my experience without it feeling like a review form.
+
+**Acceptance Criteria:**
+
+**Given** a request is marked `complete`
+**When** the customer opens that request or returns to the dashboard
+**Then** a lightweight rating prompt appears — a compact bottom sheet or modal with a 1-5 star input
+**And** the prompt is clearly optional and dismissable
+
+**Given** the customer submits a rating
+**When** the rating is saved
+**Then** a `request_ratings` record is created with the star score, optional short feedback, customer ID, handyman ID, and request ID
+**And** the rating is idempotent — submitting again for the same request is rejected at the backend
+
+**Given** the customer chooses to skip rating
+**When** they dismiss the prompt
+**Then** the request remains in `complete` state without any blocking behavior
+**And** the rating prompt can be reopened from the completed request card if the customer wants to rate later
+
+**Given** a rating has already been submitted for a completed request
+**When** the customer views that request
+**Then** the submitted rating is shown with no option to re-rate
+**And** the request card indicates the rating has been submitted
+
+**Given** a customer views a completed request that is unrated
+**When** they open the request card
+**Then** the unrated state is clearly indicated so the customer knows they can still rate
+**And** this indication does not clutter the card for rated or non-complete requests
+
+---
+
+## Epic 5: Platform Hardening & Production Readiness
+
+The platform runs on a durable, secure, and observable architecture. Lifecycle models, map abstraction seams, and data structures preserve clean paths for future categories, map provider replacement, chat, and richer ratings.
+
+### Story 5.1: Harden Request and Assignment Integrity
 
 As a product platform,
-I want a PostgreSQL and Prisma-backed persistence layer with explicit lifecycle entities and migrations,
-So that request, assignment, and history data remain durable and evolvable.
+I want durable persistence guarantees, append-only status history, and idempotency protections across the critical request lifecycle,
+So that no request is ever lost, corrupted, or left in an unrecoverable state.
 
 **Acceptance Criteria:**
 
-**Given** the MVP requires durable request and lifecycle storage
-**When** the persistence layer is implemented
-**Then** PostgreSQL is used as the system of record for requests, assignments, status history, users, and related reference data
-**And** the schema reflects the request-centric lifecycle model defined in the architecture
+**Given** a customer submits a request
+**When** the request is persisted
+**Then** no confirmed request can be lost, duplicated, or left without a recoverable record under normal or failure conditions
+**And** the request schema supports future category and geography extension without a core lifecycle redesign
 
-**Given** schema changes are needed during development
-**When** the backend data model evolves
-**Then** Prisma migrations are used to manage schema changes predictably
-**And** the migration workflow supports repeatable setup across environments
+**Given** meaningful lifecycle transitions occur (creation, assignment, status updates, completion)
+**When** each transition is processed
+**Then** an append-only `request_status_history` entry is created with actor, timestamp, and previous/next state
+**And** any dashboard refresh reflects the latest authoritative state from these durable records
 
-**Given** request lifecycle data is persisted
-**When** confirmed requests, assignments, or status transitions are stored
-**Then** the records remain recoverable and auditable
-**And** the persistence design does not require redefining the core lifecycle for future expansion
+**Given** the unique assignment constraint and row-level lock are in place
+**When** concurrent accept requests arrive for the same request
+**Then** the database enforces that only one live assignment per request exists at the schema level
+**And** the concurrency protection holds under load without requiring application-level distributed locks
 
-### Story 5.2: Add Request-Centric Observability and Health Monitoring
+**Given** a rating submission is replayed or retried
+**When** the backend processes the duplicate submission
+**Then** the `request_ratings` unique constraint on `request_id` prevents more than one rating record per completed request
+**And** the response is stable and does not create inconsistent rating data
 
-As an MVP operations team,
-I want structured logs, correlation IDs, health checks, and error monitoring foundations,
-So that we can detect issues and trace request failures before trust erodes.
-
-**Acceptance Criteria:**
-
-**Given** the backend handles customer and internal request workflows
-**When** meaningful application events occur
-**Then** the system emits structured logs that support operational debugging
-**And** request processing can be traced with correlation or request identifiers
-
-**Given** the MVP must be monitored in deployed environments
-**When** the platform is running
-**Then** health endpoints or equivalent readiness checks are available
-**And** failures can be detected without relying solely on user reports
-
-**Given** unexpected errors occur in customer or internal flows
-**When** those errors are captured
-**Then** the monitoring foundation preserves enough context to investigate lifecycle-impacting failures
-**And** observability remains aligned with the request-centric architecture rather than generic undifferentiated logging
-
-**Given** the MVP must later prove product and operational outcomes
-**When** key lifecycle events occur across intake, confirmation, tracking, assignment, fulfillment, cancellation, support contact, and recovery states
-**Then** the platform emits structured instrumentation events or metrics for those milestones
-**And** the data foundation supports measurement of confirmation conversion, time-to-confirmation, fulfillment within promised windows, support-contact rate, and cancellation trends
-
-### Story 5.3: Enforce Security, Rate Limiting, and Data Protection Baselines
+### Story 5.2: Apply Security Baselines and Data Protection
 
 As a product platform,
-I want the MVP protected by baseline transport, access, and abuse controls,
-So that customer and internal data remain secure without overengineering.
+I want baseline transport security, role-based access enforcement, image validation, and rate limiting in place across all endpoints,
+So that customer and handyman data is protected without over-engineering for MVP scale.
 
 **Acceptance Criteria:**
 
-**Given** the platform exposes public intake and tracking endpoints plus internal staff tooling
-**When** security baselines are applied
-**Then** data is protected in transit and internal access is role-restricted
-**And** the implementation avoids collecting unnecessary sensitive customer data
+**Given** any API endpoint is called
+**When** data is transmitted
+**Then** all traffic is encrypted in transit (HTTPS/WSS enforced)
+**And** the platform does not collect or store sensitive data beyond what is required for request fulfillment, location display, and rating capture
 
-**Given** the public request flow can be abused or overused
-**When** rate-limiting protections are enabled
-**Then** the system can reduce abuse risk on intake and polling endpoints
-**And** legitimate customer behavior remains supported for the MVP use case
+**Given** a request targets a customer-only or handyman-only API surface
+**When** the request is authenticated
+**Then** the backend enforces role-based access via NestJS guards — not frontend routing alone
+**And** a customer cannot access handyman assignment endpoints and vice versa
 
-**Given** internal and external request data is stored or retrieved
-**When** data protection controls are reviewed
-**Then** access boundaries, storage practices, and auditability align with the security requirements in the PRD and architecture
-**And** the security baseline leaves a clean path for future hardening if scale or risk increases
+**Given** an image is uploaded as part of request creation
+**When** the upload reaches the backend
+**Then** file type and size are validated before storage
+**And** the image is stored through the secure object storage path with ownership and request linkage validated
 
-### Story 5.4: Validate Environment Configuration and Deployment Readiness
+**Given** public intake and tracking endpoints are exposed
+**When** rate-limiting protections are evaluated
+**Then** rate limits are applied to submission, auth, and polling endpoints to reduce abuse risk
+**And** legitimate customer behavior under normal MVP usage patterns is not blocked
+
+### Story 5.3: Instrument Observability and Validate Deployment Readiness
 
 As a delivery team,
-I want typed configuration, environment separation, and CI/CD quality gates,
-So that Handrix can be deployed consistently across local, staging, and production environments.
+I want structured logging, correlation IDs, health checks, typed environment config, and CI/CD quality gates in place,
+So that the platform can be deployed consistently and failures can be traced before users report them.
 
 **Acceptance Criteria:**
 
-**Given** the frontend and backend run in multiple environments
-**When** configuration is loaded at startup
-**Then** environment variables are validated through typed configuration rules
-**And** invalid configuration fails early instead of creating hidden runtime behavior
+**Given** the backend handles requests across all MVP flows
+**When** meaningful application events occur
+**Then** structured logs are emitted with request correlation IDs that tie log entries to specific user actions
+**And** the logs are sufficient to trace a request lifecycle failure without relying on raw unstructured output
 
-**Given** the MVP needs repeatable delivery workflows
-**When** deployment readiness is established
-**Then** the project supports distinct local, staging, and production configuration paths
-**And** environment examples exist for both applications
+**Given** the platform is running in a deployed environment
+**When** a health check is performed
+**Then** the health endpoint returns readiness status covering database connectivity and critical service dependencies
+**And** failures are detectable before users report them
 
-**Given** code changes are prepared for integration or release
-**When** the CI/CD baseline is executed
-**Then** linting, tests, and migration or build checks can run as deployment gates
-**And** the delivery flow supports separate frontend and backend deployment without breaking shared contracts
+**Given** the frontend and backend run across local, staging, and production environments
+**When** each environment starts
+**Then** environment variables are validated through typed configuration at startup
+**And** invalid or missing configuration fails fast with a clear error rather than a hidden runtime defect
 
-### Story 5.5: Protect Future Expansion Through Stable Contracts and Lifecycle Boundaries
+**Given** code changes are prepared for integration
+**When** the CI/CD pipeline runs
+**Then** lint, type checks, tests, and migration verification run as deployment gates
+**And** the pipeline supports separate frontend and backend builds without breaking the shared contracts package
 
-As a product team,
-I want the request lifecycle, API contracts, and shared schemas kept stable and explicit,
-So that new categories, geographies, and richer customer features can be added without redefining the core system.
+### Story 5.4: Accessibility Audit and UX Polish
 
-**Acceptance Criteria:**
-
-**Given** the MVP uses shared request and status concepts across frontend and backend
-**When** contracts are defined and consumed
-**Then** the API shapes, shared schemas, and lifecycle boundaries are explicit and versionable
-**And** frontend and backend do not drift into incompatible interpretations of request state
-
-**Given** the backend is the source of truth for request APIs
-**When** contract definitions are published for implementation use
-**Then** OpenAPI documentation and the shared schema package describe the supported endpoints, payloads, and status models consistently
-**And** the standard `{ data, meta? }` success envelope and `{ error: { ... } }` failure envelope are enforced rather than left implicit
-
-**Given** future features may add categories, locations, or richer account capabilities
-**When** the team extends the product later
-**Then** the core request lifecycle can support those additions without a fundamental redesign
-**And** public-status handling remains derived from the same backend source of truth
-
-**Given** new work touches lifecycle rules or shared contracts
-**When** those changes are introduced
-**Then** they can be validated against the architecture consistency rules
-**And** the platform retains a clear path for 10x MVP growth and post-MVP evolution
-
-### Story 5.6: Instrument MVP Success Measurement
-
-As a product team,
-I want the MVP to capture the core funnel and operational signals defined in the PRD,
-So that we can verify whether Handrix actually reduces uncertainty and fulfills requests credibly after launch.
+As a customer or handyman using Handrix on any device,
+I want the full product to meet WCAG 2.1 AA standards with consistent shared components and desktop layouts,
+So that the experience is usable, readable, and trustworthy across all contexts.
 
 **Acceptance Criteria:**
 
-**Given** the PRD defines measurable MVP outcomes
-**When** the implementation is prepared for launch
-**Then** the product records the key events needed to measure flow start, issue selection, request confirmation, tracking revisits, fulfillment outcome, cancellation, and support contact
-**And** event naming and payloads stay consistent with the shared contract and lifecycle model
+**Given** all core customer and handyman flows are implemented
+**When** an accessibility audit is performed
+**Then** all critical flows meet WCAG 2.1 AA for contrast, focus states, keyboard support, and screen-reader-compatible labeling
+**And** no request state, job status, or rating input relies on color alone — each is paired with a label or icon
 
-**Given** the product promise depends on speed and credibility
-**When** lifecycle timestamps are stored or emitted
-**Then** the team can calculate median time from flow start to confirmation and fulfillment performance against promised response windows
-**And** the measurement approach does not rely on manual reconstruction from raw logs alone
+**Given** the shared component set is in use across both role surfaces
+**When** shared components are reviewed
+**Then** map shell, bottom sheet, status chip, section header, primary CTA, empty-state module, and loading skeletons are implemented as reusable components — not duplicated per screen
+**And** the split-surface design tokens (warm neutral for customer, dark navy/charcoal for handyman) are applied consistently from a shared design token foundation
 
-**Given** the PRD includes stress-reduction and trust-oriented outcomes
-**When** the MVP measurement foundation is defined
-**Then** there is an explicit implementation path for capturing post-service feedback or equivalent outcome signals tied to completed requests
-**And** the resulting data is sufficient to evaluate whether the product reduced uncertainty without requiring a later analytics redesign
+**Given** a user opens Handrix on a desktop browser
+**When** the layout renders
+**Then** customer tracking expands to a split-pane layout (larger map + side detail panel)
+**And** the handyman dashboard expands to summary grids with side modules without introducing functionally different flows from mobile
+
+**Given** key lifecycle transitions occur in the UI
+**When** they are rendered
+**Then** meaningful motion is applied: map pin transition on assignment, bottom-sheet rise for job details, status pill transitions, job card entrance for newly matched work
+**And** motion is not used ornamentally — no animations without a clear state-change purpose
+
+### Story 5.5: Preserve Extensibility Seams for Future Growth
+
+As a product team planning post-MVP expansion,
+I want the map abstraction, request lifecycle, category model, and rating data structure to preserve clean extension paths,
+So that adding new categories, swapping map providers, or building chat and richer ratings later does not require rewriting core product logic.
+
+**Acceptance Criteria:**
+
+**Given** the map rendering and geocoding integrations are in place
+**When** the integration layer is reviewed
+**Then** map rendering and geocoding are accessed through provider-agnostic abstraction seams on both frontend and backend
+**And** replacing the map or geocoding provider does not require changes to request creation, tracking, or assignment workflows
+
+**Given** the service category model is in use
+**When** new categories need to be added post-MVP
+**Then** categories can be added through configuration or data changes without modifying the request creation flow, matching logic, or handyman profile structure
+**And** the request schema supports new category types through bounded extension rather than redesign
+
+**Given** the assignment and request identity model is stable
+**When** a chat feature is considered post-MVP
+**Then** the request and assignment identifiers provide stable anchors for a future chat transport
+**And** no MVP lifecycle assumption requires support chat to function correctly
+
+**Given** the `request_ratings` entity and handyman profile cache fields are in place
+**When** richer reputation features are planned post-MVP
+**Then** ratings are stored as a separate entity with handyman ID, stars, and optional feedback — ready for aggregation
+**And** no public review surfaces, moderation workflows, or dispute logic are included in the MVP data model
