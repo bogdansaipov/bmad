@@ -1,5 +1,5 @@
 # generated: 2026-05-12
-# last_updated: 2026-05-12 (story 1-3 review patches applied → done)
+# last_updated: 2026-05-13 (story 2-4 ready-for-dev)
 # project: demo1
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # previous plan and are not auto-detected against the new story keys.
 
 generated: 2026-05-12
-last_updated: 2026-05-12
+last_updated: 2026-05-13 (story 2-4 ready-for-dev)
 project: demo1
 project_key: NOKEY
 tracking_system: file-system
@@ -56,11 +56,11 @@ development_status:
   epic-1-retrospective: optional
 
   # Epic 2: Customer Request Creation & Dashboard
-  epic-2: backlog
-  2-1-customer-dashboard-with-request-list: backlog
-  2-2-service-category-selection-and-request-details: backlog
-  2-3-location-capture-with-geolocation-and-map-pin: backlog
-  2-4-pricing-estimate-and-request-submission: backlog
+  epic-2: in-progress
+  2-1-customer-dashboard-with-request-list: done
+  2-2-service-category-selection-and-request-details: done
+  2-3-location-capture-with-geolocation-and-map-pin: done
+  2-4-pricing-estimate-and-request-submission: ready-for-dev
   epic-2-retrospective: optional
 
   # Epic 3: Handyman Job Marketplace & Matching

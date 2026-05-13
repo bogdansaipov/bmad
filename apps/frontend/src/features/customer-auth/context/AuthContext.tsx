@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { LoginResponse, SessionResponse } from '@handrix/contracts';
 import { fetchSession } from '../api/auth.api';
 import { clearAccessToken, setAccessToken } from '../lib/auth-storage';
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [user, setUser] = useState<SessionResponse | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     fetchSession()
@@ -34,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   function login(response: LoginResponse) {
+    queryClient.clear();
     setAccessToken(response.accessToken);
     setUser({ userId: response.userId, email: response.email, role: response.role });
     setStatus('authenticated');
@@ -43,6 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearAccessToken();
     setUser(null);
     setStatus('unauthenticated');
+    queryClient.clear();
   }
 
   return (

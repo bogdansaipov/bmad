@@ -3,22 +3,8 @@ import { AuthProvider, useAuth } from './features/customer-auth/context/AuthCont
 import { RequireAuth } from './features/customer-auth/components/RequireAuth';
 import { RegisterPage } from './features/customer-auth/pages/RegisterPage';
 import { LoginPage } from './features/customer-auth/pages/LoginPage';
-
-function CustomerDashboardStub() {
-  const { user, logout } = useAuth();
-  return (
-    <div className="dashboard">
-      <div className="dashboard-header">
-        <div>
-          <h1>Customer Dashboard</h1>
-          <p style={{ marginTop: 4 }}>Welcome back, {user?.email}</p>
-        </div>
-        <button className="btn-secondary" onClick={logout}>Log out</button>
-      </div>
-      <p>Your requests will appear here. (Coming in Story 2.1)</p>
-    </div>
-  );
-}
+import { CustomerDashboardPage } from './features/customer-dashboard/pages/CustomerDashboardPage';
+import { CreateRequestPage } from './features/request-create/pages/CreateRequestPage';
 
 function HandymanDashboardStub() {
   const { user, logout } = useAuth();
@@ -61,7 +47,7 @@ const router = createBrowserRouter([
     path: '/dashboard/customer',
     element: (
       <RequireAuth requiredRole="CUSTOMER">
-        <CustomerDashboardStub />
+        <CustomerDashboardPage />
       </RequireAuth>
     ),
   },
@@ -70,6 +56,14 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth requiredRole="HANDYMAN">
         <HandymanDashboardStub />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/requests/new',
+    element: (
+      <RequireAuth requiredRole="CUSTOMER">
+        <CreateRequestPage />
       </RequireAuth>
     ),
   },

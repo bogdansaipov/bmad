@@ -1,9 +1,11 @@
+import * as fs from 'fs';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
+import { UPLOAD_DIR } from './modules/uploads/multer.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -37,6 +39,8 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, swaggerConfig);
     SwaggerModule.setup('api/docs', app, document);
   }
+
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
   const port = configService.get<number>('PORT') ?? 3000;
   await app.listen(port);
