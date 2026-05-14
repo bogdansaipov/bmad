@@ -1,5 +1,5 @@
 # generated: 2026-05-12
-# last_updated: 2026-05-13 (story 2-4 ready-for-dev)
+# last_updated: 2026-05-14 (story 4-2 ready-for-dev)
 # project: demo1
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # previous plan and are not auto-detected against the new story keys.
 
 generated: 2026-05-12
-last_updated: 2026-05-13 (story 2-4 ready-for-dev)
+last_updated: 2026-05-14 (story 4-2 ready-for-dev)
 project: demo1
 project_key: NOKEY
 tracking_system: file-system
@@ -64,17 +64,17 @@ development_status:
   epic-2-retrospective: optional
 
   # Epic 3: Handyman Job Marketplace & Matching
-  epic-3: backlog
-  3-1-handyman-profile-setup-with-categories-and-service-radius: backlog
-  3-2-handyman-jobs-dashboard-and-available-job-feed: backlog
-  3-3-accept-or-decline-a-job-with-first-accept-assignment-protection: backlog
-  3-4-handyman-job-history: backlog
+  epic-3: in-progress
+  3-1-handyman-profile-setup-with-categories-and-service-radius: ready-for-dev
+  3-2-handyman-jobs-dashboard-and-available-job-feed: ready-for-dev
+  3-3-accept-or-decline-a-job-with-first-accept-assignment-protection: ready-for-dev
+  3-4-handyman-job-history: ready-for-dev
   epic-3-retrospective: optional
 
   # Epic 4: Fulfillment Lifecycle, Live Tracking & Rating
-  epic-4: backlog
-  4-1-customer-request-tracking-view-with-two-pin-map: backlog
-  4-2-handyman-active-job-mode-with-status-updates-and-location-posting: backlog
+  epic-4: in-progress
+  4-1-customer-request-tracking-view-with-two-pin-map: ready-for-dev
+  4-2-handyman-active-job-mode-with-status-updates-and-location-posting: ready-for-dev
   4-3-real-time-status-push-via-websocket: backlog
   4-4-post-completion-customer-rating: backlog
   epic-4-retrospective: optional
