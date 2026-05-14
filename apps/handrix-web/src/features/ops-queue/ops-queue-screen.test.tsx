@@ -134,7 +134,7 @@ describe('OpsQueueScreen', () => {
         refreshCallback = handler as () => void
       }
 
-      return 1 as unknown as number
+      return 1 as unknown as ReturnType<typeof window.setInterval>
     })
     vi.spyOn(window, 'clearInterval').mockImplementation(() => undefined)
 
