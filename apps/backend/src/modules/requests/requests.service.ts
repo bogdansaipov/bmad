@@ -1,6 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, RequestStatus } from '@prisma/client';
+import { MatchingService } from '../matching/matching.service';
+import { PricingService } from '../pricing/pricing.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateRequestDto } from './dto/create-request.dto';
+import { CreateRequestResponseDto } from './dto/create-request-response.dto';
 import {
   CustomerRequestListResponseDto,
   ServiceRequestListItemDto,
@@ -39,7 +43,11 @@ function mapToDto(r: RequestWithRelations): ServiceRequestListItemDto {
 
 @Injectable()
 export class RequestsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly pricing: PricingService,
+    private readonly matching: MatchingService,
+  ) {}
 
   async findAllForCustomer(customerId: string): Promise<CustomerRequestListResponseDto> {
     const requests = await this.prisma.serviceRequest.findMany({
@@ -61,5 +69,68 @@ export class RequestsService {
     const dto = new CustomerRequestListResponseDto();
     dto.items = [...active, ...historical].map(mapToDto);
     return dto;
+  }
+
+  async create(customerId: string, dto: CreateRequestDto): Promise<CreateRequestResponseDto> {
+    const category = await this.prisma.serviceCategory.findUnique({
+      where: { id: dto.categoryId },
+      select: { id: true, isActive: true, name: true },
+    });
+
+    if (!category || !category.isActive) {
+      throw new NotFoundException('Category not found or inactive');
+    }
+
+    if (dto.imageId) {
+      const image = await this.prisma.requestImage.findUnique({
+        where: { id: dto.imageId },
+        select: { id: true, uploaderId: true },
+      });
+
+      if (!image || image.uploaderId !== customerId) {
+        throw new BadRequestException('Invalid image');
+      }
+    }
+
+    const estimate = this.pricing.calculateEstimate(dto.categoryId);
+
+    const created = await this.prisma.serviceRequest.create({
+      data: {
+        customerId,
+        categoryId: dto.categoryId,
+        title: dto.title,
+        description: dto.description ?? null,
+        locationLat: dto.locationLat ?? null,
+        locationLng: dto.locationLng ?? null,
+        estimatedTotal: estimate.estimatedTotal,
+        pricingExplanationSnapshot: estimate as unknown as Prisma.InputJsonValue,
+        status: RequestStatus.PENDING,
+      },
+      include: {
+        category: { select: { name: true } },
+      },
+    });
+
+    if (dto.imageId) {
+      await this.prisma.requestImage.update({
+        where: { id: dto.imageId },
+        data: { requestId: created.id },
+      });
+    }
+
+    await this.matching.createVisibleOffersForRequest({
+      requestId: created.id,
+      categoryId: dto.categoryId,
+      locationLat: dto.locationLat ?? null,
+      locationLng: dto.locationLng ?? null,
+    });
+
+    const response = new CreateRequestResponseDto();
+    response.id = created.id;
+    response.status = created.status;
+    response.estimatedTotal = created.estimatedTotal != null ? created.estimatedTotal.toNumber() : null;
+    response.categoryName = created.category.name;
+    response.createdAt = created.createdAt.toISOString();
+    return response;
   }
 }

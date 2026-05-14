@@ -5,22 +5,7 @@ import { RegisterPage } from './features/customer-auth/pages/RegisterPage';
 import { LoginPage } from './features/customer-auth/pages/LoginPage';
 import { CustomerDashboardPage } from './features/customer-dashboard/pages/CustomerDashboardPage';
 import { CreateRequestPage } from './features/request-create/pages/CreateRequestPage';
-
-function HandymanDashboardStub() {
-  const { user, logout } = useAuth();
-  return (
-    <div className="dashboard">
-      <div className="dashboard-header">
-        <div>
-          <h1>Handyman Dashboard</h1>
-          <p style={{ marginTop: 4 }}>Welcome back, {user?.email}</p>
-        </div>
-        <button className="btn-secondary" onClick={logout}>Log out</button>
-      </div>
-      <p>Your jobs will appear here. (Coming in Story 2.2)</p>
-    </div>
-  );
-}
+import { HandymanDashboardPage } from './features/handyman-dashboard/pages/HandymanDashboardPage';
 
 function RootRedirect() {
   const { status, user } = useAuth();
@@ -55,7 +40,7 @@ const router = createBrowserRouter([
     path: '/dashboard/handyman',
     element: (
       <RequireAuth requiredRole="HANDYMAN">
-        <HandymanDashboardStub />
+        <HandymanDashboardPage />
       </RequireAuth>
     ),
   },

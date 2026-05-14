@@ -9,6 +9,7 @@ import { StepProgressIndicator } from '../components/StepProgressIndicator';
 import { StepCategorySelect } from '../components/StepCategorySelect';
 import { StepRequestDetails } from '../components/StepRequestDetails';
 import { StepLocationCapture } from '../components/StepLocationCapture';
+import { StepEstimateAndSubmit } from '../components/StepEstimateAndSubmit';
 
 export function CreateRequestPage() {
   const navigate = useNavigate();
@@ -41,11 +42,19 @@ export function CreateRequestPage() {
 
   function handleNextFromLocation(lat: number, lng: number) {
     setFormState((s) => ({ ...s, locationLat: lat, locationLng: lng }));
-    // Story 2.4 advances to 'estimate' step here
+    setCurrentStep('estimate');
   }
 
   function handleBackFromLocation() {
     setCurrentStep('details');
+  }
+
+  function handleBackFromEstimate() {
+    setCurrentStep('location');
+  }
+
+  function handleSubmitSuccess() {
+    navigate('/dashboard/customer');
   }
 
   function handleImageUploaded(imageId: string, previewUrl: string) {
@@ -56,7 +65,11 @@ export function CreateRequestPage() {
     setFormState((s) => ({ ...s, imageId: null, imagePreviewUrl: null }));
   }
 
-  const stepNumber = currentStep === 'category' ? 1 : currentStep === 'details' ? 2 : 3;
+  const stepNumber: 1 | 2 | 3 | 4 =
+    currentStep === 'category' ? 1 :
+    currentStep === 'details' ? 2 :
+    currentStep === 'location' ? 3 :
+    4;
 
   return (
     <main className="min-h-screen bg-[#FAF8F5]">
@@ -74,7 +87,7 @@ export function CreateRequestPage() {
           <h1 className="text-lg font-semibold text-[#1A1A2E]">New Request</h1>
         </div>
 
-        <StepProgressIndicator currentStep={stepNumber as 1 | 2 | 3} totalSteps={4} />
+        <StepProgressIndicator currentStep={stepNumber} totalSteps={4} />
 
         {currentStep === 'category' && (
           <StepCategorySelect
@@ -104,6 +117,14 @@ export function CreateRequestPage() {
             locationLng={formState.locationLng}
             onLocationConfirmed={handleNextFromLocation}
             onBack={handleBackFromLocation}
+          />
+        )}
+
+        {currentStep === 'estimate' && (
+          <StepEstimateAndSubmit
+            formState={formState}
+            onBack={handleBackFromEstimate}
+            onSuccess={handleSubmitSuccess}
           />
         )}
       </div>

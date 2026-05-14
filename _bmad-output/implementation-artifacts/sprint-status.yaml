@@ -1,5 +1,5 @@
 # generated: 2026-05-12
-# last_updated: 2026-05-13 (story 2-4 ready-for-dev)
+# last_updated: 2026-05-14 (story 3-1 done after code review; 3-2 scope reverted, needs fresh create-story)
 # project: demo1
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # previous plan and are not auto-detected against the new story keys.
 
 generated: 2026-05-12
-last_updated: 2026-05-13 (story 2-4 ready-for-dev)
+last_updated: 2026-05-14 (story 3-1 done after code review; 3-2 scope reverted, needs fresh create-story)
 project: demo1
 project_key: NOKEY
 tracking_system: file-system
@@ -60,12 +60,12 @@ development_status:
   2-1-customer-dashboard-with-request-list: done
   2-2-service-category-selection-and-request-details: done
   2-3-location-capture-with-geolocation-and-map-pin: done
-  2-4-pricing-estimate-and-request-submission: ready-for-dev
+  2-4-pricing-estimate-and-request-submission: review
   epic-2-retrospective: optional
 
   # Epic 3: Handyman Job Marketplace & Matching
-  epic-3: backlog
-  3-1-handyman-profile-setup-with-categories-and-service-radius: backlog
+  epic-3: in-progress
+  3-1-handyman-profile-setup-with-categories-and-service-radius: done
   3-2-handyman-jobs-dashboard-and-available-job-feed: backlog
   3-3-accept-or-decline-a-job-with-first-accept-assignment-protection: backlog
   3-4-handyman-job-history: backlog

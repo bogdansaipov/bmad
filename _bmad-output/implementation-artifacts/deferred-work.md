@@ -2,6 +2,15 @@
 
 Items deferred from reviews — real issues, not noise, but intentionally out of scope for the originating story. Use this to seed future hardening stories.
 
+## Deferred from: code review of 3-1-handyman-profile-setup-with-categories-and-service-radius (2026-05-14)
+
+- Categories cache stays stale up to 5 min — a deactivated category can sit in the picker and produce a 400 on save (`apps/frontend/src/features/handyman-dashboard/hooks/useHandymanProfile.ts`). Reduce `staleTime` or invalidate from an admin-action event.
+- No optimistic concurrency / `version` column on `HandymanProfile`. Two-tab last-write-wins (`apps/backend/src/modules/users/users.service.ts:64-110`). Track for Epic 5 hardening.
+- `BadRequest("One or more selected categories do not exist")` doesn't say which (`apps/backend/src/modules/users/users.service.ts:81-86`). Return offending ids so FE can mark the chip.
+- `jsonRequest` drops the underlying fetch error (no `cause`) and has no AbortController/timeout (`apps/frontend/src/features/handyman-dashboard/api/handyman-profile.api.ts`). Pair with the global AbortController utility already noted from Story 2.1.
+- e2e tests in `users.e2e-spec.ts` share state across cases (the replace test relies on the prior PUT). Per-test cleanup of `handyman_category_preferences` would make them order-independent.
+- `afterAll` cleanup in `users.e2e-spec.ts` doesn't pre-delete orphan preferences from a prior crashed run. Test-infra hygiene.
+
 ## Deferred from: code review of 2-3-location-capture-with-geolocation-and-map-pin (2026-05-13)
 
 - `role="application"` on map container without keyboard pin-placement support (`MapLocationPicker.tsx:~64`). WCAG 2.1 AA gap: keyboard-only / screen-reader users cannot place a pin. Deferred to Story 5.4 (Accessibility Audit & UX Polish) — full keyboard controls (arrow-nudge + Enter-to-place) add scope beyond MVP.

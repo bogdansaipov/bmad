@@ -59,9 +59,25 @@ model HandymanProfile {
   ratingsCountCache   Int?     @map("ratings_count_cache")
   createdAt           DateTime @default(now()) @map("created_at")
 
-  user                User     @relation(fields: [userId], references: [id])
+  user                User                          @relation(fields: [userId], references: [id])
+  categoryPreferences HandymanCategoryPreference[]
 
   @@map("handyman_profiles")
+}
+
+model HandymanCategoryPreference {
+  id                String   @id @default(uuid())
+  handymanProfileId String   @map("handyman_profile_id")
+  categoryId        String   @map("category_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  handymanProfile HandymanProfile @relation(fields: [handymanProfileId], references: [id], onDelete: Cascade)
+  category        ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([handymanProfileId, categoryId])
+  @@index([handymanProfileId])
+  @@index([categoryId])
+  @@map("handyman_category_preferences")
 }
 
 enum RequestStatus {
@@ -81,7 +97,8 @@ model ServiceCategory {
   isActive    Boolean   @default(true) @map("is_active")
   createdAt   DateTime  @default(now()) @map("created_at")
 
-  requests    ServiceRequest[]
+  requests             ServiceRequest[]
+  handymanPreferences  HandymanCategoryPreference[]
 
   @@map("service_categories")
 }
@@ -130,4 +147,3 @@ model RequestImage {
   @@index([uploaderId])
   @@map("request_images")
 }
-

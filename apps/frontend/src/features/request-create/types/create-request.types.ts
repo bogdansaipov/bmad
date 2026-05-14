@@ -1,5 +1,4 @@
-export type CreateRequestStep = 'category' | 'details' | 'location'; // Story 2.3 adds 'location'
-// 'estimate' added by Story 2.4
+export type CreateRequestStep = 'category' | 'details' | 'location' | 'estimate';
 
 export interface CreateRequestFormState {
   // Step 1
@@ -13,7 +12,7 @@ export interface CreateRequestFormState {
   // Step 3 (Story 2.3)
   locationLat?: number;
   locationLng?: number;
-  // Step 4 (Story 2.4 will extend)
+  // Step 4 reads existing state only
 }
 
 export const INITIAL_FORM_STATE: CreateRequestFormState = {

@@ -1,6 +1,6 @@
 # Story 2.4: Pricing Estimate and Request Submission
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -24,8 +24,8 @@ So that I know roughly what to expect before committing.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1 — Add `PricingEstimateSchema` and `CreateRequest` schemas to contracts (AC: 1, 3)
-  - [ ] Create `packages/contracts/src/pricing.schemas.ts`:
+- [x] Task 1 — Add `PricingEstimateSchema` and `CreateRequest` schemas to contracts (AC: 1, 3)
+  - [x] Create `packages/contracts/src/pricing.schemas.ts`:
     ```typescript
     import { z } from 'zod';
 
@@ -40,7 +40,7 @@ So that I know roughly what to expect before committing.
 
     export type PricingEstimate = z.infer<typeof PricingEstimateSchema>;
     ```
-  - [ ] Add to `packages/contracts/src/request.schemas.ts` (after existing exports):
+  - [x] Add to `packages/contracts/src/request.schemas.ts` (after existing exports):
     ```typescript
     export const CreateRequestBodySchema = z.object({
       categoryId: z.string().uuid(),
@@ -61,10 +61,10 @@ So that I know roughly what to expect before committing.
     });
     export type CreateRequestResponse = z.infer<typeof CreateRequestResponseSchema>;
     ```
-  - [ ] Add `export * from './pricing.schemas';` to `packages/contracts/src/index.ts`
+  - [x] Add `export * from './pricing.schemas';` to `packages/contracts/src/index.ts`
 
-- [ ] Task 2 — Build `PricingService` and `PricingController` in NestJS (AC: 1)
-  - [ ] Create `apps/backend/src/modules/pricing/pricing.service.ts`:
+- [x] Task 2 — Build `PricingService` and `PricingController` in NestJS (AC: 1)
+  - [x] Create `apps/backend/src/modules/pricing/pricing.service.ts`:
     ```typescript
     import { Injectable } from '@nestjs/common';
 
@@ -100,7 +100,7 @@ So that I know roughly what to expect before committing.
       }
     }
     ```
-  - [ ] Create `apps/backend/src/modules/pricing/dto/get-estimate-query.dto.ts`:
+  - [x] Create `apps/backend/src/modules/pricing/dto/get-estimate-query.dto.ts`:
     ```typescript
     import { IsUUID } from 'class-validator';
 
@@ -109,7 +109,7 @@ So that I know roughly what to expect before committing.
       categoryId!: string;
     }
     ```
-  - [ ] Create `apps/backend/src/modules/pricing/pricing.controller.ts`:
+  - [x] Create `apps/backend/src/modules/pricing/pricing.controller.ts`:
     ```typescript
     import { Controller, Get, Query, UseGuards } from '@nestjs/common';
     import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -132,7 +132,7 @@ So that I know roughly what to expect before committing.
       }
     }
     ```
-  - [ ] Update `apps/backend/src/modules/pricing/pricing.module.ts`:
+  - [x] Update `apps/backend/src/modules/pricing/pricing.module.ts`:
     ```typescript
     import { Module } from '@nestjs/common';
     import { PricingController } from './pricing.controller';
@@ -146,8 +146,8 @@ So that I know roughly what to expect before committing.
     export class PricingModule {}
     ```
 
-- [ ] Task 3 — Add `POST /requests` endpoint to backend (AC: 3, 4, 5)
-  - [ ] Create `apps/backend/src/modules/requests/dto/create-request.dto.ts`:
+- [x] Task 3 — Add `POST /requests` endpoint to backend (AC: 3, 4, 5)
+  - [x] Create `apps/backend/src/modules/requests/dto/create-request.dto.ts`:
     ```typescript
     import {
       IsString, IsUUID, IsOptional, IsNumber, MaxLength, MinLength, Min, Max,
@@ -164,7 +164,7 @@ So that I know roughly what to expect before committing.
       @ApiProperty({ required: false }) @IsOptional() @IsNumber() @Type(() => Number) @Min(-180) @Max(180) locationLng?: number;
     }
     ```
-  - [ ] Create `apps/backend/src/modules/requests/dto/create-request-response.dto.ts`:
+  - [x] Create `apps/backend/src/modules/requests/dto/create-request-response.dto.ts`:
     ```typescript
     import { ApiProperty } from '@nestjs/swagger';
     import { RequestStatus } from '@prisma/client';
@@ -177,7 +177,7 @@ So that I know roughly what to expect before committing.
       @ApiProperty() createdAt!: string;
     }
     ```
-  - [ ] Add `create` method to `apps/backend/src/modules/requests/requests.service.ts`:
+  - [x] Add `create` method to `apps/backend/src/modules/requests/requests.service.ts`:
     - Inject `PricingService` in constructor alongside `PrismaService`
     - Validate that `categoryId` exists and is active — throw `NotFoundException` if not
     - If `imageId` provided: validate it exists and `uploaderId === customerId` — throw `BadRequestException('Invalid image')` if not
@@ -186,7 +186,7 @@ So that I know roughly what to expect before committing.
     - If `imageId` provided: `prisma.requestImage.update({ where: { id: dto.imageId }, data: { requestId: req.id } })`
     - Return `CreateRequestResponseDto` with `id`, `status`, `estimatedTotal` (number or null), `categoryName`, `createdAt` (ISO string)
     - Import: `BadRequestException, NotFoundException` from `@nestjs/common`; `PricingService` from `../pricing/pricing.service`
-  - [ ] Add `POST /requests` to `apps/backend/src/modules/requests/requests.controller.ts`:
+  - [x] Add `POST /requests` to `apps/backend/src/modules/requests/requests.controller.ts`:
     ```typescript
     @Post()
     @Roles(UserRole.CUSTOMER)
@@ -200,7 +200,7 @@ So that I know roughly what to expect before committing.
     }
     ```
     Add imports: `Post, Body, HttpCode` from `@nestjs/common`; `CreateRequestDto`, `CreateRequestResponseDto` from `./dto/`
-  - [ ] Update `apps/backend/src/modules/requests/requests.module.ts` to import `PricingModule`:
+  - [x] Update `apps/backend/src/modules/requests/requests.module.ts` to import `PricingModule`:
     ```typescript
     @Module({
       imports: [PricingModule],
@@ -210,8 +210,8 @@ So that I know roughly what to expect before committing.
     ```
     Add: `import { PricingModule } from '../pricing/pricing.module';`
 
-- [ ] Task 4 — Frontend API layer and TanStack Query hook (AC: 1)
-  - [ ] Create `apps/frontend/src/features/request-create/api/requests.api.ts`:
+- [x] Task 4 — Frontend API layer and TanStack Query hook (AC: 1)
+  - [x] Create `apps/frontend/src/features/request-create/api/requests.api.ts`:
     ```typescript
     import {
       PricingEstimateSchema, type PricingEstimate,
@@ -265,7 +265,7 @@ So that I know roughly what to expect before committing.
       return parsed.data;
     }
     ```
-  - [ ] Create `apps/frontend/src/features/request-create/hooks/usePricingEstimate.ts`:
+  - [x] Create `apps/frontend/src/features/request-create/hooks/usePricingEstimate.ts`:
     ```typescript
     import { useQuery } from '@tanstack/react-query';
     import { fetchPricingEstimate } from '../api/requests.api';
@@ -280,9 +280,9 @@ So that I know roughly what to expect before committing.
     }
     ```
 
-- [ ] Task 5 — Create `StepEstimateAndSubmit.tsx` — step 4 UI (AC: 1, 2, 3, 4)
-  - [ ] Create `apps/frontend/src/features/request-create/components/StepEstimateAndSubmit.tsx`
-  - [ ] Props interface:
+- [x] Task 5 — Create `StepEstimateAndSubmit.tsx` — step 4 UI (AC: 1, 2, 3, 4)
+  - [x] Create `apps/frontend/src/features/request-create/components/StepEstimateAndSubmit.tsx`
+  - [x] Props interface:
     ```typescript
     interface StepEstimateAndSubmitProps {
       formState: CreateRequestFormState;
@@ -290,12 +290,12 @@ So that I know roughly what to expect before committing.
       onSuccess: () => void;
     }
     ```
-  - [ ] Internal state: `isSubmitting: boolean`, `submitError: string | null`
-  - [ ] Use `usePricingEstimate(formState.categoryId)` for the estimate:
+  - [x] Internal state: `isSubmitting: boolean`, `submitError: string | null`
+  - [x] Use `usePricingEstimate(formState.categoryId)` for the estimate:
     - `isLoading`: show skeleton rows in the breakdown card
     - `isError`: show "Unable to load estimate. Please go back and try again." with no Submit button
     - `data`: render the breakdown
-  - [ ] Estimate breakdown card structure (white card, `shadow-sm rounded-xl p-4`):
+  - [x] Estimate breakdown card structure (white card, `shadow-sm rounded-xl p-4`):
     ```
     Heading: "Service estimate" text-sm font-semibold text-stone-500 uppercase tracking-wide
     Row: "Base service fee" ← $30.00 (right-aligned)
@@ -306,19 +306,19 @@ So that I know roughly what to expect before committing.
     Disclaimer: disclaimer text from API, text-xs text-stone-500 mt-2
     ```
     Format currency with: `$${value.toFixed(2)}`
-  - [ ] Request summary section (compact, text-sm text-stone-600):
+  - [x] Request summary section (compact, text-sm text-stone-600):
     - Category: `formState.categoryName`
     - Title: `formState.title`
     - Image: "Attached" if `formState.imageId`, else "None"
     - Location: "Set" if `formState.locationLat !== undefined`, else "Not set"
-  - [ ] Submit button (`"Confirm & Submit Request"`):
+  - [x] Submit button (`"Confirm & Submit Request"`):
     - Full-width, `bg-blue-700 text-white min-h-[44px] rounded-xl font-semibold`
     - `disabled` when: `isEstimateLoading || isEstimateError || isSubmitting || !data`
     - Shows "Submitting…" text while `isSubmitting`
-  - [ ] Back button: `border border-stone-300 text-[#1A1A2E] min-h-[44px]` calls `onBack()`; `disabled` when `isSubmitting`
-  - [ ] Error banner: if `submitError` is non-null, render `role="alert"` with `submitError` text above the buttons
-  - [ ] Heading: `"Review your request"` with `text-xl font-semibold text-[#1A1A2E]`
-  - [ ] Submit handler:
+  - [x] Back button: `border border-stone-300 text-[#1A1A2E] min-h-[44px]` calls `onBack()`; `disabled` when `isSubmitting`
+  - [x] Error banner: if `submitError` is non-null, render `role="alert"` with `submitError` text above the buttons
+  - [x] Heading: `"Review your request"` with `text-xl font-semibold text-[#1A1A2E]`
+  - [x] Submit handler:
     ```typescript
     async function handleSubmit() {
       if (isSubmitting) return; // guard double-submit
@@ -341,21 +341,21 @@ So that I know roughly what to expect before committing.
     }
     ```
 
-- [ ] Task 6 — Update `CreateRequestPage.tsx` to wire step 4 (AC: 3, 5)
-  - [ ] Update `create-request.types.ts`:
+- [x] Task 6 — Update `CreateRequestPage.tsx` to wire step 4 (AC: 3, 5)
+  - [x] Update `create-request.types.ts`:
     - `CreateRequestStep` → `'category' | 'details' | 'location' | 'estimate'`
     - Remove the `// 'estimate' added by Story 2.4` comment placeholder (it's now real)
-  - [ ] Import `StepEstimateAndSubmit` in `CreateRequestPage.tsx`
-  - [ ] Change `handleNextFromLocation`:
+  - [x] Import `StepEstimateAndSubmit` in `CreateRequestPage.tsx`
+  - [x] Change `handleNextFromLocation`:
     ```typescript
     function handleNextFromLocation(lat: number, lng: number) {
       setFormState((s) => ({ ...s, locationLat: lat, locationLng: lng }));
       setCurrentStep('estimate'); // ← was a deferred no-op comment in Story 2.3
     }
     ```
-  - [ ] Add `handleBackFromEstimate`: `setCurrentStep('location')`
-  - [ ] Add `handleSubmitSuccess`: `navigate('/dashboard/customer')`
-  - [ ] Fix `stepNumber` — remove unsafe cast, add 4th branch:
+  - [x] Add `handleBackFromEstimate`: `setCurrentStep('location')`
+  - [x] Add `handleSubmitSuccess`: `navigate('/dashboard/customer')`
+  - [x] Fix `stepNumber` — remove unsafe cast, add 4th branch:
     ```typescript
     const stepNumber: 1 | 2 | 3 | 4 =
       currentStep === 'category' ? 1 :
@@ -363,11 +363,11 @@ So that I know roughly what to expect before committing.
       currentStep === 'location' ? 3 :
       4;
     ```
-  - [ ] Update `StepProgressIndicator` prop — remove `as 1 | 2 | 3` cast:
+  - [x] Update `StepProgressIndicator` prop — remove `as 1 | 2 | 3` cast:
     ```tsx
     <StepProgressIndicator currentStep={stepNumber} totalSteps={4} />
     ```
-  - [ ] Add step 4 render:
+  - [x] Add step 4 render:
     ```tsx
     {currentStep === 'estimate' && (
       <StepEstimateAndSubmit
@@ -377,15 +377,15 @@ So that I know roughly what to expect before committing.
       />
     )}
     ```
-  - [ ] Wrap `StepEstimateAndSubmit` in `QueryClientProvider` if not already provided — check `main.tsx`/`App.tsx` to confirm `QueryClientProvider` is at app root (it already is from Story 2.1)
+  - [x] Wrap `StepEstimateAndSubmit` in `QueryClientProvider` if not already provided — check `main.tsx`/`App.tsx` to confirm `QueryClientProvider` is at app root (it already is from Story 2.1)
 
-- [ ] Task 7 — Backend unit and E2E tests (AC: 1, 3, 4, 5)
-  - [ ] Create `apps/backend/src/modules/pricing/pricing.service.spec.ts`:
+- [x] Task 7 — Backend unit and E2E tests (AC: 1, 3, 4, 5)
+  - [x] Create `apps/backend/src/modules/pricing/pricing.service.spec.ts`:
     - Test: `calculateEstimate` returns correct baseFee (30), categoryFee (20), partsAllowance (15)
     - Test: `estimatedTotal` equals `baseFee + categoryFee + partsAllowance` (65)
     - Test: `disclaimer` is a non-empty string
     - Test: returned `categoryId` matches input
-  - [ ] Add tests to `apps/backend/src/modules/requests/requests.service.spec.ts` for `create` method:
+  - [x] Add tests to `apps/backend/src/modules/requests/requests.service.spec.ts` for `create` method:
     - Mock `prisma.serviceCategory.findUnique`, `prisma.requestImage.findUnique`, `prisma.serviceRequest.create`, `prisma.requestImage.update`
     - Mock `PricingService` with `calculateEstimate` returning fixed estimate
     - Test: valid body creates request with `PENDING` status
@@ -394,20 +394,20 @@ So that I know roughly what to expect before committing.
     - Test: `BadRequestException` thrown when imageId belongs to different uploader
     - Test: image is linked (`requestImage.update` called) when imageId provided
     - Test: image not linked when imageId is absent
-  - [ ] Add E2E tests to `apps/backend/test/requests.e2e-spec.ts` (under new `describe('POST /requests')`):
+  - [x] Add E2E tests to `apps/backend/test/requests.e2e-spec.ts` (under new `describe('POST /requests')`):
     - `POST /requests` no auth → 401
     - `POST /requests` HANDYMAN token → 403
     - `POST /requests` CUSTOMER valid body (title + categoryId from seeded data) → 201 with `{ id, status: 'PENDING', estimatedTotal: 65, categoryName, createdAt }`
     - `POST /requests` missing required `title` → 400
     - `POST /requests` invalid UUID for `categoryId` → 400
     - **Note for E2E**: needs a seeded `ServiceCategory`. Add a category via direct Prisma insert in `beforeAll`, delete in `afterAll`
-  - [ ] Add E2E test to `apps/backend/test/categories.e2e-spec.ts` or a new `pricing.e2e-spec.ts`:
+  - [x] Add E2E test to `apps/backend/test/categories.e2e-spec.ts` or a new `pricing.e2e-spec.ts`:
     - `GET /pricing/estimate?categoryId=<valid-uuid>` CUSTOMER → 200 with estimate breakdown
     - `GET /pricing/estimate?categoryId=<valid-uuid>` HANDYMAN → 403
     - `GET /pricing/estimate` (missing query) → 400
 
-- [ ] Task 8 — Frontend tests (AC: 1, 2, 3, 4)
-  - [ ] Create `apps/frontend/src/features/request-create/components/StepEstimateAndSubmit.test.tsx`:
+- [x] Task 8 — Frontend tests (AC: 1, 2, 3, 4)
+  - [x] Create `apps/frontend/src/features/request-create/components/StepEstimateAndSubmit.test.tsx`:
     ```typescript
     vi.mock('../hooks/usePricingEstimate');
     vi.mock('../api/requests.api');
@@ -426,7 +426,7 @@ So that I know roughly what to expect before committing.
     - Test: error banner (`role="alert"`) shown and button re-enabled when `submitCreateRequest` rejects
     - Test: `onBack` prop called when Back button clicked
     - Test: error state shown and Submit hidden when `usePricingEstimate` returns `isError: true`
-  - [ ] Update `apps/frontend/src/features/request-create/pages/CreateRequestPage.test.tsx`:
+  - [x] Update `apps/frontend/src/features/request-create/pages/CreateRequestPage.test.tsx`:
     - Add `vi.mock('../api/requests.api')` alongside existing mocks
     - Add test: after confirming location (mock geolocation success + clicking "Confirm Location"), heading "Review your request" is visible
     - Confirm existing step-1, step-2, step-3 tests still pass (no regressions)
@@ -713,14 +713,65 @@ apps/frontend/
 
 ### Agent Model Used
 
-claude-sonnet-4-6
+GPT-5
 
 ### Debug Log References
 
+- `pnpm install`
+- `pnpm --filter @handrix/contracts build`
+- `pnpm --filter handrix-backend exec jest --runInBand src/modules/pricing/pricing.service.spec.ts src/modules/requests/requests.service.spec.ts`
+- `pnpm --filter handrix-frontend exec vitest run src/features/request-create/components/StepEstimateAndSubmit.test.tsx src/features/request-create/pages/CreateRequestPage.test.tsx`
+- `pnpm --filter handrix-backend exec tsc --noEmit`
+- `pnpm --filter handrix-frontend exec tsc --noEmit`
+- `pnpm --filter handrix-backend exec eslint "{src,test}/**/*.ts"`
+- `pnpm --filter handrix-frontend exec eslint .`
+- `docker run -d --rm --name handrix-e2e-postgres -e POSTGRES_USER=handrix -e POSTGRES_PASSWORD=handrix -e POSTGRES_DB=handrix_test -p 5434:5432 postgres:16-alpine`
+- `DATABASE_URL=postgresql://handrix:handrix@localhost:5434/handrix_test?schema=public JWT_SECRET=12345678901234567890123456789012 pnpm --filter handrix-backend exec prisma migrate deploy`
+- `DATABASE_URL=postgresql://handrix:handrix@localhost:5434/handrix_test?schema=public JWT_SECRET=12345678901234567890123456789012 NODE_ENV=test pnpm --filter handrix-backend exec jest --config ./test/jest-e2e.json --runInBand test/requests.e2e-spec.ts test/pricing.e2e-spec.ts`
+
 ### Completion Notes List
 
+- Implemented backend pricing estimation and customer request submission, including persisted `estimatedTotal` and `pricingExplanationSnapshot` values.
+- Added the estimate/review submit step to the customer create-request flow and routed successful submission back to the customer dashboard.
+- Added backend unit coverage, backend e2e coverage, and frontend component/page tests for the new pricing and submission flow.
+- Restored the missing `apps/backend` uploads implementation so the active backend app now typechecks and supports the existing image-upload dependency path used by request creation.
+- Validation results: contracts build passed, backend unit tests passed, frontend tests passed, backend/frontend typechecks passed, backend lint passed, backend e2e passed against a disposable Docker Postgres instance.
+- Frontend lint completed with pre-existing warnings in `AuthContext.tsx` and `MapLocationPicker.tsx`; no new lint errors were introduced by Story 2.4.
+
 ### File List
+
+- `_bmad-output/implementation-artifacts/2-4-pricing-estimate-and-request-submission.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `apps/backend/.gitignore`
+- `apps/backend/src/modules/pricing/dto/get-estimate-query.dto.ts`
+- `apps/backend/src/modules/pricing/pricing.controller.ts`
+- `apps/backend/src/modules/pricing/pricing.module.ts`
+- `apps/backend/src/modules/pricing/pricing.service.ts`
+- `apps/backend/src/modules/pricing/pricing.service.spec.ts`
+- `apps/backend/src/modules/requests/dto/create-request.dto.ts`
+- `apps/backend/src/modules/requests/dto/create-request-response.dto.ts`
+- `apps/backend/src/modules/requests/requests.controller.ts`
+- `apps/backend/src/modules/requests/requests.module.ts`
+- `apps/backend/src/modules/requests/requests.service.ts`
+- `apps/backend/src/modules/requests/requests.service.spec.ts`
+- `apps/backend/src/modules/uploads/dto/image-upload-response.dto.ts`
+- `apps/backend/src/modules/uploads/multer.config.ts`
+- `apps/backend/src/modules/uploads/uploads.controller.ts`
+- `apps/backend/src/modules/uploads/uploads.service.ts`
+- `apps/backend/test/pricing.e2e-spec.ts`
+- `apps/backend/test/requests.e2e-spec.ts`
+- `apps/frontend/src/features/request-create/api/requests.api.ts`
+- `apps/frontend/src/features/request-create/components/StepEstimateAndSubmit.test.tsx`
+- `apps/frontend/src/features/request-create/components/StepEstimateAndSubmit.tsx`
+- `apps/frontend/src/features/request-create/hooks/usePricingEstimate.ts`
+- `apps/frontend/src/features/request-create/pages/CreateRequestPage.test.tsx`
+- `apps/frontend/src/features/request-create/pages/CreateRequestPage.tsx`
+- `apps/frontend/src/features/request-create/types/create-request.types.ts`
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/pricing.schemas.ts`
+- `packages/contracts/src/request.schemas.ts`
 
 ## Change Log
 
 - 2026-05-13: Story 2.4 created — pricing estimate display and request submission, completing the 4-step create-request flow.
+- 2026-05-14: Implemented pricing APIs, customer request submission, estimate-step UI, backend/frontend tests, and the missing `apps/backend` uploads module required by the active app.

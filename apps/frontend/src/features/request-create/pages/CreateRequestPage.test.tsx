@@ -5,6 +5,7 @@ import { CreateRequestPage } from './CreateRequestPage';
 
 vi.mock('../hooks/useCategories');
 vi.mock('../api/uploads.api');
+vi.mock('../hooks/usePricingEstimate');
 vi.mock('maplibre-gl', () => ({
   default: {
     Map: vi.fn().mockImplementation(() => ({
@@ -25,6 +26,7 @@ vi.mock('maplibre-gl', () => ({
 
 import { useCategories } from '../hooks/useCategories';
 import { uploadRequestImage } from '../api/uploads.api';
+import { usePricingEstimate } from '../hooks/usePricingEstimate';
 
 function wrapper({ children }: { children: React.ReactNode }) {
   return <MemoryRouter>{children}</MemoryRouter>;
@@ -54,6 +56,18 @@ describe('CreateRequestPage', () => {
     } as unknown as ReturnType<typeof useCategories>);
 
     vi.mocked(uploadRequestImage).mockResolvedValue({ imageId: 'img-123' });
+    vi.mocked(usePricingEstimate).mockReturnValue({
+      data: {
+        categoryId: 'cat-1',
+        baseFee: 30,
+        categoryFee: 20,
+        partsAllowance: 15,
+        estimatedTotal: 65,
+        disclaimer: 'This is an estimate.',
+      },
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof usePricingEstimate>);
   });
 
   it('renders step 1 (category select) initially', () => {
@@ -142,5 +156,43 @@ describe('CreateRequestPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
 
     expect(screen.getByText('What kind of help do you need?')).toBeDefined();
+  });
+
+  it('advances to step 4 after confirming location', () => {
+    Object.defineProperty(globalThis.navigator, 'geolocation', {
+      value: {
+        getCurrentPosition: vi.fn((success: (pos: GeolocationPosition) => void) => {
+          success({
+            coords: {
+              latitude: 41.2995,
+              longitude: 69.2401,
+              accuracy: 1,
+              altitude: null,
+              altitudeAccuracy: null,
+              heading: null,
+              speed: null,
+              toJSON: () => ({}),
+            },
+            timestamp: Date.now(),
+            toJSON: () => ({}),
+          } as GeolocationPosition);
+        }),
+      },
+      configurable: true,
+    });
+
+    render(<CreateRequestPage />, { wrapper });
+
+    const plumbingLabel = screen.getByText('Plumbing').closest('label') as HTMLLabelElement;
+    fireEvent.click(plumbingLabel);
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+
+    fireEvent.change(screen.getByRole('textbox', { name: /title/i }), {
+      target: { value: 'Fix my sink' },
+    });
+    fireEvent.click(screen.getAllByRole('button', { name: /next/i })[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Location' }));
+
+    expect(screen.getByText('Review your request')).toBeDefined();
   });
 });

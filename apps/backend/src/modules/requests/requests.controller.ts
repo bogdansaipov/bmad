@@ -1,9 +1,11 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../auth';
 import { UserRole } from '@prisma/client';
 import { RequestsService } from './requests.service';
 import { CustomerRequestListResponseDto } from './dto/customer-request-list-response.dto';
+import { CreateRequestDto } from './dto/create-request.dto';
+import { CreateRequestResponseDto } from './dto/create-request-response.dto';
 import type { AuthenticatedUser } from '../auth';
 
 @ApiTags('requests')
@@ -17,5 +19,16 @@ export class RequestsController {
   @ApiOperation({ summary: 'List all service requests for the authenticated customer' })
   async findAll(@CurrentUser() user: AuthenticatedUser): Promise<CustomerRequestListResponseDto> {
     return this.requestsService.findAllForCustomer(user.userId);
+  }
+
+  @Post()
+  @Roles(UserRole.CUSTOMER)
+  @HttpCode(201)
+  @ApiOperation({ summary: 'Create a new service request' })
+  async create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: CreateRequestDto,
+  ): Promise<CreateRequestResponseDto> {
+    return this.requestsService.create(user.userId, body);
   }
 }
