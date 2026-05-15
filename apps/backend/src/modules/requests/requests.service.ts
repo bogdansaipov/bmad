@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, RequestStatus } from '@prisma/client';
 import { MatchingService } from '../matching/matching.service';
 import { PricingService } from '../pricing/pricing.service';
@@ -43,6 +43,8 @@ function mapToDto(r: RequestWithRelations): ServiceRequestListItemDto {
 
 @Injectable()
 export class RequestsService {
+  private readonly logger = new Logger(RequestsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly pricing: PricingService,
@@ -118,12 +120,9 @@ export class RequestsService {
       });
     }
 
-    await this.matching.createVisibleOffersForRequest({
-      requestId: created.id,
-      categoryId: dto.categoryId,
-      locationLat: dto.locationLat ?? null,
-      locationLng: dto.locationLng ?? null,
-    });
+    void this.matching.findAndOfferHandymen(created.id).catch((err) =>
+      this.logger.error(err),
+    );
 
     const response = new CreateRequestResponseDto();
     response.id = created.id;

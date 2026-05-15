@@ -7,6 +7,8 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { HandymanProfileSetupResponseDto } from './dto/handyman-profile-response.dto';
+import { UpdateHandymanAvailabilityDto } from './dto/update-availability.dto';
+import { UpdateHandymanBaseLocationDto } from './dto/update-base-location.dto';
 import { UpdateHandymanProfileDto } from './dto/update-handyman-profile.dto';
 
 const profileInclude = {
@@ -106,5 +108,49 @@ export class UsersService {
       }
       throw err;
     }
+  }
+
+  async updateHandymanAvailability(
+    userId: string,
+    dto: UpdateHandymanAvailabilityDto,
+  ): Promise<HandymanProfileSetupResponseDto> {
+    const profile = await this.prisma.handymanProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Handyman profile not found');
+    }
+
+    const updated = await this.prisma.handymanProfile.update({
+      where: { id: profile.id },
+      data: { availabilityStatus: dto.availabilityStatus },
+      include: profileInclude,
+    });
+
+    return toResponse(updated);
+  }
+
+  async updateHandymanBaseLocation(
+    userId: string,
+    dto: UpdateHandymanBaseLocationDto,
+  ): Promise<HandymanProfileSetupResponseDto> {
+    const profile = await this.prisma.handymanProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Handyman profile not found');
+    }
+
+    const updated = await this.prisma.handymanProfile.update({
+      where: { id: profile.id },
+      data: { baseLocationLat: dto.lat, baseLocationLng: dto.lng },
+      include: profileInclude,
+    });
+
+    return toResponse(updated);
   }
 }

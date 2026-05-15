@@ -1,13 +1,12 @@
 export class HandymanJobFeedItemDto {
+  offerId!: string;
   requestId!: string;
   categoryName!: string;
-  distanceKm!: number;
-  roughAreaLabel!: string;
-  estimatedTotal!: number | null;
+  distanceKm!: number | null;
+  roughArea!: string | null;
+  estimatedTotal!: number;
   shortDescription!: string;
-  createdAt!: string;
+  offeredAt!: string;
 }
 
-export class HandymanJobFeedResponseDto {
-  items!: HandymanJobFeedItemDto[];
-}
+export type HandymanJobFeedResponseDto = HandymanJobFeedItemDto[];

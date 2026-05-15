@@ -2,6 +2,28 @@
 
 Items deferred from reviews — real issues, not noise, but intentionally out of scope for the originating story. Use this to seed future hardening stories.
 
+## Deferred from: code review of 3-4-handyman-job-history (2026-05-15)
+
+- Re-offer to handyman who already declined: `findAndOfferHandymen` has no filter excluding handymen whose prior offer for the same `requestId` is in a terminal state (`DECLINED`/`ACCEPTED`). `skipDuplicates` only prevents a new DB row; the prior terminal-status row blocks the re-offer silently. Gaps exist in both directions. Address when retry/re-post flows are designed (`apps/backend/src/modules/matching/matching.service.ts`).
+- `offer.request.category` null dereference: `offer.request.category.name` is accessed with no null guard in both `findJobHistoryForHandyman` and `findAvailableOffersForHandyman`. `ON DELETE RESTRICT` prevents this in normal flow, but data corruption would crash both endpoints. Add a runtime guard when next touching this method (`apps/backend/src/modules/matching/matching.service.ts`).
+- MVP fallback includes all locationless handymen in every job: handymen without a `baseLocationLat`/`baseLocationLng` are included in ALL job offers regardless of geography. At scale this generates unbounded `job_offer_visibilities` rows. Revisit when base-location setup is enforced during onboarding (`apps/backend/src/modules/matching/matching.service.ts`).
+- `serviceRadiusKm = 0` admits handyman to matching but their feed is always empty: schema only enforces `Float?` with no minimum; admin-created or seed-data rows with `serviceRadiusKm = 0` pass the radius filter only for exact-distance matches. Add a DB-level check constraint (min 0.5) alongside the existing DTO validation in Epic 5 hardening (`apps/backend/prisma/schema.prisma`).
+- `requestStatus` in `JobHistoryRow` rendered as plain `<div>`, not chip: spec explicitly calls for a "chip" component; implementation uses a plain div with a BEM class. Align with the `StatusChip` pattern from the customer dashboard in Story 5.4 (UX polish) (`apps/frontend/src/features/handyman-jobs/components/JobHistoryRow.tsx`).
+
+## Deferred from: code review of 3-3-accept-or-decline-a-job-with-first-accept-assignment-protection (2026-05-15)
+
+- `RequestStatusHistory.actorType` is a free-form `String` column with no DB-level check constraint or Prisma enum (`apps/backend/prisma/schema.prisma:67-81`). Same pattern as the already-deferred `offerStatus` / `availabilityStatus` columns — typos like `'sytem'` will silently corrupt audit data. Bundle into Epic 5 hardening alongside the other free-form-status columns.
+- `requestStatusHistory` rows for system-actor transitions carry no `metadata` capturing the trigger reason (`apps/backend/src/modules/assignments/assignments.service.ts:105-112`). Audit trail says "system rejected" with no reason; loses traceability between "all handymen declined" and other future system triggers. Add when a second system-actor transition lands (story 4.x).
+- No rate limiting / throttling on `POST /assignments/:offerId/accept|decline` (`apps/backend/src/modules/assignments/assignments.controller.ts`). Pre-existing platform-wide gap — no throttling exists anywhere yet. Belongs in Story 5.2 (security baselines) alongside auth/upload throttling.
+- No idempotency on accept: repeated POSTs (e.g., mobile retry on flaky network) return 404 even though the original accept succeeded (`apps/backend/src/modules/assignments/assignments.service.ts:15-72`). Acceptable for MVP; revisit when mobile retry behavior becomes a real problem (e.g., Story 4.2 active-job mode).
+
+## Deferred from: code review of 3-2-handyman-jobs-dashboard-and-available-job-feed (2026-05-15)
+
+- `offerStatus` is a plain `String` column on `job_offer_visibilities` with no DB-level check constraint or Prisma enum. Any string value can be written directly, making status-based queries unreliable. Add a DB check constraint or migrate to a Prisma enum in Epic 5 hardening (`apps/backend/prisma/schema.prisma`).
+- `ON DELETE RESTRICT` on both FKs in `job_offer_visibilities` — deletion of a `HandymanProfile` or `ServiceRequest` is blocked while pending offer records exist. No cleanup step in `UsersService`. Design a cascading cleanup strategy (soft-delete, cascade, or pre-delete sweep) when account-deletion or request-cancellation flows are built (`apps/backend/prisma/migrations/20260515120000_add_job_offer_visibility/migration.sql`).
+- `useHandymanAvailability.onSuccess` writes back to hard-coded query key `['handymanProfile']`. If `useHandymanProfile` ever changes its query key, the optimistic update silently breaks with no compile-time error. Extract query key to a shared constant when the hook is next touched (`apps/frontend/src/features/handyman-jobs/hooks/useHandymanAvailability.ts`).
+- `findAvailableOffersForHandyman` accesses `offer.request.category.name` with no null guard. `ON DELETE RESTRICT` prevents this in normal flow but raw-SQL bypasses or future migration accidents could leave orphaned offer records that crash the feed endpoint. Add a runtime guard when next touching this method (`apps/backend/src/modules/matching/matching.service.ts`).
+
 ## Deferred from: code review of 3-1-handyman-profile-setup-with-categories-and-service-radius (2026-05-14)
 
 - Categories cache stays stale up to 5 min — a deactivated category can sit in the picker and produce a 400 on save (`apps/frontend/src/features/handyman-dashboard/hooks/useHandymanProfile.ts`). Reduce `staleTime` or invalidate from an admin-action event.

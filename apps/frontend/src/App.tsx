@@ -6,6 +6,8 @@ import { LoginPage } from './features/customer-auth/pages/LoginPage';
 import { CustomerDashboardPage } from './features/customer-dashboard/pages/CustomerDashboardPage';
 import { CreateRequestPage } from './features/request-create/pages/CreateRequestPage';
 import { HandymanDashboardPage } from './features/handyman-dashboard/pages/HandymanDashboardPage';
+import { HandymanJobsPage } from './features/handyman-jobs/pages/HandymanJobsPage';
+import { HandymanHistoryPage } from './features/handyman-jobs/pages/HandymanHistoryPage';
 
 function RootRedirect() {
   const { status, user } = useAuth();
@@ -41,6 +43,30 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth requiredRole="HANDYMAN">
         <HandymanDashboardPage />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/jobs',
+    element: (
+      <RequireAuth requiredRole="HANDYMAN">
+        <HandymanJobsPage />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/history/handyman',
+    element: (
+      <RequireAuth requiredRole="HANDYMAN">
+        <HandymanHistoryPage />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/settings/handyman',
+    element: (
+      <RequireAuth requiredRole="HANDYMAN">
+        <div>Handyman Settings — coming soon</div>
       </RequireAuth>
     ),
   },

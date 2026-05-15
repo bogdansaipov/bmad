@@ -29,11 +29,13 @@ model User {
   account_status AccountStatus    @default(ACTIVE)
   created_at     DateTime         @default(now())
 
-  customerProfile   CustomerProfile?
-  handymanProfile   HandymanProfile?
-  customerRequests  ServiceRequest[] @relation("CustomerRequests")
-  handymanJobs      ServiceRequest[] @relation("HandymanAssignments")
-  uploadedImages    RequestImage[]   @relation("UploadedImages")
+  customerProfile      CustomerProfile?
+  handymanProfile      HandymanProfile?
+  customerRequests     ServiceRequest[]        @relation("CustomerRequests")
+  handymanJobs         ServiceRequest[]        @relation("HandymanAssignments")
+  uploadedImages       RequestImage[]          @relation("UploadedImages")
+  assignmentRecords    RequestAssignment[]     @relation("HandymanAssignmentRecords")
+  statusHistoryEntries RequestStatusHistory[]  @relation("StatusHistoryEntries")
 
   @@map("users")
 }
@@ -55,12 +57,15 @@ model HandymanProfile {
   displayName         String   @map("display_name")
   availabilityStatus  String   @default("offline") @map("availability_status")
   serviceRadiusKm     Float?   @map("service_radius_km")
+  baseLocationLat     Float?   @map("base_location_lat")
+  baseLocationLng     Float?   @map("base_location_lng")
   averageRatingCache  Float?   @map("average_rating_cache")
   ratingsCountCache   Int?     @map("ratings_count_cache")
   createdAt           DateTime @default(now()) @map("created_at")
 
   user                User                          @relation(fields: [userId], references: [id])
   categoryPreferences HandymanCategoryPreference[]
+  jobOffers           JobOfferVisibility[]
 
   @@map("handyman_profiles")
 }
@@ -123,12 +128,44 @@ model ServiceRequest {
   category         ServiceCategory  @relation(fields: [categoryId], references: [id])
   assignedHandyman User?            @relation("HandymanAssignments", fields: [assignedHandymanId], references: [id])
   images           RequestImage[]
+  jobOffers        JobOfferVisibility[]
+  assignment       RequestAssignment?
+  statusHistory    RequestStatusHistory[]
 
   @@index([customerId, createdAt])
   @@index([status])
   @@index([assignedHandymanId])
   @@index([categoryId])
   @@map("service_requests")
+}
+
+model RequestAssignment {
+  id               String   @id @default(uuid())
+  requestId        String   @unique @map("request_id")
+  handymanUserId   String   @map("handyman_user_id")
+  acceptedAt       DateTime @default(now()) @map("accepted_at")
+  assignmentStatus String   @default("active") @map("assignment_status")
+
+  request  ServiceRequest @relation(fields: [requestId], references: [id])
+  handyman User           @relation("HandymanAssignmentRecords", fields: [handymanUserId], references: [id])
+
+  @@map("request_assignments")
+}
+
+model RequestStatusHistory {
+  id        String        @id @default(uuid())
+  requestId String        @map("request_id")
+  status    RequestStatus
+  actorType String        @map("actor_type")
+  actorId   String?       @map("actor_id")
+  createdAt DateTime      @default(now()) @map("created_at")
+  metadata  Json?
+
+  request ServiceRequest @relation(fields: [requestId], references: [id])
+  actor   User?          @relation("StatusHistoryEntries", fields: [actorId], references: [id])
+
+  @@index([requestId, createdAt])
+  @@map("request_status_history")
 }
 
 model RequestImage {
@@ -146,4 +183,21 @@ model RequestImage {
   @@index([requestId])
   @@index([uploaderId])
   @@map("request_images")
+}
+
+model JobOfferVisibility {
+  id                String    @id @default(uuid())
+  requestId         String    @map("request_id")
+  handymanProfileId String    @map("handyman_profile_id")
+  offerStatus       String    @default("pending") @map("offer_status")
+  offeredAt         DateTime  @default(now()) @map("offered_at")
+  respondedAt       DateTime? @map("responded_at")
+
+  request         ServiceRequest  @relation(fields: [requestId], references: [id])
+  handymanProfile HandymanProfile @relation(fields: [handymanProfileId], references: [id])
+
+  @@unique([requestId, handymanProfileId])
+  @@index([requestId])
+  @@index([handymanProfileId])
+  @@map("job_offer_visibilities")
 }

@@ -1,5 +1,6 @@
 import { useAuth } from '../../customer-auth/context/AuthContext';
 import { AuthError } from '../api/handyman-profile.api';
+import { HandymanNav } from '../components/HandymanNav';
 import { HandymanProfileForm } from '../components/HandymanProfileForm';
 import { ProfileSetupBanner } from '../components/ProfileSetupBanner';
 import {
@@ -30,6 +31,7 @@ export function HandymanDashboardPage() {
 
   return (
     <div className="dashboard handyman-dashboard">
+      <HandymanNav />
       <div className="dashboard-header">
         <div>
           <h1>Handyman Dashboard</h1>
