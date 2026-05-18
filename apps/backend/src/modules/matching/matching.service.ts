@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { HANDYMAN_AVAILABILITY_STATUS, JOB_OFFER_STATUS } from '@handrix/contracts';
+import { RequestStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { ActiveJobResponseDto } from './dto/active-job-response.dto';
 import { HandymanJobFeedItemDto, HandymanJobFeedResponseDto } from './dto/handyman-job-feed-response.dto';
 import { HandymanJobHistoryItemDto, HandymanJobHistoryResponseDto } from './dto/handyman-job-history-response.dto';
 
@@ -108,6 +110,112 @@ export class MatchingService {
       offeredAt: offer.offeredAt.toISOString(),
       respondedAt: offer.respondedAt?.toISOString() ?? null,
     }));
+  }
+
+  private readonly VALID_TRANSITIONS: Partial<Record<RequestStatus, RequestStatus>> = {
+    [RequestStatus.ASSIGNED]: RequestStatus.ON_THE_WAY,
+    [RequestStatus.ON_THE_WAY]: RequestStatus.ARRIVED,
+    [RequestStatus.ARRIVED]: RequestStatus.WORKING,
+    [RequestStatus.WORKING]: RequestStatus.COMPLETE,
+  };
+
+  private readonly ACTIVE_STATUSES = new Set<RequestStatus>([
+    RequestStatus.ASSIGNED,
+    RequestStatus.ON_THE_WAY,
+    RequestStatus.ARRIVED,
+    RequestStatus.WORKING,
+  ]);
+
+  async getActiveJobForHandyman(handymanId: string, requestId: string): Promise<ActiveJobResponseDto> {
+    const request = await this.prisma.serviceRequest.findUnique({
+      where: { id: requestId },
+      include: { category: { select: { name: true } } },
+    });
+
+    if (!request) throw new NotFoundException('Request not found');
+    if (request.assignedHandymanId !== handymanId) throw new ForbiddenException('Access denied');
+    if (!this.ACTIVE_STATUSES.has(request.status)) {
+      throw new BadRequestException('Request is not in an active state');
+    }
+
+    return {
+      requestId: request.id,
+      title: request.title,
+      description: request.description ?? null,
+      status: request.status,
+      categoryName: request.category?.name ?? 'Unknown',
+      estimatedTotal: request.estimatedTotal?.toNumber() ?? null,
+      locationLat: request.locationLat ?? null,
+      locationLng: request.locationLng ?? null,
+      createdAt: request.createdAt.toISOString(),
+    };
+  }
+
+  async updateJobStatus(
+    handymanId: string,
+    requestId: string,
+    newStatusStr: string,
+  ): Promise<{ requestId: string; status: string }> {
+    const request = await this.prisma.serviceRequest.findUnique({
+      where: { id: requestId },
+      select: { id: true, status: true, assignedHandymanId: true },
+    });
+
+    if (!request) throw new NotFoundException('Request not found');
+    if (request.assignedHandymanId !== handymanId) throw new ForbiddenException('Access denied');
+
+    const expectedNext = this.VALID_TRANSITIONS[request.status];
+    const newStatus = newStatusStr as RequestStatus;
+    if (!expectedNext || expectedNext !== newStatus) {
+      throw new BadRequestException(
+        `Invalid transition: ${request.status} → ${newStatusStr}`,
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.serviceRequest.update({
+        where: { id: requestId },
+        data: {
+          status: newStatus,
+          ...(newStatus === RequestStatus.COMPLETE ? { completedAt: new Date() } : {}),
+        },
+      });
+
+      await tx.requestStatusHistory.create({
+        data: {
+          requestId,
+          status: newStatus,
+          actorType: 'handyman',
+          actorId: handymanId,
+        },
+      });
+    });
+
+    return { requestId, status: newStatus };
+  }
+
+  async postHandymanLocation(
+    handymanId: string,
+    requestId: string,
+    lat: number,
+    lng: number,
+  ): Promise<{ id: string; recordedAt: string }> {
+    const request = await this.prisma.serviceRequest.findUnique({
+      where: { id: requestId },
+      select: { id: true, assignedHandymanId: true, status: true },
+    });
+
+    if (!request) throw new NotFoundException('Request not found');
+    if (request.assignedHandymanId !== handymanId) throw new ForbiddenException('Access denied');
+    if (!this.ACTIVE_STATUSES.has(request.status)) {
+      throw new BadRequestException('Cannot post location for non-active request');
+    }
+
+    const loc = await this.prisma.handymanLocationUpdate.create({
+      data: { requestId, handymanId, lat, lng },
+    });
+
+    return { id: loc.id, recordedAt: loc.recordedAt.toISOString() };
   }
 
   async findAvailableOffersForHandyman(userId: string): Promise<HandymanJobFeedResponseDto> {

@@ -8,6 +8,8 @@ import { CreateRequestPage } from './features/request-create/pages/CreateRequest
 import { HandymanDashboardPage } from './features/handyman-dashboard/pages/HandymanDashboardPage';
 import { HandymanJobsPage } from './features/handyman-jobs/pages/HandymanJobsPage';
 import { HandymanHistoryPage } from './features/handyman-jobs/pages/HandymanHistoryPage';
+import { RequestTrackingPage } from './features/request-tracking/pages/RequestTrackingPage';
+import { ActiveJobPage } from './features/handyman-active-job/pages/ActiveJobPage';
 
 function RootRedirect() {
   const { status, user } = useAuth();
@@ -55,6 +57,14 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: '/jobs/:requestId/active',
+    element: (
+      <RequireAuth requiredRole="HANDYMAN">
+        <ActiveJobPage />
+      </RequireAuth>
+    ),
+  },
+  {
     path: '/history/handyman',
     element: (
       <RequireAuth requiredRole="HANDYMAN">
@@ -75,6 +85,14 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth requiredRole="CUSTOMER">
         <CreateRequestPage />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/requests/:requestId/tracking',
+    element: (
+      <RequireAuth requiredRole="CUSTOMER">
+        <RequestTrackingPage />
       </RequireAuth>
     ),
   },

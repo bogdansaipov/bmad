@@ -29,13 +29,14 @@ model User {
   account_status AccountStatus    @default(ACTIVE)
   created_at     DateTime         @default(now())
 
-  customerProfile      CustomerProfile?
-  handymanProfile      HandymanProfile?
-  customerRequests     ServiceRequest[]        @relation("CustomerRequests")
-  handymanJobs         ServiceRequest[]        @relation("HandymanAssignments")
-  uploadedImages       RequestImage[]          @relation("UploadedImages")
-  assignmentRecords    RequestAssignment[]     @relation("HandymanAssignmentRecords")
-  statusHistoryEntries RequestStatusHistory[]  @relation("StatusHistoryEntries")
+  customerProfile         CustomerProfile?
+  handymanProfile         HandymanProfile?
+  customerRequests        ServiceRequest[]          @relation("CustomerRequests")
+  handymanJobs            ServiceRequest[]          @relation("HandymanAssignments")
+  uploadedImages          RequestImage[]            @relation("UploadedImages")
+  assignmentRecords       RequestAssignment[]       @relation("HandymanAssignmentRecords")
+  statusHistoryEntries    RequestStatusHistory[]    @relation("StatusHistoryEntries")
+  handymanLocationUpdates HandymanLocationUpdate[]
 
   @@map("users")
 }
@@ -131,6 +132,7 @@ model ServiceRequest {
   jobOffers        JobOfferVisibility[]
   assignment       RequestAssignment?
   statusHistory    RequestStatusHistory[]
+  locationUpdates  HandymanLocationUpdate[]
 
   @@index([customerId, createdAt])
   @@index([status])
@@ -200,4 +202,19 @@ model JobOfferVisibility {
   @@index([requestId])
   @@index([handymanProfileId])
   @@map("job_offer_visibilities")
+}
+
+model HandymanLocationUpdate {
+  id         String   @id @default(cuid())
+  requestId  String   @map("request_id")
+  handymanId String   @map("handyman_id")
+  lat        Float
+  lng        Float
+  recordedAt DateTime @default(now()) @map("recorded_at")
+
+  request  ServiceRequest @relation(fields: [requestId], references: [id])
+  handyman User           @relation(fields: [handymanId], references: [id])
+
+  @@index([requestId, recordedAt])
+  @@map("handyman_location_updates")
 }

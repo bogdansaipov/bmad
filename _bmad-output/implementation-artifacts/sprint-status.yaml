@@ -1,5 +1,5 @@
 # generated: 2026-05-12
-# last_updated: 2026-05-15 (story 3-4 done)
+# last_updated: 2026-05-18 (story 4-1 review)
 # project: demo1
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # previous plan and are not auto-detected against the new story keys.
 
 generated: 2026-05-12
-last_updated: 2026-05-15 (story 3-4 done)
+last_updated: 2026-05-18 (story 4-2 done)
 project: demo1
 project_key: NOKEY
 tracking_system: file-system
@@ -72,9 +72,9 @@ development_status:
   epic-3-retrospective: optional
 
   # Epic 4: Fulfillment Lifecycle, Live Tracking & Rating
-  epic-4: backlog
-  4-1-customer-request-tracking-view-with-two-pin-map: backlog
-  4-2-handyman-active-job-mode-with-status-updates-and-location-posting: backlog
+  epic-4: in-progress
+  4-1-customer-request-tracking-view-with-two-pin-map: done
+  4-2-handyman-active-job-mode-with-status-updates-and-location-posting: done
   4-3-real-time-status-push-via-websocket: backlog
   4-4-post-completion-customer-rating: backlog
   epic-4-retrospective: optional
