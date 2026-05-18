@@ -26,25 +26,15 @@ jobs:
           --health-retries 5
 
     env:
-      VITE_HANDRIX_ENV: staging
-      VITE_API_BASE_URL: https://api.staging.handrix.example
-      HANDRIX_ENV: staging
-      HANDRIX_API_PORT: 3000
-      HANDRIX_API_CORS_ORIGIN: https://web.staging.handrix.example
-      HANDRIX_TRUST_PROXY: true
-      HANDRIX_RATE_LIMIT_DEFAULT_LIMIT: 120
-      HANDRIX_RATE_LIMIT_DEFAULT_TTL_MS: 60000
-      HANDRIX_DATABASE_URL: postgresql://handrix:handrix@127.0.0.1:5432/handrix?schema=public
-      HANDRIX_INTERNAL_AUTH_SECRET: ci-internal-auth-secret
-      HANDRIX_INTERNAL_AUTH_ISSUER: handrix-api-staging
-      HANDRIX_INTERNAL_AUTH_TTL_MINUTES: 480
-      HANDRIX_REQUEST_TOKEN_SECRET: ci-request-token-secret
-      HANDRIX_OPS_EMAIL: ops@staging.handrix.example
-      HANDRIX_OPS_PASSWORD: ci-ops-password
-      HANDRIX_OPS_DISPLAY_NAME: Operations Coordinator
-      HANDRIX_SUPPORT_EMAIL: support@staging.handrix.example
-      HANDRIX_SUPPORT_PASSWORD: ci-support-password
-      HANDRIX_SUPPORT_DISPLAY_NAME: Support Coordinator
+      # Backend
+      DATABASE_URL: postgresql://handrix:handrix@127.0.0.1:5432/handrix?schema=public
+      JWT_SECRET: ci-jwt-secret-at-least-32-characters-long
+      JWT_EXPIRES_IN: 7d
+      PORT: 3000
+      NODE_ENV: test
+      CORS_ORIGIN: http://localhost:5173
+      # Frontend
+      VITE_API_BASE_URL: http://localhost:3000
 
     steps:
       - name: Check out repository

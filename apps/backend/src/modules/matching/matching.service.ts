@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HANDYMAN_AVAILABILITY_STATUS, JOB_OFFER_STATUS } from '@handrix/contracts';
 import { RequestStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -14,6 +14,8 @@ function mapShortDescription(title: string, description: string | null): string 
 
 @Injectable()
 export class MatchingService {
+  private readonly logger = new Logger(MatchingService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly realtimeService: RealtimeService,
@@ -65,7 +67,10 @@ export class MatchingService {
       return hp.serviceRadiusKm == null || dist <= hp.serviceRadiusKm;
     });
 
-    if (eligible.length === 0) return 0;
+    if (eligible.length === 0) {
+      this.logger.warn({ event: 'matching.no_eligible_handymen', requestId });
+      return 0;
+    }
 
     const result = await this.prisma.jobOfferVisibility.createMany({
       data: eligible.map((hp) => ({
@@ -75,6 +80,7 @@ export class MatchingService {
       skipDuplicates: true,
     });
 
+    this.logger.log({ event: 'matching.offers.created', requestId, handymanCount: result.count });
     return result.count;
   }
 

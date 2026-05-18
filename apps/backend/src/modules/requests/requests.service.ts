@@ -69,6 +69,9 @@ export class RequestsService {
       } else {
         historical.push(r);
       }
+      if (r.assignedHandymanId != null && r.assignedHandyman?.handymanProfile?.displayName == null) {
+        this.logger.warn({ event: 'request.data_inconsistency', requestId: r.id, assignedHandymanId: r.assignedHandymanId });
+      }
     }
 
     const dto = new CustomerRequestListResponseDto();
@@ -125,17 +128,25 @@ export class RequestsService {
         },
       });
       return req;
+    }).catch((err: Error) => {
+      this.logger.error({ event: 'request.create.failed', customerId }, err.stack);
+      throw err;
     });
 
     if (dto.imageId) {
       await this.prisma.requestImage.update({
         where: { id: dto.imageId },
         data: { requestId: created.id },
+      }).catch((err: Error) => {
+        this.logger.error({ event: 'request.create.failed', customerId }, err.stack);
+        throw err;
       });
     }
 
-    void this.matching.findAndOfferHandymen(created.id).catch((err) =>
-      this.logger.error(err),
+    this.logger.log({ event: 'request.created', requestId: created.id, customerId, categoryId: dto.categoryId });
+
+    void this.matching.findAndOfferHandymen(created.id).catch((err: Error) =>
+      this.logger.error({ event: 'request.create.failed', customerId }, err.stack),
     );
 
     const response = new CreateRequestResponseDto();

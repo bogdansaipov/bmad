@@ -1,9 +1,11 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, RequestStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class RatingsService {
+  private readonly logger = new Logger(RatingsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async submitRating(
@@ -46,11 +48,13 @@ export class RatingsService {
       });
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        this.logger.warn({ event: 'rating.duplicate', requestId });
         throw new BadRequestException('Rating already submitted for this request');
       }
       throw err;
     }
 
+    this.logger.log({ event: 'rating.submitted', requestId, handymanId: request.assignedHandymanId, stars });
     return {
       id: rating.id,
       requestId: rating.requestId,

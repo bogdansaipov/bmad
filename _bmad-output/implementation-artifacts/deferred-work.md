@@ -2,6 +2,11 @@
 
 Items deferred from reviews — real issues, not noise, but intentionally out of scope for the originating story. Use this to seed future hardening stories.
 
+## Deferred from: code review of 5-3-instrument-observability-and-validate-deployment-readiness (2026-05-18)
+
+- **Root `lint`/`typecheck` scripts reference stale filter names**: `package.json` lines 25 and 27 still use `handrix-web`, `handrix-api`, `@handrix/shared-contracts` — old names that no longer resolve. Only the `ci:*` scripts were in scope for Task 4. Fix in a future cleanup story.
+- **`data_inconsistency` warn fires on every customer list request for incomplete handyman profiles**: The warn in `findAllForCustomer` is an intentional deferred flag from the 2-1 review. In production, requests with handymen who lack display names will emit a warning on every list load. Evaluate whether to suppress after one occurrence or add a DB-level constraint ensuring display name is required (`apps/backend/src/modules/requests/requests.service.ts:71`).
+
 ## Deferred from: code review of 5-2-apply-security-baselines-and-data-protection (2026-05-18)
 
 - **`trust proxy 1` unconditional — IP spoofing risk in non-proxy deployments**: `app.getHttpAdapter().getInstance().set('trust proxy', 1)` is applied globally. If the app is deployed without a reverse proxy, clients can spoof their IP via `X-Forwarded-For`, defeating IP-based rate-limit keying. Address by gating on `NODE_ENV=production` or a dedicated env flag when deployment topology is locked down (`apps/backend/src/main.ts`).

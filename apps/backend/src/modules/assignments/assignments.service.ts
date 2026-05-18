@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { RequestStatus } from '@prisma/client';
@@ -10,6 +11,8 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AssignmentsService {
+  private readonly logger = new Logger(AssignmentsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async acceptJob(userId: string, offerId: string): Promise<AcceptJobResponse> {
@@ -33,6 +36,7 @@ export class AssignmentsService {
       });
 
       if (updated.count === 0) {
+        this.logger.warn({ event: 'job.accept.conflict', offerId, handymanId: userId });
         throw new ConflictException('Request already assigned to another handyman');
       }
 
@@ -68,6 +72,7 @@ export class AssignmentsService {
       });
     });
 
+    this.logger.log({ event: 'job.accepted', offerId, handymanId: userId, requestId: offer.requestId });
     return { requestId: offer.requestId, status: 'ASSIGNED' };
   }
 
@@ -120,6 +125,7 @@ export class AssignmentsService {
       }
     });
 
+    this.logger.log({ event: 'job.declined', offerId, handymanId: userId });
     return { offerId, offerStatus: 'declined' };
   }
 }

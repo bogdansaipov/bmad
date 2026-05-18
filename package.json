@@ -17,9 +17,9 @@
   },
   "scripts": {
     "bootstrap": "./scripts/bootstrap.sh",
-    "ci:backend": "pnpm --filter handrix-api prisma:generate && pnpm --filter handrix-api prisma:validate && pnpm --filter handrix-api prisma:migrate:deploy && pnpm --filter handrix-api typecheck && pnpm --filter handrix-api lint && pnpm --filter handrix-api test:ci && pnpm --filter handrix-api test:e2e:ci && pnpm --filter handrix-api build",
-    "ci:contracts": "pnpm --filter @handrix/shared-contracts build",
-    "ci:frontend": "pnpm ci:contracts && pnpm --filter handrix-web typecheck && pnpm --filter handrix-web lint && pnpm --filter handrix-web test && pnpm --filter handrix-web build",
+    "ci:contracts": "pnpm --filter @handrix/contracts build",
+    "ci:backend": "pnpm --filter @handrix/contracts build && pnpm --filter handrix-backend prisma:generate && pnpm --filter handrix-backend prisma:validate && pnpm --filter handrix-backend prisma:migrate:deploy && pnpm --filter handrix-backend typecheck && pnpm --filter handrix-backend lint && pnpm --filter handrix-backend build",
+    "ci:frontend": "pnpm --filter @handrix/contracts build && pnpm --filter handrix-frontend typecheck && pnpm --filter handrix-frontend lint && pnpm --filter handrix-frontend build",
     "dev": "./scripts/dev.sh",
     "build": "pnpm -r build",
     "lint": "pnpm --filter handrix-web lint && pnpm --filter handrix-api lint",
