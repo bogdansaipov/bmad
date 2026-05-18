@@ -37,6 +37,8 @@ model User {
   assignmentRecords       RequestAssignment[]       @relation("HandymanAssignmentRecords")
   statusHistoryEntries    RequestStatusHistory[]    @relation("StatusHistoryEntries")
   handymanLocationUpdates HandymanLocationUpdate[]
+  ratingsGiven            RequestRating[]           @relation("CustomerRatings")
+  ratingsReceived         RequestRating[]           @relation("HandymanRatingsReceived")
 
   @@map("users")
 }
@@ -133,6 +135,7 @@ model ServiceRequest {
   assignment       RequestAssignment?
   statusHistory    RequestStatusHistory[]
   locationUpdates  HandymanLocationUpdate[]
+  rating           RequestRating?
 
   @@index([customerId, createdAt])
   @@index([status])
@@ -217,4 +220,20 @@ model HandymanLocationUpdate {
 
   @@index([requestId, recordedAt])
   @@map("handyman_location_updates")
+}
+
+model RequestRating {
+  id            String   @id @default(uuid())
+  requestId     String   @unique @map("request_id")
+  customerId    String   @map("customer_id")
+  handymanId    String   @map("handyman_id")
+  stars         Int
+  shortFeedback String?  @map("short_feedback")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  request  ServiceRequest @relation(fields: [requestId], references: [id])
+  customer User           @relation("CustomerRatings", fields: [customerId], references: [id])
+  handyman User           @relation("HandymanRatingsReceived", fields: [handymanId], references: [id])
+
+  @@map("request_ratings")
 }

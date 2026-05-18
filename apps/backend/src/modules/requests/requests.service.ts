@@ -24,6 +24,7 @@ const includeRelations = {
   assignedHandyman: {
     include: { handymanProfile: { select: { displayName: true } } },
   },
+  rating: { select: { id: true } },
 } as const;
 
 type RequestWithRelations = Prisma.ServiceRequestGetPayload<{
@@ -38,6 +39,7 @@ function mapToDto(r: RequestWithRelations): ServiceRequestListItemDto {
   dto.estimatedTotal = r.estimatedTotal != null ? r.estimatedTotal.toNumber() : null;
   dto.categoryName = r.category.name;
   dto.assignedHandymanDisplayName = r.assignedHandyman?.handymanProfile?.displayName ?? null;
+  dto.hasRating = r.rating != null;
   dto.createdAt = r.createdAt.toISOString();
   return dto;
 }

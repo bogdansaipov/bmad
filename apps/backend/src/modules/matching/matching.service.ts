@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { HANDYMAN_AVAILABILITY_STATUS, JOB_OFFER_STATUS } from '@handrix/contracts';
 import { RequestStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { ActiveJobResponseDto } from './dto/active-job-response.dto';
 import { HandymanJobFeedItemDto, HandymanJobFeedResponseDto } from './dto/handyman-job-feed-response.dto';
 import { HandymanJobHistoryItemDto, HandymanJobHistoryResponseDto } from './dto/handyman-job-history-response.dto';
@@ -13,7 +14,10 @@ function mapShortDescription(title: string, description: string | null): string 
 
 @Injectable()
 export class MatchingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtimeService: RealtimeService,
+  ) {}
 
   private haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
     const R = 6371;
@@ -191,6 +195,7 @@ export class MatchingService {
       });
     });
 
+    this.realtimeService.emitStatusUpdate(requestId, newStatus);
     return { requestId, status: newStatus };
   }
 

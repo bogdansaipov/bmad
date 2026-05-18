@@ -43,6 +43,11 @@ export function RequestCard({ item }: RequestCardProps) {
           <span className="request-card__handyman">{item.assignedHandymanDisplayName}</span>
         )}
       </div>
+      {item.status === 'COMPLETE' && !item.hasRating && (
+        <div className="request-card__rate-cta" aria-label="Rate this job">
+          <span className="request-card__rate-cta-text">Rate this job ★</span>
+        </div>
+      )}
     </>
   );
 
@@ -53,6 +58,19 @@ export function RequestCard({ item }: RequestCardProps) {
         className={`request-card request-card--active request-card__link`}
         style={{ minHeight: 44, display: 'block', textDecoration: 'none', color: 'inherit' }}
         aria-label={`View tracking for ${item.title}`}
+      >
+        {cardContent}
+      </Link>
+    );
+  }
+
+  if (item.status === 'COMPLETE') {
+    return (
+      <Link
+        to={`/requests/${item.id}/tracking`}
+        className="request-card request-card--complete request-card__link"
+        style={{ minHeight: 44, display: 'block', textDecoration: 'none', color: 'inherit' }}
+        aria-label={`View details for ${item.title}${!item.hasRating ? ' — rate this job' : ''}`}
       >
         {cardContent}
       </Link>

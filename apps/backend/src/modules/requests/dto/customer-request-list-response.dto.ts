@@ -20,6 +20,9 @@ export class ServiceRequestListItemDto {
   @ApiProperty({ nullable: true, type: String })
   assignedHandymanDisplayName!: string | null;
 
+  @ApiProperty({ type: Boolean })
+  hasRating!: boolean;
+
   @ApiProperty()
   createdAt!: string;
 }

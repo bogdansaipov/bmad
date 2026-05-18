@@ -8,6 +8,7 @@ import { ActiveJobBottomSheet } from '../components/ActiveJobBottomSheet';
 import { useActiveJob } from '../hooks/useActiveJob';
 import { usePostLocation } from '../hooks/usePostLocation';
 import { useUpdateJobStatus } from '../hooks/useUpdateJobStatus';
+import { useJobStatusSocket } from '../../shared/hooks/useJobStatusSocket';
 
 function isAuthError(e: unknown): e is AuthError {
   return e instanceof AuthError;
@@ -22,6 +23,11 @@ export function ActiveJobPage() {
   const jobQuery = useActiveJob(requestId ?? '');
   const statusMutation = useUpdateJobStatus(requestId ?? '');
   const locationMutation = usePostLocation(requestId ?? '');
+
+  useJobStatusSocket({
+    requestId: requestId ?? '',
+    trackingQueryKey: ['active-job', requestId ?? ''],
+  });
 
   const authFailed =
     (jobQuery.isError && isAuthError(jobQuery.error)) ||

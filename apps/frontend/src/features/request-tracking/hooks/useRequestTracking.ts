@@ -5,7 +5,9 @@ export function useRequestTracking(requestId: string) {
   return useQuery({
     queryKey: ['request-tracking', requestId],
     queryFn: () => fetchRequestTracking(requestId),
-    refetchInterval: 30_000,
+    // WebSocket (story 4.3) handles live updates; refetch on reconnect via invalidateQueries
+    refetchInterval: false,
+    staleTime: 0,
     enabled: !!requestId,
   });
 }

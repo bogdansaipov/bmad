@@ -41,7 +41,7 @@
 # previous plan and are not auto-detected against the new story keys.
 
 generated: 2026-05-12
-last_updated: 2026-05-18 (story 4-2 done)
+last_updated: 2026-05-18 (story 4-4 review)
 project: demo1
 project_key: NOKEY
 tracking_system: file-system
@@ -49,14 +49,14 @@ story_location: /Users/spider/Documents/GitHub/bg-bmad/_bmad-output/implementati
 
 development_status:
   # Epic 1: Foundation - Project Setup & Unified Authentication
-  epic-1: in-progress
+  epic-1: done
   1-1-initialize-project-foundation: done
   1-2-user-registration-with-role-selection: done
   1-3-login-and-role-based-dashboard-routing: done
   epic-1-retrospective: optional
 
   # Epic 2: Customer Request Creation & Dashboard
-  epic-2: in-progress
+  epic-2: done
   2-1-customer-dashboard-with-request-list: done
   2-2-service-category-selection-and-request-details: done
   2-3-location-capture-with-geolocation-and-map-pin: done
@@ -64,7 +64,7 @@ development_status:
   epic-2-retrospective: optional
 
   # Epic 3: Handyman Job Marketplace & Matching
-  epic-3: in-progress
+  epic-3: done
   3-1-handyman-profile-setup-with-categories-and-service-radius: done
   3-2-handyman-jobs-dashboard-and-available-job-feed: done
   3-3-accept-or-decline-a-job-with-first-accept-assignment-protection: done
@@ -72,11 +72,11 @@ development_status:
   epic-3-retrospective: optional
 
   # Epic 4: Fulfillment Lifecycle, Live Tracking & Rating
-  epic-4: in-progress
+  epic-4: done
   4-1-customer-request-tracking-view-with-two-pin-map: done
   4-2-handyman-active-job-mode-with-status-updates-and-location-posting: done
-  4-3-real-time-status-push-via-websocket: backlog
-  4-4-post-completion-customer-rating: backlog
+  4-3-real-time-status-push-via-websocket: done
+  4-4-post-completion-customer-rating: done
   epic-4-retrospective: optional
 
   # Epic 5: Platform Hardening & Production Readiness

@@ -19,6 +19,7 @@ export const ServiceRequestListItemSchema = z.object({
   estimatedTotal: z.number().nullable(),
   categoryName: z.string(),
   assignedHandymanDisplayName: z.string().nullable(),
+  hasRating: z.boolean(),
   createdAt: z.string().datetime(),
 });
 
@@ -102,3 +103,9 @@ export const PostLocationResponseSchema = z.object({
   recordedAt: z.string().datetime(),
 });
 export type PostLocationResponse = z.infer<typeof PostLocationResponseSchema>;
+
+export const JobStatusUpdatedEventSchema = z.object({
+  requestId: z.string(),
+  status: RequestStatusEnum,
+});
+export type JobStatusUpdatedEvent = z.infer<typeof JobStatusUpdatedEventSchema>;
