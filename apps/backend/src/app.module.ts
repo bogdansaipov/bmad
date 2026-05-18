@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { validate } from './config/env.validation';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { HealthModule } from './modules/health/health.module';
@@ -22,6 +24,9 @@ import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate }),
+    ThrottlerModule.forRoot([
+      { name: 'default', ttl: 60_000, limit: 60 },
+    ]),
     LoggerModule.forRoot({
       pinoHttp: {
         transport:
@@ -53,6 +58,9 @@ import { MiddlewareConsumer, NestModule } from '@nestjs/common';
     MapsModule,
     UploadsModule,
     ObservabilityModule,
+  ],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule implements NestModule {

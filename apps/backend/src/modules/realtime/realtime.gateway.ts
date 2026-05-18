@@ -13,12 +13,19 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 
 @WebSocketGateway({
-  cors: { origin: '*', credentials: false },
+  cors: {
+    origin: process.env['CORS_ORIGIN'],
+    credentials: false,
+  },
   namespace: '/realtime',
 })
 export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
+
+  private readonly joinRoomCounter = new Map<string, { count: number; windowStart: number }>();
+  private readonly JOIN_ROOM_LIMIT = 20;
+  private readonly JOIN_ROOM_WINDOW_MS = 10_000;
 
   constructor(
     private readonly jwtService: JwtService,
@@ -47,8 +54,20 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     }
   }
 
-  handleDisconnect(_client: Socket): void {
-    // Socket.IO handles room cleanup on disconnect automatically
+  handleDisconnect(client: Socket): void {
+    const userId = (client as Socket & { userId?: string }).userId;
+    if (userId) this.joinRoomCounter.delete(userId);
+  }
+
+  private isJoinRoomRateLimited(userId: string): boolean {
+    const now = Date.now();
+    const entry = this.joinRoomCounter.get(userId);
+    if (!entry || now - entry.windowStart > this.JOIN_ROOM_WINDOW_MS) {
+      this.joinRoomCounter.set(userId, { count: 1, windowStart: now });
+      return false;
+    }
+    entry.count += 1;
+    return entry.count > this.JOIN_ROOM_LIMIT;
   }
 
   @SubscribeMessage('join-room')
@@ -59,6 +78,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     const userId = (client as Socket & { userId?: string }).userId;
     const role = (client as Socket & { role?: string }).role;
     if (!userId || !role || !data?.requestId) return;
+    if (this.isJoinRoomRateLimited(userId)) return;
 
     const authorized = await this.canAccessRoom(userId, role, data.requestId);
     if (!authorized) return;

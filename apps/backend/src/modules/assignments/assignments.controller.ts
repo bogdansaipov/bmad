@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
+import { Throttle } from '@nestjs/throttler';
 import { CurrentUser, JwtAuthGuard, Roles, RolesGuard } from '../auth';
 import type { AuthenticatedUser } from '../auth';
 import type { AcceptJobResponse, DeclineJobResponse } from '@handrix/contracts';
@@ -19,6 +20,7 @@ export class AssignmentsController {
   constructor(private readonly assignmentsService: AssignmentsService) {}
 
   @Post(':offerId/accept')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Roles(UserRole.HANDYMAN)
   @HttpCode(200)
   acceptJob(
@@ -29,6 +31,7 @@ export class AssignmentsController {
   }
 
   @Post(':offerId/decline')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Roles(UserRole.HANDYMAN)
   @HttpCode(200)
   declineJob(

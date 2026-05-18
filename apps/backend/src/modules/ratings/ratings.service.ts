@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { RequestStatus } from '@prisma/client';
+import { Prisma, RequestStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -33,15 +33,23 @@ export class RatingsService {
       throw new BadRequestException('Rating already submitted for this request');
     }
 
-    const rating = await this.prisma.requestRating.create({
-      data: {
-        requestId,
-        customerId,
-        handymanId: request.assignedHandymanId,
-        stars,
-        shortFeedback: shortFeedback ?? null,
-      },
-    });
+    let rating;
+    try {
+      rating = await this.prisma.requestRating.create({
+        data: {
+          requestId,
+          customerId,
+          handymanId: request.assignedHandymanId,
+          stars,
+          shortFeedback: shortFeedback ?? null,
+        },
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new BadRequestException('Rating already submitted for this request');
+      }
+      throw err;
+    }
 
     return {
       id: rating.id,

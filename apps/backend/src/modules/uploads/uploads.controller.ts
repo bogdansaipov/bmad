@@ -2,6 +2,7 @@ import { Controller, Post, UploadedFile, UseGuards, UseInterceptors } from '@nes
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
+import { Throttle } from '@nestjs/throttler';
 import type { AuthenticatedUser } from '../auth';
 import { CurrentUser, JwtAuthGuard, Roles, RolesGuard } from '../auth';
 import { ImageUploadResponseDto } from './dto/image-upload-response.dto';
@@ -15,6 +16,7 @@ export class UploadsController {
   constructor(private readonly uploadsService: UploadsService) {}
 
   @Post('request-image')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Roles(UserRole.CUSTOMER)
   @UseInterceptors(FileInterceptor('file', requestImageMulterOptions))
   @ApiOperation({ summary: 'Upload a request image for later request submission' })

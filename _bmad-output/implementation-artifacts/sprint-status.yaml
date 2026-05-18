@@ -1,5 +1,5 @@
 # generated: 2026-05-12
-# last_updated: 2026-05-18 (story 4-1 review)
+# last_updated: 2026-05-18 (story 5-2 done)
 # project: demo1
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # previous plan and are not auto-detected against the new story keys.
 
 generated: 2026-05-12
-last_updated: 2026-05-18 (story 4-4 review)
+last_updated: 2026-05-18 (story 5-2 done)
 project: demo1
 project_key: NOKEY
 tracking_system: file-system
@@ -80,9 +80,9 @@ development_status:
   epic-4-retrospective: optional
 
   # Epic 5: Platform Hardening & Production Readiness
-  epic-5: backlog
-  5-1-harden-request-and-assignment-integrity: backlog
-  5-2-apply-security-baselines-and-data-protection: backlog
+  epic-5: in-progress
+  5-1-harden-request-and-assignment-integrity: done
+  5-2-apply-security-baselines-and-data-protection: done
   5-3-instrument-observability-and-validate-deployment-readiness: backlog
   5-4-accessibility-audit-and-ux-polish: backlog
   5-5-preserve-extensibility-seams-for-future-growth: backlog

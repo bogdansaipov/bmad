@@ -99,21 +99,32 @@ export class RequestsService {
 
     const estimate = this.pricing.calculateEstimate(dto.categoryId);
 
-    const created = await this.prisma.serviceRequest.create({
-      data: {
-        customerId,
-        categoryId: dto.categoryId,
-        title: dto.title,
-        description: dto.description ?? null,
-        locationLat: dto.locationLat ?? null,
-        locationLng: dto.locationLng ?? null,
-        estimatedTotal: estimate.estimatedTotal,
-        pricingExplanationSnapshot: estimate as unknown as Prisma.InputJsonValue,
-        status: RequestStatus.PENDING,
-      },
-      include: {
-        category: { select: { name: true } },
-      },
+    const created = await this.prisma.$transaction(async (tx) => {
+      const req = await tx.serviceRequest.create({
+        data: {
+          customerId,
+          categoryId: dto.categoryId,
+          title: dto.title,
+          description: dto.description ?? null,
+          locationLat: dto.locationLat ?? null,
+          locationLng: dto.locationLng ?? null,
+          estimatedTotal: estimate.estimatedTotal,
+          pricingExplanationSnapshot: estimate as unknown as Prisma.InputJsonValue,
+          status: RequestStatus.PENDING,
+        },
+        include: {
+          category: { select: { name: true } },
+        },
+      });
+      await tx.requestStatusHistory.create({
+        data: {
+          requestId: req.id,
+          status: RequestStatus.PENDING,
+          actorType: 'customer',
+          actorId: customerId,
+        },
+      });
+      return req;
     });
 
     if (dto.imageId) {

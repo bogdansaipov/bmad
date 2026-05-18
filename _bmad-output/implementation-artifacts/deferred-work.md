@@ -2,6 +2,14 @@
 
 Items deferred from reviews — real issues, not noise, but intentionally out of scope for the originating story. Use this to seed future hardening stories.
 
+## Deferred from: code review of 5-2-apply-security-baselines-and-data-protection (2026-05-18)
+
+- **`trust proxy 1` unconditional — IP spoofing risk in non-proxy deployments**: `app.getHttpAdapter().getInstance().set('trust proxy', 1)` is applied globally. If the app is deployed without a reverse proxy, clients can spoof their IP via `X-Forwarded-For`, defeating IP-based rate-limit keying. Address by gating on `NODE_ENV=production` or a dedicated env flag when deployment topology is locked down (`apps/backend/src/main.ts`).
+- **TOCTOU on image linkage in `createRequest`**: The ownership check (`image.uploaderId === customerId`) and the subsequent `requestImage.update` (attaching `requestId`) happen outside the `$transaction` block in `createRequest`. Two concurrent request-create calls from the same customer could race to claim the same `imageId`. Resolve by including the image attach step inside the transaction (`apps/backend/src/modules/requests/requests.service.ts`).
+- **TOCTOU on ratings `findUnique`+`create` race**: The `findUnique` duplicate-rating check and the `create` call are not wrapped in a transaction. Concurrent requests from the same customer can both pass the `findUnique` guard before either `create` lands; the P2002 catch handles the loser but the pre-check is therefore redundant. Consider removing the pre-check and relying solely on the unique index + P2002 catch (`apps/backend/src/modules/ratings/ratings.service.ts`).
+- **In-memory `joinRoomCounter` not shared across instances**: The join-room rate limiter uses a process-local `Map`. Horizontal scaling makes the limit per-instance rather than per-user, multiplying the effective limit by the number of replicas. Migrate to a shared store (Redis) when horizontal scaling is introduced (`apps/backend/src/modules/realtime/realtime.gateway.ts`).
+- **Global ThrottlerGuard buckets by IP — shared NAT IP risk**: IP-based throttling treats all clients behind a shared NAT (e.g., corporate network) as one entity. At 60 req/min shared across N users, legitimate traffic can be throttled. Pre-existing trade-off with IP-based throttling; revisit if user-keyed throttling (JWT sub) is ever added (`apps/backend/src/app.module.ts`).
+
 ## Deferred from: code review of 4-4-post-completion-customer-rating (2026-05-18)
 
 - **`averageRatingCache` / `ratingsCountCache` never updated**: `HandymanProfile` has these nullable cache fields but `RatingsService.submitRating` never updates them after creating a rating. Any feature reading reputation data will always see null. Address when a ratings aggregation feature is built (`apps/backend/src/modules/ratings/ratings.service.ts`).
@@ -117,6 +125,11 @@ Items deferred from reviews — real issues, not noise, but intentionally out of
 
 - `password_hash` field present in Prisma schema with no hashing service or stub — Story 1.2 implements auth; ensure bcrypt/argon2 hashing is introduced before any user creation path is wired.
 - E2E test (`apps/backend/test/health.e2e-spec.ts`) does not mirror production bootstrap: missing `bufferLogs: true` and `app.useLogger(app.get(Logger))`. Log-dependent behaviours (including correlation ID propagation) are untested. Low-impact for a foundation story; address when adding integration tests in Epic 5.
+
+## Deferred from: code review of 5-1-harden-request-and-assignment-integrity (2026-05-18)
+
+- **No transaction timeout/isolation level on `createRequest` `$transaction`**: `this.prisma.$transaction(async (tx) => { ... })` uses Prisma default isolation (READ COMMITTED). For a flow that writes pricing snapshots and status history atomically, stricter isolation could be warranted. Pre-existing pattern across the codebase; evaluate when setting a project-wide transaction policy in Story 5.2/5.3 (`apps/backend/src/modules/requests/requests.service.ts`).
+- **`actorId` in `requestStatusHistory` could reference a deleted/suspended user**: The PENDING history entry stores `actorId: customerId` from the JWT payload without a live DB lookup. If a user is suspended or deleted post-token-issuance, the actor reference persists in history. Pre-existing platform-level concern covered by `GET /auth/me` token-vs-DB gap (already deferred from story 1-3); address alongside token revocation work in Epic 5 (`apps/backend/src/modules/requests/requests.service.ts`).
 
 ## Deferred from: code review of 4-1-enable-support-staff-authentication-and-access (2026-04-21)
 

@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../auth';
 import { UserRole } from '@prisma/client';
@@ -33,6 +34,7 @@ export class RequestsController {
   }
 
   @Post()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Roles(UserRole.CUSTOMER)
   @HttpCode(201)
   @ApiOperation({ summary: 'Create a new service request' })

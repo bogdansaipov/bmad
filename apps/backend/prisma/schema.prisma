@@ -235,5 +235,7 @@ model RequestRating {
   customer User           @relation("CustomerRatings", fields: [customerId], references: [id])
   handyman User           @relation("HandymanRatingsReceived", fields: [handymanId], references: [id])
 
+  @@index([customerId])
+  @@index([handymanId])
   @@map("request_ratings")
 }

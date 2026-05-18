@@ -6,7 +6,7 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('7d'),
   PORT: z.coerce.number().int().positive().default(3000),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  CORS_ORIGIN: z.string().optional(),
+  CORS_ORIGIN: z.string().min(1),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

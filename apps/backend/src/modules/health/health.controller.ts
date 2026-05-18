@@ -1,6 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { PrismaHealthIndicator } from './prisma-health.indicator';
 
 @ApiTags('health')
@@ -12,6 +13,7 @@ export class HealthController {
   ) {}
 
   @Get()
+  @SkipThrottle()
   @ApiOperation({ summary: 'Health check — returns 200 OK or 503 if DB is unreachable' })
   @HealthCheck()
   async check(): Promise<{ status: string; database: string; timestamp: string }> {

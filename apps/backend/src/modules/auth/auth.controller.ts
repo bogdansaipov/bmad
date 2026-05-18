@@ -1,5 +1,7 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, NotFoundException, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
+import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
@@ -15,9 +17,13 @@ import { UserRole } from '@prisma/client';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a new user account with role selection' })
   register(@Body() dto: RegisterDto): Promise<RegisterResponseDto> {
@@ -25,6 +31,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Authenticate an existing user and return a JWT' })
   login(@Body() dto: LoginDto): Promise<LoginResponseDto> {
@@ -43,6 +50,9 @@ export class AuthController {
   @Roles(UserRole.CUSTOMER)
   @ApiOperation({ summary: 'Smoke endpoint — customer role guard verification' })
   customerOnly(): { ok: boolean; role: string } {
+    if (this.configService.getOrThrow<string>('NODE_ENV') === 'production') {
+      throw new NotFoundException();
+    }
     return { ok: true, role: 'CUSTOMER' };
   }
 
@@ -51,6 +61,9 @@ export class AuthController {
   @Roles(UserRole.HANDYMAN)
   @ApiOperation({ summary: 'Smoke endpoint — handyman role guard verification' })
   handymanOnly(): { ok: boolean; role: string } {
+    if (this.configService.getOrThrow<string>('NODE_ENV') === 'production') {
+      throw new NotFoundException();
+    }
     return { ok: true, role: 'HANDYMAN' };
   }
 }

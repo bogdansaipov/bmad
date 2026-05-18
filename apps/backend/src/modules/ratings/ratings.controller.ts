@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, JwtAuthGuard, Roles, RolesGuard } from '../auth';
@@ -13,6 +14,7 @@ export class RatingsController {
   constructor(private readonly ratingsService: RatingsService) {}
 
   @Post()
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Roles(UserRole.CUSTOMER)
   @ApiOperation({ summary: 'Submit a rating for a completed request' })
   submitRating(
@@ -32,7 +34,7 @@ export class RatingsController {
   @ApiOperation({ summary: 'Get rating status for a specific request' })
   getRatingStatus(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('requestId') requestId: string,
+    @Param('requestId', ParseUUIDPipe) requestId: string,
   ) {
     return this.ratingsService.getRatingStatus(user.userId, requestId);
   }

@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, JwtAuthGuard, Roles, RolesGuard } from '../auth';
@@ -38,6 +39,7 @@ export class MatchingController {
   }
 
   @Post('active/:requestId/location')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @Roles(UserRole.HANDYMAN)
   @HttpCode(201)
   @ApiOperation({ summary: 'Post current location for active job' })
