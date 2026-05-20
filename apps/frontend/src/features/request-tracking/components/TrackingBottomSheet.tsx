@@ -1,31 +1,23 @@
 import type { RequestTrackingResponse } from '@handrix/contracts';
 import { StatusChip } from '../../customer-dashboard/components/StatusChip';
+import { BottomSheet, type BottomSheetState } from '../../shared/components/BottomSheet';
 
 const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
-type SheetState = 'collapsed' | 'half' | 'full';
-
 interface TrackingBottomSheetProps {
   tracking: RequestTrackingResponse;
-  sheetState: SheetState;
-  onStateChange: (state: SheetState) => void;
-}
-
-function nextState(current: SheetState): SheetState {
-  if (current === 'collapsed') return 'half';
-  if (current === 'half') return 'full';
-  return 'collapsed';
+  sheetState: BottomSheetState;
+  onStateChange: (state: BottomSheetState) => void;
 }
 
 export function TrackingBottomSheet({ tracking, sheetState, onStateChange }: TrackingBottomSheetProps) {
   return (
-    <div className={`tracking-bottom-sheet tracking-bottom-sheet--${sheetState}`}>
-      <button
-        className="tracking-bottom-sheet__handle"
-        onClick={() => onStateChange(nextState(sheetState))}
-        aria-label="Toggle detail panel"
-      />
-
+    <BottomSheet
+      state={sheetState}
+      onStateChange={onStateChange}
+      className="tracking-bottom-sheet"
+      aria-label="Toggle tracking details"
+    >
       <div className="tracking-bottom-sheet__status-row">
         <StatusChip status={tracking.status} />
         {tracking.status === 'PENDING' && sheetState === 'collapsed' && (
@@ -55,6 +47,6 @@ export function TrackingBottomSheet({ tracking, sheetState, onStateChange }: Tra
           )}
         </>
       )}
-    </div>
+    </BottomSheet>
   );
 }

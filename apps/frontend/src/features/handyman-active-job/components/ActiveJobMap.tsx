@@ -1,19 +1,7 @@
 import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-
-const OSM_STYLE = {
-  version: 8 as const,
-  sources: {
-    osm: {
-      type: 'raster' as const,
-      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      attribution: '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>',
-    },
-  },
-  layers: [{ id: 'osm', type: 'raster' as const, source: 'osm' }],
-};
+import { OSM_STYLE } from '../../../shared/config/mapConfig';
 
 interface ActiveJobMapProps {
   jobLat: number | null;
@@ -39,7 +27,10 @@ export function ActiveJobMap({ jobLat, jobLng }: ActiveJobMapProps) {
     mapRef.current = map;
 
     if (hasJob) {
-      const marker = new maplibregl.Marker();
+      const el = document.createElement('div');
+      el.className = 'map-pin';
+      el.style.animation = 'fadeInScale 300ms ease forwards';
+      const marker = new maplibregl.Marker({ element: el });
       marker.setLngLat([jobLng as number, jobLat as number]).addTo(map);
       markerRef.current = marker;
     }
@@ -58,7 +49,10 @@ export function ActiveJobMap({ jobLat, jobLng }: ActiveJobMapProps) {
     if (markerRef.current) {
       markerRef.current.setLngLat([jobLng, jobLat]);
     } else {
-      const marker = new maplibregl.Marker();
+      const el = document.createElement('div');
+      el.className = 'map-pin';
+      el.style.animation = 'fadeInScale 300ms ease forwards';
+      const marker = new maplibregl.Marker({ element: el });
       marker.setLngLat([jobLng, jobLat]).addTo(mapRef.current);
       markerRef.current = marker;
     }

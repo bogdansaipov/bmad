@@ -1,17 +1,20 @@
 import { Link } from 'react-router-dom';
+import { EmptyState as SharedEmptyState } from '../../shared/components/EmptyState';
 
 export function EmptyState() {
   return (
-    <div className="empty-state">
-      <div className="empty-state__icon" aria-hidden="true">📋</div>
-      <p className="empty-state__message">You have no requests yet</p>
-      <Link
-        to="/requests/new"
-        className="btn-primary empty-state__cta"
-        style={{ minHeight: 44, minWidth: 44, display: 'inline-flex', alignItems: 'center' }}
-      >
-        Create Your First Request
-      </Link>
-    </div>
+    <SharedEmptyState
+      icon="📋"
+      title="You have no requests yet"
+      action={
+        <Link
+          to="/requests/new"
+          className="btn-primary empty-state__cta"
+          style={{ minHeight: 44, minWidth: 44, display: 'inline-flex', alignItems: 'center' }}
+        >
+          Create Your First Request
+        </Link>
+      }
+    />
   );
 }

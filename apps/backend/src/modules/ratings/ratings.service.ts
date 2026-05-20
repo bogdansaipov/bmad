@@ -55,6 +55,30 @@ export class RatingsService {
     }
 
     this.logger.log({ event: 'rating.submitted', requestId, handymanId: request.assignedHandymanId, stars });
+
+    try {
+      const agg = await this.prisma.requestRating.aggregate({
+        where: { handymanId: request.assignedHandymanId },
+        _avg: { stars: true },
+        _count: { stars: true },
+      });
+      await this.prisma.handymanProfile.update({
+        where: { userId: request.assignedHandymanId },
+        data: {
+          averageRatingCache: agg._avg.stars,
+          ratingsCountCache: agg._count.stars,
+        },
+      });
+      this.logger.log({
+        event: 'rating.cache_updated',
+        handymanId: request.assignedHandymanId,
+        averageRatingCache: agg._avg.stars,
+        ratingsCountCache: agg._count.stars,
+      });
+    } catch (err) {
+      this.logger.warn({ event: 'rating.cache_update_failed', handymanId: request.assignedHandymanId, error: String(err) });
+    }
+
     return {
       id: rating.id,
       requestId: rating.requestId,

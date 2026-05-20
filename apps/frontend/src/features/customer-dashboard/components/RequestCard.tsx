@@ -44,7 +44,7 @@ export function RequestCard({ item }: RequestCardProps) {
         )}
       </div>
       {item.status === 'COMPLETE' && !item.hasRating && (
-        <div className="request-card__rate-cta" aria-label="Rate this job">
+        <div className="request-card__rate-cta">
           <span className="request-card__rate-cta-text">Rate this job ★</span>
         </div>
       )}

@@ -1,4 +1,5 @@
 import { useAuth } from '../../customer-auth/context/AuthContext';
+import { SectionHeader } from '../../shared/components/SectionHeader';
 import { AuthError } from '../api/handyman-profile.api';
 import { HandymanNav } from '../components/HandymanNav';
 import { HandymanProfileForm } from '../components/HandymanProfileForm';
@@ -30,7 +31,7 @@ export function HandymanDashboardPage() {
     : null;
 
   return (
-    <div className="dashboard handyman-dashboard">
+    <div data-theme="handyman" className="dashboard handyman-dashboard">
       <HandymanNav />
       <div className="dashboard-header">
         <div>
@@ -43,65 +44,73 @@ export function HandymanDashboardPage() {
       </div>
 
       <main className="dashboard-main">
-        {isLoading && (
-          <div className="skeleton-list" aria-busy="true" aria-live="polite">
-            <div className="skeleton-card">
-              <div className="skeleton-line skeleton-line--title" />
-              <div className="skeleton-line skeleton-line--meta" />
-            </div>
-            <div className="skeleton-card">
-              <div className="skeleton-line skeleton-line--title" />
-              <div className="skeleton-line skeleton-line--meta" />
-            </div>
-          </div>
-        )}
-
-        {showError && (
-          <div role="alert" className="error-banner">
-            Failed to load your profile. Please try again.
-            <button
-              onClick={() => {
-                profileQuery.refetch();
-                categoriesQuery.refetch();
-              }}
-              className="btn-secondary error-banner__retry"
-              style={{ minHeight: 44 }}
-            >
-              Retry
-            </button>
-          </div>
-        )}
-
-        {!isLoading && !showError && profileQuery.data && categoriesQuery.data && (
-          <>
-            <ProfileSetupBanner isProfileComplete={profileQuery.data.isProfileComplete} />
-
-            {!profileQuery.data.isProfileComplete && (
-              <section
-                className="locked-state"
-                aria-label="Jobs unavailable until profile is complete"
-              >
-                <h2>Your jobs feed is locked</h2>
-                <p>
-                  We only send work that matches your supported categories within your service
-                  radius. Save at least one category and a service radius below to start receiving
-                  jobs.
-                </p>
-              </section>
+        <div className="handyman-dashboard__layout">
+          <div className="handyman-dashboard__main">
+            {isLoading && (
+              <div className="skeleton-list" aria-busy="true" aria-live="polite">
+                <div className="skeleton-card">
+                  <div className="skeleton-line skeleton-line--title" />
+                  <div className="skeleton-line skeleton-line--meta" />
+                </div>
+                <div className="skeleton-card">
+                  <div className="skeleton-line skeleton-line--title" />
+                  <div className="skeleton-line skeleton-line--meta" />
+                </div>
+              </div>
             )}
 
-            <section aria-label="Profile settings" className="profile-settings">
-              <h2>Profile settings</h2>
-              <HandymanProfileForm
-                profile={profileQuery.data}
-                categories={categoriesQuery.data.items}
-                isSubmitting={updateMutation.isPending}
-                submitError={submitError}
-                onSubmit={(payload) => updateMutation.mutate(payload)}
-              />
-            </section>
-          </>
-        )}
+            {showError && (
+              <div role="alert" className="error-banner">
+                Failed to load your profile. Please try again.
+                <button
+                  onClick={() => {
+                    profileQuery.refetch();
+                    categoriesQuery.refetch();
+                  }}
+                  className="btn-secondary error-banner__retry"
+                  style={{ minHeight: 44 }}
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {!isLoading && !showError && profileQuery.data && categoriesQuery.data && (
+              <>
+                {!profileQuery.data.isProfileComplete && (
+                  <section
+                    className="locked-state"
+                    aria-label="Jobs unavailable until profile is complete"
+                  >
+                    <SectionHeader>Your jobs feed is locked</SectionHeader>
+                    <p>
+                      We only send work that matches your supported categories within your service
+                      radius. Save at least one category and a service radius below to start
+                      receiving jobs.
+                    </p>
+                  </section>
+                )}
+
+                <section aria-label="Profile settings" className="profile-settings">
+                  <SectionHeader>Profile settings</SectionHeader>
+                  <HandymanProfileForm
+                    profile={profileQuery.data}
+                    categories={categoriesQuery.data.items}
+                    isSubmitting={updateMutation.isPending}
+                    submitError={submitError}
+                    onSubmit={(payload) => updateMutation.mutate(payload)}
+                  />
+                </section>
+              </>
+            )}
+          </div>
+
+          <aside className="handyman-dashboard__sidebar" aria-label="Profile status">
+            {!isLoading && !showError && profileQuery.data && categoriesQuery.data && (
+              <ProfileSetupBanner isProfileComplete={profileQuery.data.isProfileComplete} />
+            )}
+          </aside>
+        </div>
       </main>
     </div>
   );

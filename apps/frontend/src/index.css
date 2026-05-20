@@ -29,6 +29,26 @@
   --transition: 150ms ease;
 }
 
+/* ── Handyman dark theme (split-surface) ──────────────── */
+[data-theme="handyman"] {
+  --color-bg:            #1a1f2e;
+  --color-surface:       #242b3d;
+  --color-surface-alt:   #2d3550;
+  --color-text:          #f0f2f8;
+  --color-text-muted:    #9ba3bc;
+  --color-primary:       #14b8a6;
+  --color-primary-hover: #0d9488;
+  --color-primary-light: #134e4a;
+  --color-border:        #3a4256;
+  --color-border-focus:  #14b8a6;
+}
+
+[data-theme="handyman"] {
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+}
+
 /* ── Base ─────────────────────────────────────────────── */
 html { font-size: 16px; -webkit-font-smoothing: antialiased; }
 
@@ -101,6 +121,24 @@ button {
 }
 
 button:active { transform: scale(0.985); }
+
+/* ── Focus-visible (WCAG 2.1 AA keyboard accessibility) ─ */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.btn-primary:focus-visible,
+button[type="submit"]:focus-visible,
+.btn-secondary:focus-visible,
+.role-btn:focus-visible,
+.category-chip:focus-visible,
+.availability-toggle:focus-visible,
+.bottom-sheet__handle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
 
 /* Primary button — applied via .btn-primary or the submit button override */
 button[type="submit"],
@@ -339,8 +377,58 @@ legend   { font-size: 0.875rem; font-weight: 500; color: var(--color-text); marg
 }
 
 .empty-state__icon { font-size: 3rem; }
+.empty-state__title { font-size: 1.0625rem; font-weight: 600; color: var(--color-text); }
 .empty-state__message { color: var(--color-text-muted); font-size: 1rem; }
 .empty-state__cta { width: auto; text-decoration: none; }
+.empty-state__action { margin-top: 0.25rem; }
+
+/* ── Section header (shared) ───────────────────────────── */
+.section-header {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+  margin-bottom: 0.75rem;
+}
+
+/* ── Shared bottom sheet ───────────────────────────────── */
+.bottom-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  min-height: 88px;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: 0 -4px 16px rgba(0,0,0,.12);
+  padding: 0 1.25rem 1.5rem;
+  transition: transform var(--transition);
+  z-index: 10;
+}
+
+/* active-job sheet must be viewport-anchored (fixed) so the software keyboard
+   or map container height changes don't displace it */
+.active-job-bottom-sheet {
+  position: fixed;
+}
+
+.bottom-sheet--collapsed { transform: translateY(calc(100% - 88px)); }
+.bottom-sheet--half      { transform: translateY(0); max-height: 40vh; overflow-y: auto; }
+.bottom-sheet--full      { transform: translateY(0); max-height: 80vh; overflow-y: auto; }
+
+.bottom-sheet__handle {
+  display: block;
+  width: 40px;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  margin: 0.75rem auto 1rem;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+
+.bottom-sheet__content { display: block; }
 
 .customer-nav {
   position: fixed;
@@ -422,6 +510,19 @@ legend   { font-size: 0.875rem; font-weight: 500; color: var(--color-text); marg
 
 /* ── Handyman Dashboard ───────────────────────────────── */
 .handyman-dashboard .dashboard-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.handyman-dashboard__layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.handyman-dashboard__main,
+.handyman-dashboard__sidebar {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -724,46 +825,6 @@ legend   { font-size: 0.875rem; font-weight: 500; color: var(--color-text); marg
   min-height: 0;
 }
 
-.tracking-bottom-sheet {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--color-surface);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  box-shadow: 0 -4px 16px rgba(0,0,0,.12);
-  padding: 0 1.25rem 1.5rem;
-  transition: transform var(--transition);
-  z-index: 10;
-}
-
-.tracking-bottom-sheet__handle {
-  display: block;
-  width: 40px;
-  height: 4px;
-  background: var(--color-border);
-  border-radius: 2px;
-  margin: 0.75rem auto 1rem;
-  cursor: pointer;
-  border: none;
-}
-
-.tracking-bottom-sheet--collapsed {
-  transform: translateY(calc(100% - 88px));
-}
-
-.tracking-bottom-sheet--half {
-  transform: translateY(0);
-  max-height: 40vh;
-  overflow-y: auto;
-}
-
-.tracking-bottom-sheet--full {
-  transform: translateY(0);
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
 .tracking-bottom-sheet__status-row {
   display: flex;
   align-items: center;
@@ -836,46 +897,6 @@ legend   { font-size: 0.875rem; font-weight: 500; color: var(--color-text); marg
   flex: 1;
   position: relative;
   min-height: 0;
-}
-
-.active-job-bottom-sheet {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--color-surface);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  box-shadow: 0 -4px 16px rgba(0,0,0,.12);
-  padding: 0 1.25rem 1.5rem;
-  transition: transform var(--transition);
-  z-index: 10;
-}
-
-.active-job-bottom-sheet__handle {
-  display: block;
-  width: 40px;
-  height: 4px;
-  background: var(--color-border);
-  border-radius: 2px;
-  margin: 0.75rem auto 1rem;
-  cursor: pointer;
-  border: none;
-}
-
-.active-job-bottom-sheet--collapsed {
-  transform: translateY(calc(100% - 88px));
-}
-
-.active-job-bottom-sheet--half {
-  transform: translateY(0);
-  max-height: 40vh;
-  overflow-y: auto;
-}
-
-.active-job-bottom-sheet--full {
-  transform: translateY(0);
-  max-height: 75vh;
-  overflow-y: auto;
 }
 
 .active-job-bottom-sheet__status-row {
@@ -1034,4 +1055,95 @@ legend   { font-size: 0.875rem; font-weight: 500; color: var(--color-text); marg
   font-size: 0.875rem;
   color: var(--color-primary);
   font-weight: 500;
+}
+
+/* ── Desktop responsive layouts (≥1024px) ──────────────── */
+@media (min-width: 1024px) {
+  .tracking-page {
+    flex-direction: row;
+  }
+
+  .tracking-page__map-container {
+    flex: 1;
+    height: 100%;
+  }
+
+  .tracking-page .bottom-sheet,
+  .tracking-bottom-sheet {
+    position: static;
+    width: 380px;
+    min-width: 320px;
+    height: 100%;
+    max-height: none;
+    transform: none !important;
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+    overflow-y: auto;
+    box-shadow: -4px 0 16px rgba(0,0,0,0.08);
+  }
+
+  .tracking-page .bottom-sheet__handle {
+    display: none;
+  }
+
+  .handyman-dashboard__layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    grid-template-rows: auto 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .handyman-dashboard__main {
+    grid-column: 1;
+  }
+
+  .handyman-dashboard__sidebar {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    position: sticky;
+    top: 24px;
+  }
+}
+
+/* ── Meaningful motion ────────────────────────────────── */
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.6); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.map-pin {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.map-pin--handyman {
+  background: #00b894;
+}
+
+.job-card,
+.job-offer-card {
+  animation: fadeInUp 200ms ease forwards;
+  animation-delay: calc(var(--card-index, 0) * 60ms);
+}
+
+.status-chip {
+  transition: background-color var(--transition), color var(--transition);
+}
+
+/* ── Reduced motion (WCAG 2.1 AA) ──────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

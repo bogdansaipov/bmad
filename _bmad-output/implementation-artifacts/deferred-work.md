@@ -1,6 +1,21 @@
 # Deferred Work Log
 
+## Deferred from: code review of 5-5-preserve-extensibility-seams-for-future-growth (2026-05-20)
+
+- **Rating cache concurrent write race**: Two concurrent rating submissions can both aggregate then update `averageRatingCache`/`ratingsCountCache`, leaving the cache with an intermediate stale value. Spec accepts the cache as eventually consistent; no transaction by design. Address if cache accuracy becomes a product requirement (`apps/backend/src/modules/ratings/ratings.service.ts`).
+- **Concurrent duplicate rating cache update race**: The DB unique constraint rejects the second duplicate rating write (P2002 catch), but the first successful branch's cache update can race with a near-simultaneous second attempt's aggregate. Structural concern; DB constraint prevents data corruption (`apps/backend/src/modules/ratings/ratings.service.ts`).
+- **`clampCoords` return order `[lat, lng]` is counter-MapLibre convention**: Function returns `[lat, lng]` but MapLibre expects `[lng, lat]`. Callers today destructure and swap correctly, but any future caller passing the return value directly as a MapLibre position will silently swap axes. Pre-existing latent trap (`apps/frontend/src/features/request-create/components/MapLocationPicker.tsx`).
+- **Second `useEffect` in map components adds marker before map style loads**: Position-update effects in `ActiveJobMap.tsx` and `RequestTrackingMap.tsx` have no `map.loaded()` guard. A fast WebSocket location update arriving before the map tile style finishes loading could throw a maplibre-gl error. Pre-existing pattern.
+- **Duplicate marker creation code — 4 identical blocks across 2 map components**: The `createElement('div') → className → animation → new Marker({element})` pattern is copy-pasted in `ActiveJobMap.tsx` (×2) and `RequestTrackingMap.tsx` (×2). Extract to a shared `createMapPin(variant?)` factory when next touching these components.
+- **`fitBounds` 0,0 sentinel in `RequestTrackingMap`**: When both job and handyman coords are `0,0` (unset defaults), `flyTo` targets lat/lng 0,0 at zoom 15 over the ocean. Add a sentinel guard when real location data is unavailable (`apps/frontend/src/features/request-tracking/components/RequestTrackingMap.tsx`).
+- **`GeocodingService.reverseGeocode` always returns `null` — undifferentiated stub**: Future callers cannot distinguish "address not found" from "service not yet implemented". Consider throwing `NotImplementedException` or returning a typed `{ status: 'not_implemented' }` union when wiring the real Nominatim integration (`apps/backend/src/modules/maps/geocoding.service.ts`).
+
 Items deferred from reviews — real issues, not noise, but intentionally out of scope for the originating story. Use this to seed future hardening stories.
+
+## Deferred from: code review of 5-4-accessibility-audit-and-ux-polish (2026-05-20)
+
+- **BottomSheet default `aria-label` is context-neutral**: The shared `BottomSheet` default aria-label is `'Toggle details panel'` — both callers (`TrackingBottomSheet`, `ActiveJobBottomSheet`) override it with specific labels, so no regression today. If the component is used without an explicit `aria-label`, callers get a generic label that doesn't describe the specific panel. Revisit when the component is used more broadly (`apps/frontend/src/features/shared/components/BottomSheet.tsx`).
+- **Desktop `transform: none !important` snaps without transition on breakpoint resize**: When a user resizes the browser window across the 1024px breakpoint while the tracking bottom sheet is in collapsed state, the media query addition/removal of `transform: none !important` is abrupt — no transition is applied during the breakpoint crossing. Minor UX edge case with no functional impact; revisit if responsive layout polish is prioritized (`apps/frontend/src/index.css`).
 
 ## Deferred from: code review of 5-3-instrument-observability-and-validate-deployment-readiness (2026-05-18)
 

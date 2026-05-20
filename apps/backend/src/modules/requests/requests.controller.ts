@@ -34,7 +34,7 @@ export class RequestsController {
   }
 
   @Post()
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   @Roles(UserRole.CUSTOMER)
   @HttpCode(201)
   @ApiOperation({ summary: 'Create a new service request' })

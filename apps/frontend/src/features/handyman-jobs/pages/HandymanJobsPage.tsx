@@ -1,5 +1,7 @@
+import type { CSSProperties } from 'react';
 import { ProfileSetupBanner } from '../../handyman-dashboard/components/ProfileSetupBanner';
 import { useHandymanProfile } from '../../handyman-dashboard/hooks/useHandymanProfile';
+import { SectionHeader } from '../../shared/components/SectionHeader';
 import { AvailabilityToggle } from '../components/AvailabilityToggle';
 import { JobCard } from '../components/JobCard';
 import { JobFeedEmptyState } from '../components/JobFeedEmptyState';
@@ -13,7 +15,7 @@ export function HandymanJobsPage() {
   const jobs = jobsQuery.data ?? [];
 
   return (
-    <div className="dashboard handyman-jobs-page">
+    <div data-theme="handyman" className="dashboard handyman-jobs-page">
       <div className="dashboard-header">
         <h1>Available Jobs</h1>
         {profile && (
@@ -29,7 +31,7 @@ export function HandymanJobsPage() {
               className="locked-state"
               aria-label="Jobs unavailable until profile is complete"
             >
-              <h2>Your jobs feed is locked</h2>
+              <SectionHeader>Your jobs feed is locked</SectionHeader>
               <p>
                 We only send work that matches your supported categories within your service
                 radius. Save at least one category and a service radius to start receiving jobs.
@@ -50,8 +52,11 @@ export function HandymanJobsPage() {
             <JobFeedEmptyState />
           ) : (
             <ul className="job-feed" aria-label="Available jobs">
-              {jobs.map((job) => (
-                <li key={job.offerId}>
+              {jobs.map((job, index) => (
+                <li
+                  key={job.offerId}
+                  style={{ ['--card-index' as string]: index } as CSSProperties}
+                >
                   <JobCard job={job} />
                 </li>
               ))}

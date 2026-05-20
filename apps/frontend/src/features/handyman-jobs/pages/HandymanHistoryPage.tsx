@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useAuth } from '../../customer-auth/context/AuthContext';
 import { AuthError } from '../../handyman-dashboard/api/handyman-profile.api';
 import { HandymanNav } from '../../handyman-dashboard/components/HandymanNav';
+import { EmptyState } from '../../shared/components/EmptyState';
 import { useHandymanHistory } from '../hooks/useHandymanHistory';
 import { JobHistoryRow } from '../components/JobHistoryRow';
 
@@ -24,7 +25,7 @@ export function HandymanHistoryPage() {
   if (authFailed) return null;
 
   return (
-    <div className="dashboard handyman-dashboard">
+    <div data-theme="handyman" className="dashboard handyman-dashboard">
       <HandymanNav />
       <div className="dashboard-header">
         <h1>Job History</h1>
@@ -58,10 +59,11 @@ export function HandymanHistoryPage() {
         )}
 
         {!isLoading && !isError && data && data.length === 0 && (
-          <div className="empty-state">
-            <h2>No job history yet</h2>
-            <p>Jobs you accept or decline will appear here.</p>
-          </div>
+          <EmptyState
+            icon="📜"
+            title="No job history yet"
+            description="Jobs you accept or decline will appear here."
+          />
         )}
 
         {!isLoading && !isError && data && data.length > 0 && (

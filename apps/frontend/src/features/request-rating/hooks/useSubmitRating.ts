@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../../../customer-auth/context/AuthContext';
+import { useAuth } from '../../customer-auth/context/AuthContext';
 import { AuthError } from '../../customer-dashboard/api/requests.api';
 import { submitRating } from '../api/ratings.api';
 

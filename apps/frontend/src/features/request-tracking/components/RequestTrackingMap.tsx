@@ -1,19 +1,7 @@
 import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-
-const OSM_STYLE = {
-  version: 8 as const,
-  sources: {
-    osm: {
-      type: 'raster' as const,
-      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      attribution: '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>',
-    },
-  },
-  layers: [{ id: 'osm', type: 'raster' as const, source: 'osm' }],
-};
+import { OSM_STYLE } from '../../shared/config/mapConfig';
 
 interface RequestTrackingMapProps {
   jobLat: number | null;
@@ -44,7 +32,10 @@ export function RequestTrackingMap({ jobLat, jobLng, handymanLat, handymanLng }:
     mapRef.current = map;
 
     if (hasJob) {
-      const jobMarker = new maplibregl.Marker();
+      const el = document.createElement('div');
+      el.className = 'map-pin';
+      el.style.animation = 'fadeInScale 300ms ease forwards';
+      const jobMarker = new maplibregl.Marker({ element: el });
       jobMarker.setLngLat([jobLng as number, jobLat as number]).addTo(map);
       jobMarkerRef.current = jobMarker;
     }
@@ -67,7 +58,10 @@ export function RequestTrackingMap({ jobLat, jobLng, handymanLat, handymanLng }:
     if (handymanMarkerRef.current) {
       handymanMarkerRef.current.setLngLat([handymanLng, handymanLat]);
     } else {
-      const handymanMarker = new maplibregl.Marker({ color: '#00b894' });
+      const el = document.createElement('div');
+      el.className = 'map-pin map-pin--handyman';
+      el.style.animation = 'fadeInScale 300ms ease forwards';
+      const handymanMarker = new maplibregl.Marker({ element: el });
       handymanMarker.setLngLat([handymanLng, handymanLat]).addTo(mapRef.current);
       handymanMarkerRef.current = handymanMarker;
     }

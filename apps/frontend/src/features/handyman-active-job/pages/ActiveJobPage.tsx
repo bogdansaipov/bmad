@@ -68,7 +68,7 @@ export function ActiveJobPage() {
   const { isLoading, isError, error, data } = jobQuery;
 
   return (
-    <div className="active-job-page">
+    <div data-theme="handyman" className="active-job-page">
       <HandymanNav />
 
       {isLoading && (

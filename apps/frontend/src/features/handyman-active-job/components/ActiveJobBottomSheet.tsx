@@ -1,5 +1,6 @@
 import type { ActiveJobResponse } from '@handrix/contracts';
 import { StatusChip } from '../../customer-dashboard/components/StatusChip';
+import { BottomSheet, type BottomSheetState } from '../../shared/components/BottomSheet';
 
 const NEXT_ACTION: Record<string, { label: string; status: string }> = {
   ASSIGNED:   { label: 'Start Heading Over', status: 'ON_THE_WAY' },
@@ -10,18 +11,10 @@ const NEXT_ACTION: Record<string, { label: string; status: string }> = {
 
 const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
-type SheetState = 'collapsed' | 'half' | 'full';
-
-function nextState(current: SheetState): SheetState {
-  if (current === 'collapsed') return 'half';
-  if (current === 'half') return 'full';
-  return 'collapsed';
-}
-
 interface Props {
   job: ActiveJobResponse;
-  sheetState: SheetState;
-  onStateChange: (s: SheetState) => void;
+  sheetState: BottomSheetState;
+  onStateChange: (s: BottomSheetState) => void;
   onStatusAction: (newStatus: string) => void;
   isUpdating: boolean;
 }
@@ -30,13 +23,12 @@ export function ActiveJobBottomSheet({ job, sheetState, onStateChange, onStatusA
   const nextAction = NEXT_ACTION[job.status];
 
   return (
-    <div className={`active-job-bottom-sheet active-job-bottom-sheet--${sheetState}`}>
-      <button
-        className="active-job-bottom-sheet__handle"
-        onClick={() => onStateChange(nextState(sheetState))}
-        aria-label="Toggle detail panel"
-      />
-
+    <BottomSheet
+      state={sheetState}
+      onStateChange={onStateChange}
+      className="active-job-bottom-sheet"
+      aria-label="Toggle active job details"
+    >
       <div aria-live="polite" className="active-job-bottom-sheet__status-row">
         <StatusChip status={job.status} />
       </div>
@@ -66,6 +58,6 @@ export function ActiveJobBottomSheet({ job, sheetState, onStateChange, onStatusA
           )}
         </>
       )}
-    </div>
+    </BottomSheet>
   );
 }

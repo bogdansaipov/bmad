@@ -6,6 +6,7 @@ import { CategoryListResponseDto, ServiceCategoryDto } from './dto/category-list
 export class CategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Returns active categories ordered by name. To add a new category: INSERT into service_categories with isActive=true. No code changes required. */
   async findAllActive(): Promise<CategoryListResponseDto> {
     const rows = await this.prisma.serviceCategory.findMany({
       where: { isActive: true },

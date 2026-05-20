@@ -70,6 +70,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     return entry.count > this.JOIN_ROOM_LIMIT;
   }
 
+  // Room key: 'request-${requestId}'. Future chat messages can be emitted on this same room without changing the room identity model.
   @SubscribeMessage('join-room')
   async handleJoinRoom(
     @ConnectedSocket() client: Socket,
