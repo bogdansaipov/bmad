@@ -52,32 +52,32 @@ export function ImageUploadTile({
   const displayError = validationError ?? uploadError;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="image-upload-wrap">
       {!imagePreviewUrl ? (
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="w-full min-h-[80px] border-2 border-dashed border-stone-300 rounded-xl flex items-center justify-center text-stone-500 text-sm hover:border-blue-400 transition-colors"
+          className="image-upload-btn"
         >
           Add photo (optional)
         </button>
       ) : (
-        <div className="relative w-full rounded-xl overflow-hidden border border-stone-200">
+        <div className="image-upload-preview">
           <img
             src={imagePreviewUrl}
             alt="Selected preview"
-            className="w-full object-cover max-h-48"
+            className="image-upload-preview__img"
           />
           {isUploading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/70">
-              <span className="text-blue-700 font-medium text-sm">Uploading…</span>
+            <div className="image-upload-preview__overlay">
+              <span className="image-upload-preview__overlay-text">Uploading…</span>
             </div>
           )}
           {!isUploading && (
             <button
               type="button"
               onClick={onImageRemove}
-              className="absolute top-2 right-2 bg-white rounded-full w-7 h-7 flex items-center justify-center shadow text-[#1A1A2E] text-xs font-bold"
+              className="image-upload-preview__remove"
               aria-label="Remove image"
             >
               ✕
@@ -87,7 +87,7 @@ export function ImageUploadTile({
       )}
 
       {displayError && (
-        <p className="text-red-600 text-sm" role="alert">
+        <p className="image-upload-error" role="alert">
           {displayError}
         </p>
       )}

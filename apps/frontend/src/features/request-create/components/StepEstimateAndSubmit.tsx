@@ -15,11 +15,13 @@ function formatCurrency(value: number) {
 
 function LoadingRows() {
   return (
-    <div className="space-y-3" aria-busy="true">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="h-4 rounded bg-stone-100 animate-pulse" />
-      ))}
-      <p className="text-sm text-stone-500">Loading estimate…</p>
+    <div aria-busy="true" style={{ marginTop: '1rem' }}>
+      <div className="skeleton-list">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="skeleton-line" style={{ height: '1rem' }} />
+        ))}
+      </div>
+      <p className="create-step__hint" style={{ marginTop: '0.5rem' }}>Loading estimate…</p>
     </div>
   );
 }
@@ -56,66 +58,62 @@ export function StepEstimateAndSubmit({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <h2 className="text-xl font-semibold text-[#1A1A2E]">Review your request</h2>
+    <div className="create-step">
+      <h2>Review your request</h2>
 
-      <section className="rounded-xl bg-white p-4 shadow-sm">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
-          Service estimate
-        </h3>
+      <section className="estimate-section">
+        <h3>Service estimate</h3>
 
         {isLoading && <LoadingRows />}
 
         {isError && (
-          <p className="mt-3 text-sm text-red-600" role="alert">
+          <p className="field-error" role="alert" style={{ marginTop: '0.75rem' }}>
             Unable to load estimate. Please go back and try again.
           </p>
         )}
 
         {!isLoading && !isError && data && (
-          <div className="mt-4">
-            <dl className="space-y-3 text-sm text-stone-600">
-              <div className="flex items-center justify-between gap-4">
+          <div>
+            <dl className="estimate-list">
+              <div className="estimate-row">
                 <dt>Base service fee</dt>
                 <dd>{formatCurrency(data.baseFee)}</dd>
               </div>
-              <div className="flex items-center justify-between gap-4">
+              <div className="estimate-row">
                 <dt>Category fee</dt>
                 <dd>{formatCurrency(data.categoryFee)}</dd>
               </div>
-              <div className="flex items-center justify-between gap-4">
+              <div className="estimate-row">
                 <dt>Parts allowance</dt>
                 <dd>{formatCurrency(data.partsAllowance)}</dd>
               </div>
-              <hr className="border-stone-200" />
-              <div className="flex items-center justify-between gap-4 font-semibold text-[#1A1A2E]">
+              <hr className="estimate-divider" />
+              <div className="estimate-row estimate-row--total">
                 <dt>Estimated total</dt>
                 <dd>{formatCurrency(data.estimatedTotal)}</dd>
               </div>
             </dl>
-            <p className="mt-2 text-xs text-stone-500">{data.disclaimer}</p>
+            <p className="estimate-disclaimer">{data.disclaimer}</p>
           </div>
         )}
       </section>
 
-      <section className="rounded-xl bg-white p-4 shadow-sm">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
-          Request summary
-        </h3>
-        <dl className="mt-4 space-y-3 text-sm text-stone-600">
-          <div className="flex items-center justify-between gap-4">
+      <section className="estimate-section">
+        <h3>Request summary</h3>
+        <dl className="estimate-list">
+          <div className="estimate-row">
             <dt>Category</dt>
             <dd>{formState.categoryName}</dd>
           </div>
-          <div className="flex items-center justify-between gap-4">
+          <div className="estimate-row">
             <dt>Title</dt>
             <dd>{formState.title}</dd>
           </div>
-          <div className="flex items-center justify-between gap-4">
+          <div className="estimate-row">
             <dt>Image</dt>
             <dd>{formState.imageId ? 'Attached' : 'None'}</dd>
           </div>
-          <div className="flex items-center justify-between gap-4">
+          <div className="estimate-row">
             <dt>Location</dt>
             <dd>{formState.locationLat !== undefined ? 'Set' : 'Not set'}</dd>
           </div>
@@ -123,30 +121,21 @@ export function StepEstimateAndSubmit({
       </section>
 
       {submitError && (
-        <div
-          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-          role="alert"
-        >
+        <div className="server-error" role="alert">
           {submitError}
         </div>
       )}
 
-      <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          disabled={isSubmitting}
-          className="flex-1 min-h-[44px] rounded-xl border border-stone-300 text-[#1A1A2E] font-semibold"
-        >
+      <div className="create-step__actions">
+        <button type="button" onClick={onBack} disabled={isSubmitting} className="btn-outline">
           Back
         </button>
-
         {!isError && (
           <button
             type="button"
             onClick={() => void handleSubmit()}
             disabled={isLoading || isSubmitting || !data}
-            className="flex-1 min-h-[44px] rounded-xl bg-blue-700 text-white font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn-primary"
           >
             {isSubmitting ? 'Submitting…' : 'Confirm & Submit Request'}
           </button>

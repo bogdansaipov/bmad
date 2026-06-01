@@ -72,19 +72,18 @@ export function CreateRequestPage() {
     4;
 
   return (
-    <main className="min-h-screen bg-[#FAF8F5]">
-      <div className="max-w-md mx-auto px-4 py-6 flex flex-col gap-6">
-        {/* Header */}
-        <div className="flex items-center gap-3">
+    <main className="create-request-page">
+      <div className="create-request-content">
+        <div className="create-request-header">
           <button
             type="button"
             onClick={() => navigate('/dashboard/customer')}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-stone-100"
+            className="create-request-back-btn"
             aria-label="Back to dashboard"
           >
             ←
           </button>
-          <h1 className="text-lg font-semibold text-[#1A1A2E]">New Request</h1>
+          <h1>New Request</h1>
         </div>
 
         <StepProgressIndicator currentStep={stepNumber} totalSteps={4} />
@@ -131,3 +130,4 @@ export function CreateRequestPage() {
     </main>
   );
 }
+

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { OSM_STYLE } from '../../shared/config/mapConfig';
+import { OSM_STYLE, createJobPinElement, createHandymanPinElement } from '../../shared/config/mapConfig';
 
 interface RequestTrackingMapProps {
   jobLat: number | null;
@@ -31,14 +31,13 @@ export function RequestTrackingMap({ jobLat, jobLng, handymanLat, handymanLng }:
     });
     mapRef.current = map;
 
-    if (hasJob) {
-      const el = document.createElement('div');
-      el.className = 'map-pin';
-      el.style.animation = 'fadeInScale 300ms ease forwards';
-      const jobMarker = new maplibregl.Marker({ element: el });
-      jobMarker.setLngLat([jobLng as number, jobLat as number]).addTo(map);
-      jobMarkerRef.current = jobMarker;
-    }
+    map.on('load', () => {
+      if (hasJob) {
+        const jobMarker = new maplibregl.Marker({ element: createJobPinElement() });
+        jobMarker.setLngLat([jobLng as number, jobLat as number]).addTo(map);
+        jobMarkerRef.current = jobMarker;
+      }
+    });
 
     return () => {
       jobMarkerRef.current?.remove();
@@ -58,10 +57,7 @@ export function RequestTrackingMap({ jobLat, jobLng, handymanLat, handymanLng }:
     if (handymanMarkerRef.current) {
       handymanMarkerRef.current.setLngLat([handymanLng, handymanLat]);
     } else {
-      const el = document.createElement('div');
-      el.className = 'map-pin map-pin--handyman';
-      el.style.animation = 'fadeInScale 300ms ease forwards';
-      const handymanMarker = new maplibregl.Marker({ element: el });
+      const handymanMarker = new maplibregl.Marker({ element: createHandymanPinElement() });
       handymanMarker.setLngLat([handymanLng, handymanLat]).addTo(mapRef.current);
       handymanMarkerRef.current = handymanMarker;
     }
@@ -82,7 +78,7 @@ export function RequestTrackingMap({ jobLat, jobLng, handymanLat, handymanLng }:
   return (
     <div
       ref={containerRef}
-      className="w-full h-full"
+      style={{ position: 'absolute', inset: 0 }}
       role="application"
       aria-label="Request tracking map"
     />

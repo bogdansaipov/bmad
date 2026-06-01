@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
-import maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
-import { OSM_STYLE } from '../../../shared/config/mapConfig';
+import { useEffect, useRef } from "react";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+import { OSM_STYLE, createJobPinElement } from "../../shared/config/mapConfig";
 
 function clampCoords(lat: number, lng: number): [number, number] {
   return [
@@ -16,7 +16,11 @@ interface MapLocationPickerProps {
   onLocationChange: (lat: number, lng: number) => void;
 }
 
-export function MapLocationPicker({ initialLat, initialLng, onLocationChange }: MapLocationPickerProps) {
+export function MapLocationPicker({
+  initialLat,
+  initialLng,
+  onLocationChange,
+}: MapLocationPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
@@ -34,7 +38,7 @@ export function MapLocationPicker({ initialLat, initialLng, onLocationChange }: 
     });
     mapRef.current = map;
 
-    const marker = new maplibregl.Marker({ draggable: true });
+    const marker = new maplibregl.Marker({ element: createJobPinElement(), draggable: true });
     markerRef.current = marker;
 
     if (initialLat !== undefined && initialLng !== undefined) {
@@ -42,14 +46,14 @@ export function MapLocationPicker({ initialLat, initialLng, onLocationChange }: 
       markerOnMapRef.current = true;
     }
 
-    map.on('click', (e) => {
+    map.on("click", (e) => {
       const [lat, lng] = clampCoords(e.lngLat.lat, e.lngLat.lng);
       marker.setLngLat([lng, lat]).addTo(map);
       markerOnMapRef.current = true;
       onLocationChangeRef.current(lat, lng);
     });
 
-    marker.on('dragend', () => {
+    marker.on("dragend", () => {
       const { lat, lng } = marker.getLngLat();
       const [clampedLat, clampedLng] = clampCoords(lat, lng);
       onLocationChangeRef.current(clampedLat, clampedLng);
@@ -78,7 +82,7 @@ export function MapLocationPicker({ initialLat, initialLng, onLocationChange }: 
   return (
     <div
       ref={containerRef}
-      className="w-full h-64 rounded-xl overflow-hidden"
+      style={{ width: '100%', height: '16rem', borderRadius: '0.75rem', overflow: 'hidden' }}
       role="application"
       aria-label="Location selector map"
     />

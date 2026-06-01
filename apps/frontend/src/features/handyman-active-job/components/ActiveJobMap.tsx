@@ -1,17 +1,20 @@
 import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { OSM_STYLE } from '../../../shared/config/mapConfig';
+import { OSM_STYLE, createJobPinElement, createHandymanPinElement } from '../../shared/config/mapConfig';
 
 interface ActiveJobMapProps {
   jobLat: number | null;
   jobLng: number | null;
+  handymanLat: number | null;
+  handymanLng: number | null;
 }
 
-export function ActiveJobMap({ jobLat, jobLng }: ActiveJobMapProps) {
+export function ActiveJobMap({ jobLat, jobLng, handymanLat, handymanLng }: ActiveJobMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
-  const markerRef = useRef<maplibregl.Marker | null>(null);
+  const jobMarkerRef = useRef<maplibregl.Marker | null>(null);
+  const handymanMarkerRef = useRef<maplibregl.Marker | null>(null);
 
   useEffect(() => {
     const hasJob = jobLat != null && jobLng != null;
@@ -26,43 +29,57 @@ export function ActiveJobMap({ jobLat, jobLng }: ActiveJobMapProps) {
     });
     mapRef.current = map;
 
-    if (hasJob) {
-      const el = document.createElement('div');
-      el.className = 'map-pin';
-      el.style.animation = 'fadeInScale 300ms ease forwards';
-      const marker = new maplibregl.Marker({ element: el });
-      marker.setLngLat([jobLng as number, jobLat as number]).addTo(map);
-      markerRef.current = marker;
-    }
+    map.on('load', () => {
+      if (hasJob) {
+        const marker = new maplibregl.Marker({ element: createJobPinElement() });
+        marker.setLngLat([jobLng as number, jobLat as number]).addTo(map);
+        jobMarkerRef.current = marker;
+      }
+    });
 
     return () => {
-      markerRef.current?.remove();
+      jobMarkerRef.current?.remove();
+      handymanMarkerRef.current?.remove();
       mapRef.current?.remove();
-      markerRef.current = null;
+      jobMarkerRef.current = null;
+      handymanMarkerRef.current = null;
       mapRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Handyman's own location pin — updates as geolocation fires, fits bounds with job pin
   useEffect(() => {
-    if (!mapRef.current || jobLat == null || jobLng == null) return;
-    if (markerRef.current) {
-      markerRef.current.setLngLat([jobLng, jobLat]);
+    if (!mapRef.current || handymanLat == null || handymanLng == null) return;
+
+    if (handymanMarkerRef.current) {
+      handymanMarkerRef.current.setLngLat([handymanLng, handymanLat]);
     } else {
-      const el = document.createElement('div');
-      el.className = 'map-pin';
-      el.style.animation = 'fadeInScale 300ms ease forwards';
-      const marker = new maplibregl.Marker({ element: el });
-      marker.setLngLat([jobLng, jobLat]).addTo(mapRef.current);
-      markerRef.current = marker;
+      const marker = new maplibregl.Marker({ element: createHandymanPinElement() });
+      marker.setLngLat([handymanLng, handymanLat]).addTo(mapRef.current);
+      handymanMarkerRef.current = marker;
     }
-    mapRef.current.flyTo({ center: [jobLng, jobLat], zoom: 14 });
-  }, [jobLat, jobLng]);
+
+    if (jobLat != null && jobLng != null) {
+      const minLng = Math.min(jobLng, handymanLng);
+      const maxLng = Math.max(jobLng, handymanLng);
+      const minLat = Math.min(jobLat, handymanLat);
+      const maxLat = Math.max(jobLat, handymanLat);
+      if (minLng === maxLng && minLat === maxLat) {
+        mapRef.current.flyTo({ center: [handymanLng, handymanLat], zoom: 15 });
+      } else {
+        mapRef.current.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 80 });
+      }
+    } else {
+      mapRef.current.flyTo({ center: [handymanLng, handymanLat], zoom: 14 });
+    }
+  }, [handymanLat, handymanLng, jobLat, jobLng]);
 
   return (
     <div
       ref={containerRef}
-      className="w-full h-full"
+      style={{ position: 'absolute', inset: 0 }}
+      role="application"
       aria-label="Active job location map"
     />
   );

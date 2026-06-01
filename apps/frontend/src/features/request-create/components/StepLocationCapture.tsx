@@ -46,8 +46,8 @@ export function StepLocationCapture({
   const canConfirm = pendingLat !== undefined && pendingLng !== undefined;
 
   return (
-    <div className="flex flex-col gap-4">
-      <h2 className="text-xl font-semibold text-[#1A1A2E]">Confirm your location</h2>
+    <div className="create-step">
+      <h2>Confirm your location</h2>
 
       <MapLocationPicker
         initialLat={pendingLat}
@@ -59,37 +59,29 @@ export function StepLocationCapture({
       />
 
       {isLocating && (
-        <p role="status" className="text-sm text-stone-500">
-          Detecting your location…
-        </p>
+        <p className="create-step__hint" role="status">Detecting your location…</p>
       )}
 
       {geoError && !isLocating && (
-        <p role="status" className="text-sm text-stone-500">
-          {geoError}
-        </p>
+        <p className="create-step__hint" role="status">{geoError}</p>
       )}
 
-      <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex-1 min-h-[44px] rounded-xl border border-stone-300 text-[#1A1A2E] font-medium"
-        >
+      <div className="create-step__actions">
+        <button type="button" onClick={onBack} className="btn-outline">
           Back
         </button>
         <button
           type="button"
           onClick={() => canConfirm && onLocationConfirmed(pendingLat!, pendingLng!)}
           disabled={!canConfirm}
-          className="flex-1 min-h-[44px] rounded-xl bg-blue-700 text-white font-medium disabled:opacity-50"
+          className="btn-primary"
         >
           Confirm Location
         </button>
       </div>
 
       {canConfirm && (
-        <p className="text-xs text-stone-500">
+        <p className="create-step__hint">
           Lat: {pendingLat!.toFixed(3)}, Lng: {pendingLng!.toFixed(3)}
         </p>
       )}

@@ -15,7 +15,7 @@ export function HandymanJobsPage() {
   const jobs = jobsQuery.data ?? [];
 
   return (
-    <div data-theme="handyman" className="dashboard handyman-jobs-page">
+    <div className="dashboard handyman-jobs-page">
       <div className="dashboard-header">
         <h1>Available Jobs</h1>
         {profile && (

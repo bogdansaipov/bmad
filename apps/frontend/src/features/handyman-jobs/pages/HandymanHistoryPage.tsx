@@ -25,7 +25,7 @@ export function HandymanHistoryPage() {
   if (authFailed) return null;
 
   return (
-    <div data-theme="handyman" className="dashboard handyman-dashboard">
+    <div className="dashboard handyman-dashboard">
       <HandymanNav />
       <div className="dashboard-header">
         <h1>Job History</h1>
@@ -67,7 +67,7 @@ export function HandymanHistoryPage() {
         )}
 
         {!isLoading && !isError && data && data.length > 0 && (
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+          <ul className="job-history-list">
             {data.map((item) => (
               <li key={item.offerId}>
                 <JobHistoryRow item={item} />

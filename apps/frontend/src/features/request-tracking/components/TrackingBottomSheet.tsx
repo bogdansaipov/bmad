@@ -35,11 +35,6 @@ export function TrackingBottomSheet({ tracking, sheetState, onStateChange }: Tra
               {currencyFormatter.format(tracking.estimatedTotal)}
             </p>
           )}
-        </>
-      )}
-
-      {sheetState === 'full' && (
-        <>
           <p className="tracking-bottom-sheet__title">{tracking.title}</p>
           <p className="tracking-bottom-sheet__category">{tracking.categoryName}</p>
           {tracking.description && (

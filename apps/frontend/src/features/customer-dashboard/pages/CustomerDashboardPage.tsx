@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { useCustomerRequests } from '../hooks/useCustomerRequests';
 import { AuthError } from '../api/requests.api';
@@ -18,7 +19,7 @@ export function CustomerDashboardPage() {
         <Link
           to="/requests/new"
           className="btn-primary"
-          style={{ minHeight: 44, minWidth: 44, display: 'inline-flex', alignItems: 'center' }}
+          style={{ minHeight: 44, minWidth: 44, display: 'inline-flex', alignItems: 'center', width: 'auto', whiteSpace: 'nowrap' }}
         >
           New Request
         </Link>
@@ -46,8 +47,8 @@ export function CustomerDashboardPage() {
               <EmptyState />
             ) : (
               <ul className="request-list">
-                {data.items.map((item) => (
-                  <li key={item.id}>
+                {data.items.map((item, index) => (
+                  <li key={item.id} style={{ ['--card-index' as string]: index } as CSSProperties}>
                     <RequestCard item={item} />
                   </li>
                 ))}

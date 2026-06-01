@@ -19,6 +19,8 @@ export function ActiveJobPage() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [sheetState, setSheetState] = useState<'collapsed' | 'half' | 'full'>('half');
+  const [handymanLat, setHandymanLat] = useState<number | null>(null);
+  const [handymanLng, setHandymanLng] = useState<number | null>(null);
 
   const jobQuery = useActiveJob(requestId ?? '');
   const statusMutation = useUpdateJobStatus(requestId ?? '');
@@ -44,6 +46,8 @@ export function ActiveJobPage() {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           locationMutation.mutate({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          setHandymanLat(pos.coords.latitude);
+          setHandymanLng(pos.coords.longitude);
         },
         () => { /* silently ignore permission/unavailable errors */ },
         { timeout: 10_000, maximumAge: 60_000 },
@@ -68,7 +72,7 @@ export function ActiveJobPage() {
   const { isLoading, isError, error, data } = jobQuery;
 
   return (
-    <div data-theme="handyman" className="active-job-page">
+    <div className="active-job-page">
       <HandymanNav />
 
       {isLoading && (
@@ -96,7 +100,12 @@ export function ActiveJobPage() {
       {data && (
         <>
           <div className="active-job-page__map-container">
-            <ActiveJobMap jobLat={data.locationLat} jobLng={data.locationLng} />
+            <ActiveJobMap
+            jobLat={data.locationLat}
+            jobLng={data.locationLng}
+            handymanLat={handymanLat}
+            handymanLng={handymanLng}
+          />
           </div>
           <ActiveJobBottomSheet
             job={data}

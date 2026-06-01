@@ -31,7 +31,7 @@ export function HandymanDashboardPage() {
     : null;
 
   return (
-    <div data-theme="handyman" className="dashboard handyman-dashboard">
+    <div className="dashboard handyman-dashboard">
       <HandymanNav />
       <div className="dashboard-header">
         <div>

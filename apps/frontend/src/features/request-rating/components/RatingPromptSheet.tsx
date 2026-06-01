@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { RatingStatusResponse } from '@handrix/contracts';
 
 interface Props {
@@ -19,6 +19,12 @@ export function RatingPromptSheet({
 }: Props) {
   const [selectedStars, setSelectedStars] = useState<number>(0);
   const [feedback, setFeedback] = useState('');
+
+  useEffect(() => {
+    if (!ratingStatus?.hasRating) return;
+    const timer = setTimeout(onDismiss, 2000);
+    return () => clearTimeout(timer);
+  }, [ratingStatus?.hasRating, onDismiss]);
 
   if (isLoadingStatus) return null;
 

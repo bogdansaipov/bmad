@@ -5,21 +5,13 @@ interface StepProgressIndicatorProps {
 
 export function StepProgressIndicator({ currentStep, totalSteps }: StepProgressIndicatorProps) {
   return (
-    <div
-      className="flex flex-col gap-2"
-      aria-label={`Step ${currentStep} of ${totalSteps}`}
-    >
-      <p className="text-xs text-stone-500">
-        Step {currentStep} of {totalSteps}
-      </p>
-      <div className="flex gap-1">
+    <div className="step-progress" aria-label={`Step ${currentStep} of ${totalSteps}`}>
+      <p className="step-progress__label">Step {currentStep} of {totalSteps}</p>
+      <div className="step-progress__bars">
         {Array.from({ length: totalSteps }).map((_, i) => (
           <div
             key={i}
-            className={[
-              'h-1 flex-1 rounded-full',
-              i < currentStep ? 'bg-blue-700' : 'bg-stone-200',
-            ].join(' ')}
+            className={`step-progress__bar${i < currentStep ? ' step-progress__bar--done' : ''}`}
           />
         ))}
       </div>
